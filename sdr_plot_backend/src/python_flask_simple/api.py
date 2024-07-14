@@ -13,7 +13,7 @@ from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
 api_blueprint = Blueprint('api', __name__)
 
 # Initialize SDR
-sleeptime = 0.03
+sleeptime = 0.01
 sample_size = 1 * 1024  # Adjust sample size to receive more data
 center_freq = 102.1e6  # Center frequency in Hz
 sample_rate = 16e6     # Sample rate in Hz
