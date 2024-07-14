@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python_flask_simple"
+dynamic = ["version"]
+description = "Analyze IQ data"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["IQ", "SDR", "FFT", "Analyzer"]
+authors = []
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "Flask",
+  "requests",
+  "plotly"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[project.urls]
+Documentation = "https://github.com/unknown/python_flask_simple#readme"
+Issues = "https://github.com/unknown/python_flask_simple/issues"
+Source = "https://github.com/unknown/python_flask_simple"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/python_flask_simple/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+cov-xml = [
+  "coverage run -m pytest --junitxml=nosetests.xml {args:tests}",
+  "cov-report",
+  "coverage xml"
+]
+
+[tool.hatch.envs.default.env-vars]
+PIP_TRUSTED_HOST = "playmaker-git"
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
