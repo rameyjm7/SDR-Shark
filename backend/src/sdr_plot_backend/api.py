@@ -8,6 +8,7 @@ import json
 import atexit
 import shutil
 import os
+from scipy.signal import find_peaks
 
 # Import the HackRFSdr class from the bluetooth_demod module
 from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
@@ -35,6 +36,7 @@ waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 data_lock = threading.Lock()
 fft_data = {
     'original_fft': [],
+    'peaks': [],
 }
 running = True
 
@@ -47,8 +49,12 @@ def process_fft(samples):
     fft_magnitude = 20 * np.log10(np.abs(fft_result))
     return fft_magnitude
 
+def detect_peaks(fft_magnitude, threshold=-50):
+    peaks, _ = find_peaks(fft_magnitude, height=threshold)
+    return peaks
+
 def generate_fft_data():
-    global running, dc_suppress
+    global running, dc_suppress, fft_averaging
     averaged_fft = None
     while running:
         start_time = time.time()
@@ -68,8 +74,11 @@ def generate_fft_data():
             dc_index = len(averaged_fft) // 2
             averaged_fft[dc_index] = averaged_fft[dc_index + 1]
         
+        peaks = detect_peaks(averaged_fft)
+
         with data_lock:
             fft_data['original_fft'] = averaged_fft.tolist()
+            fft_data['peaks'] = peaks.tolist()
             waterfall_buffer.append(averaged_fft.tolist())
         
         end_time = time.time()
@@ -83,12 +92,14 @@ fft_thread.start()
 def get_data():
     with data_lock:
         fft_response = fft_data['original_fft'].copy()
+        peaks_response = fft_data['peaks'].copy()
     
     # Get current time
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
     
     return jsonify({
         'fft': fft_response,
+        'peaks': peaks_response,
         'time': current_time
     })
 
@@ -98,9 +109,10 @@ def stream():
         while True:
             with data_lock:
                 fft_response = fft_data['original_fft'].copy()
+                peaks_response = fft_data['peaks'].copy()
             # Get current time
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            yield f"data: {json.dumps({'fft': fft_response, 'time': current_time})}\n\n"
+            yield f"data: {json.dumps({'fft': fft_response, 'peaks': peaks_response, 'time': current_time})}\n\n"
             time.sleep(0.033)  # 30Hz
 
     return Response(event_stream(), content_type='text/event-stream')
@@ -109,15 +121,16 @@ def stream():
 def update_settings():
     try:
         settings = request.json
-        # Here you would update your SDR settings with the provided values
-        # For example:
+        # Update settings
         frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
         gain = float(settings.get('gain'))
         sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
         bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
+        global fft_averaging
+        fft_averaging = int(settings.get('averagingCount', fft_averaging))
         
         # Log the settings
-        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz")
+        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}")
 
         # Perform the SDR configuration update
         hackrf_sdr.set_frequency(frequency)

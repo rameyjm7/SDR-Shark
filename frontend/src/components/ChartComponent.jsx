@@ -5,18 +5,12 @@ const ChartComponent = ({ data, minY, maxY, centerFreq, sampleRate }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
-  // Helper function to generate X-axis labels based on center frequency and sample rate
   const generateFrequencyLabels = () => {
-    if (centerFreq && sampleRate) {
-      const numLabels = data.labels.length;
-      const startFreq = centerFreq - (sampleRate / 2);
-      const endFreq = centerFreq + (sampleRate / 2);
-      const step = (endFreq - startFreq) / (numLabels - 1);
-      const labels = Array.from({ length: numLabels }, (_, index) => (startFreq + (index * step)).toFixed(2));
-      console.log('Generated Frequency Labels:', labels);
-      return labels;
-    }
-    return data.labels;
+    const numLabels = data.labels.length;
+    const startFreq = centerFreq - (sampleRate / 2);
+    const endFreq = centerFreq + (sampleRate / 2);
+    const step = (endFreq - startFreq) / (numLabels - 1);
+    return Array.from({ length: numLabels }, (_, index) => (startFreq + (index * step)).toFixed(2));
   };
 
   useEffect(() => {
@@ -29,14 +23,14 @@ const ChartComponent = ({ data, minY, maxY, centerFreq, sampleRate }) => {
           labels: labels,
           datasets: data.datasets.map(dataset => ({
             ...dataset,
-            pointRadius: 2,  // Smaller dots
+            pointRadius: dataset.pointRadius || 2,
           })),
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           animation: {
-            duration: 0, // Disable animations for smoother updates
+            duration: 0,
           },
           scales: {
             x: {
@@ -57,7 +51,7 @@ const ChartComponent = ({ data, minY, maxY, centerFreq, sampleRate }) => {
           },
           plugins: {
             legend: {
-              display: false,  // Hide legend
+              display: false,
             },
           },
         },
@@ -66,11 +60,11 @@ const ChartComponent = ({ data, minY, maxY, centerFreq, sampleRate }) => {
       chartInstance.current.data.labels = labels;
       chartInstance.current.data.datasets = data.datasets.map(dataset => ({
         ...dataset,
-        pointRadius: 1,  // Smaller dots
+        pointRadius: dataset.pointRadius || 1,
       }));
       chartInstance.current.options.scales.y.min = minY;
       chartInstance.current.options.scales.y.max = maxY;
-      chartInstance.current.update('none'); // Use 'none' to avoid animations
+      chartInstance.current.update('none');
     }
   }, [data, minY, maxY, centerFreq, sampleRate]);
 

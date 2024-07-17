@@ -15,7 +15,15 @@ import {
   Grid,
   AppBar,
   Toolbar,
-  Paper
+  Paper,
+  Switch,
+  FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 
 const theme = createTheme({
@@ -42,11 +50,15 @@ function App() {
   const [time, setTime] = useState('');
   const [minY, setMinY] = useState(-60);
   const [maxY, setMaxY] = useState(20);
+  const [peaks, setPeaks] = useState([]);
   const [settings, setSettings] = useState({
     frequency: 102.1,  // Default values in MHz and dB
     gain: 30,
     sampleRate: 16,
     bandwidth: 16,
+    averagingCount: 20,
+    peakDetection: false,
+    numberOfPeaks: 5,
   });
 
   useEffect(() => {
@@ -54,10 +66,12 @@ function App() {
       try {
         const result = await axios('/api/data');
         setData(result.data.fft || []);
+        setPeaks(result.data.peaks || []);
         setTime(result.data.time);
       } catch (error) {
         console.error("Error fetching data:", error);
         setData([]);
+        setPeaks([]);
       }
     };
 
@@ -75,10 +89,10 @@ function App() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setSettings((prevSettings) => ({
       ...prevSettings,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -94,6 +108,26 @@ function App() {
     }));
   };
 
+  const detectPeaks = (data) => {
+    const peaks = [];
+    const threshold = Math.max(...data) - 10; // Example threshold for peak detection
+    for (let i = 1; i < data.length - 1; i++) {
+      if (data[i] > data[i - 1] && data[i] > data[i + 1] && data[i] > threshold) {
+        peaks.push({ x: i, y: data[i] });
+      }
+    }
+    peaks.sort((a, b) => b.y - a.y);
+    return peaks.slice(0, settings.numberOfPeaks);
+  };
+
+  useEffect(() => {
+    if (settings.peakDetection) {
+      setPeaks(detectPeaks(data));
+    } else {
+      setPeaks([]);
+    }
+  }, [data, settings.peakDetection, settings.numberOfPeaks]);
+
   const chartData = {
     labels: data.map((_, index) => index),
     datasets: [
@@ -105,6 +139,14 @@ function App() {
         borderColor: 'orange',
         pointRadius: 2,  // Smaller dots
       },
+      ...peaks.map((peak, index) => ({
+        label: `Peak ${index + 1}`,
+        data: [{ x: peak.x, y: peak.y }],
+        backgroundColor: 'red',
+        borderColor: 'red',
+        pointRadius: 5,
+        showLine: false,
+      })),
     ],
   };
 
@@ -185,6 +227,43 @@ function App() {
                   InputLabelProps={{ shrink: true }}
                   inputProps={{ step: 0.1 }}
                 />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  label="Averaging Count"
+                  name="averagingCount"
+                  type="number"
+                  value={settings.averagingCount}
+                  onChange={handleChange}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 1 }}
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.peakDetection}
+                      onChange={handleChange}
+                      name="peakDetection"
+                      color="primary"
+                    />
+                  }
+                  label="Enable Peak Detection"
+                />
+                {settings.peakDetection && (
+                  <TextField
+                    fullWidth
+                    margin="dense"
+                    label="Number of Peaks"
+                    name="numberOfPeaks"
+                    type="number"
+                    value={settings.numberOfPeaks}
+                    onChange={handleChange}
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 1 }}
+                  />
+                )}
                 <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
                   Update Settings
                 </Button>
@@ -207,6 +286,28 @@ function App() {
                   valueLabelDisplay="auto"
                 />
               </Box>
+              {settings.peakDetection && peaks.length > 0 && (
+                <TableContainer component={Paper} sx={{ mt: 2 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Peak</TableCell>
+                        <TableCell>Frequency (MHz)</TableCell>
+                        <TableCell>Amplitude (dB)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {peaks.map((peak, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak.x * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
+                          <TableCell>{peak.y.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Paper>
           </Grid>
         </Grid>
