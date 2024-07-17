@@ -1,12 +1,13 @@
-from flask import Blueprint, jsonify, Response, stream_with_context
+from flask import Blueprint, jsonify, Response, stream_with_context, request
 from datetime import datetime
-from scipy.fft import fft
 import numpy as np
 import threading
 import time
 from collections import deque
 import json
-
+import atexit
+import shutil
+import os
 
 # Import the HackRFSdr class from the bluetooth_demod module
 from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
@@ -104,31 +105,33 @@ def stream():
 
     return Response(event_stream(), content_type='text/event-stream')
 
-# @app.route('/api/update_settings', methods=['POST'])
-# def update_settings():
-#     try:
-#         settings = request.json
-#         # Here you would update your SDR settings with the provided values
-#         # For example:
-#         frequency = settings.get('frequency')
-#         gain = settings.get('gain')
-#         sample_rate = settings.get('sampleRate')
-#         bandwidth = settings.get('bandwidth')
+@api_blueprint.route('/api/update_settings', methods=['POST'])
+def update_settings():
+    try:
+        settings = request.json
+        # Here you would update your SDR settings with the provided values
+        # For example:
+        frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
+        gain = float(settings.get('gain'))
+        sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
+        bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
         
-#         # Log the settings
-#         print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz")
+        # Log the settings
+        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz")
 
-#         # Perform the SDR configuration update (this part depends on your SDR implementation)
+        # Perform the SDR configuration update
+        hackrf_sdr.set_frequency(frequency)
+        hackrf_sdr.set_gain(gain)
+        hackrf_sdr.set_sample_rate(sample_rate)
+        hackrf_sdr.set_bandwidth(bandwidth)
 
-#         return jsonify({'success': True, 'settings': settings})
-#     except Exception as e:
-#         print(f'Error updating settings: {e}')
-#         return jsonify({'error': str(e)}), 500
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        print(f'Error updating settings: {e}')
+        return jsonify({'error': str(e)}), 500
     
 
 # Ensure the SDR stops when the application exits
-import atexit
-
 @atexit.register
 def cleanup():
     global running

@@ -1,14 +1,21 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import App from './App';
-import ErrorBoundary from './ErrorBoundary';
-import './index.css';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
-const container = document.getElementById('root');
-const root = createRoot(container);
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+  },
+});
 
-root.render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
+ReactDOM.render(
+  <React.StrictMode>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <App />
+    </ThemeProvider>
+  </React.StrictMode>,
+  document.getElementById('root')
 );

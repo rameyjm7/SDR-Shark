@@ -1,48 +1,82 @@
-import React, { useEffect, useRef } from 'react';
-import Plotly from 'plotly.js-basic-dist';
+import React, { useEffect, useRef, useState } from 'react';
+import Plot from 'react-plotly.js';
 
-const WaterfallPlot = ({ data, freqs }) => {
-  const plotRef = useRef(null);
+const WaterfallPlot = () => {
+  const [fftData, setFftData] = useState([]);
+  const [timeData, setTimeData] = useState([]);
+  const [centerFreq, setCenterFreq] = useState(102.1); // Default value, will be updated
+  const [sampleRate, setSampleRate] = useState(16); // Default value, will be updated
+  const plotRef = useRef();
 
   useEffect(() => {
-    if (!data || !data.length || !freqs.length) {
-      console.error("Invalid data format received for waterfall plot:", data);
-      return;
-    }
+    const eventSource = new EventSource('/api/stream');
 
-    const trace = {
-      x: freqs,
-      y: Array.from({ length: data.length }, (_, i) => data.length - i),
-      z: data,
-      type: 'heatmap',
-      colorscale: 'Jet',
-      showscale: true,  // Display color scale for the spectrogram
+    eventSource.onmessage = (event) => {
+      const parsedData = JSON.parse(event.data);
+      const { fft, time, metadata } = parsedData;
+
+      // Debugging output
+      console.log('Received FFT Data:', fft);
+      console.log('Received Time Data:', time);
+      console.log('Received Metadata:', metadata);
+
+      setFftData((prevData) => [...prevData.slice(-99), fft]);
+      setTimeData((prevTime) => [...prevTime.slice(-99), time]);
+
+      // Update center frequency and sample rate based on metadata
+      if (metadata) {
+        setCenterFreq(metadata.center_freq / 1e6);
+        setSampleRate(metadata.sample_rate / 1e6);
+      }
+
+      if (plotRef.current) {
+        plotRef.current.redraw();
+      }
     };
 
-    const layout = {
-      paper_bgcolor: 'black',
-      plot_bgcolor: '#333',
-      margin: { t: 0 },
-      yaxis: {
-        title: 'Time',
-        showgrid: false,
-        zeroline: false,
-        autorange: 'reversed',
-        color: 'white',
-      },
-      xaxis: {
-        showgrid: false,
-        zeroline: false,
-        range: [freqs[0], freqs[freqs.length - 1]],
-        color: 'white',
-      },
+    return () => {
+      eventSource.close();
     };
+  }, []);
 
-    Plotly.newPlot(plotRef.current, [trace], layout);
-  }, [data, freqs]);
+  const createXAxis = () => {
+    const startFreq = centerFreq - sampleRate / 2;
+    const endFreq = centerFreq + sampleRate / 2;
+    const step = sampleRate / (fftData[0] ? fftData[0].length : 1);
+    console.log('X-Axis Start:', startFreq, 'End:', endFreq, 'Step:', step);
+    return Array.from({ length: fftData[0] ? fftData[0].length : 0 }, (_, i) => startFreq + i * step);
+  };
+
+  const xAxis = createXAxis();
 
   return (
-    <div ref={plotRef} style={{ width: '100%', height: '50vh' }}></div>
+    <div>
+      <Plot
+        ref={plotRef}
+        data={fftData.map((fft, index) => ({
+          x: xAxis,
+          y: fft,
+          type: 'scatter',
+          mode: 'lines',
+          name: timeData[index],
+        }))}
+        layout={{
+          title: 'Waterfall Plot',
+          xaxis: {
+            title: 'Frequency (MHz)',
+          },
+          yaxis: {
+            title: 'Amplitude (dB)',
+          },
+          paper_bgcolor: 'black',
+          plot_bgcolor: 'black',
+          font: {
+            color: 'white',
+          },
+        }}
+        style={{ width: '100%', height: '100%' }}
+      />
+    </div>
   );
 };
 
