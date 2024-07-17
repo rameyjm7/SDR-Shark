@@ -14,7 +14,8 @@ import {
   Box,
   Grid,
   AppBar,
-  Toolbar
+  Toolbar,
+  Paper
 } from '@mui/material';
 
 const theme = createTheme({
@@ -102,6 +103,7 @@ function App() {
         fill: false,
         backgroundColor: 'yellow',
         borderColor: 'orange',
+        pointRadius: 2,  // Smaller dots
       },
     ],
   };
@@ -123,81 +125,89 @@ function App() {
         <Grid container spacing={2} style={{ marginTop: '16px' }}>
           <Grid item xs={9}>
             <div className="chart-container">
-              <ChartComponent data={chartData} minY={minY} maxY={maxY} />
+              <ChartComponent
+                data={chartData}
+                minY={minY}
+                maxY={maxY}
+                centerFreq={settings.frequency}
+                sampleRate={settings.sampleRate}
+              />
             </div>
           </Grid>
           <Grid item xs={3}>
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Frequency (MHz)"
-                name="frequency"
-                type="number"
-                value={settings.frequency}
-                onChange={handleChange}
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 0.1 }}
-              />
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Gain (dB)"
-                name="gain"
-                type="number"
-                value={settings.gain}
-                onChange={handleChange}
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 1 }}
-              />
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Sample Rate (MHz)"
-                name="sampleRate"
-                type="number"
-                value={settings.sampleRate}
-                onChange={handleChange}
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 0.1 }}
-              />
-              <TextField
-                fullWidth
-                margin="dense"
-                label="Bandwidth (MHz)"
-                name="bandwidth"
-                type="number"
-                value={settings.bandwidth}
-                onChange={handleChange}
-                variant="outlined"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ step: 0.1 }}
-              />
-              <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
-                Update Settings
-              </Button>
-            </Box>
-            <Box sx={{ mt: 2 }}>
-              <Typography gutterBottom>Min Y: {minY}</Typography>
-              <Slider
-                min={-60}
-                max={-20}
-                value={minY}
-                onChange={(e, value) => setMinY(value)}
-                valueLabelDisplay="auto"
-              />
-              <Typography gutterBottom>Max Y: {maxY}</Typography>
-              <Slider
-                min={20}
-                max={60}
-                value={maxY}
-                onChange={(e, value) => setMaxY(value)}
-                valueLabelDisplay="auto"
-              />
-            </Box>
+            <Paper elevation={3} sx={{ padding: 2 }}>
+              <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  label="Frequency (MHz)"
+                  name="frequency"
+                  type="number"
+                  value={settings.frequency}
+                  onChange={handleChange}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 0.1 }}
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  label="Gain (dB)"
+                  name="gain"
+                  type="number"
+                  value={settings.gain}
+                  onChange={handleChange}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 1 }}
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  label="Sample Rate (MHz)"
+                  name="sampleRate"
+                  type="number"
+                  value={settings.sampleRate}
+                  onChange={handleChange}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 0.1 }}
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  label="Bandwidth (MHz)"
+                  name="bandwidth"
+                  type="number"
+                  value={settings.bandwidth}
+                  onChange={handleChange}
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{ step: 0.1 }}
+                />
+                <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
+                  Update Settings
+                </Button>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Typography gutterBottom>Min Y: {minY}</Typography>
+                <Slider
+                  min={-60}
+                  max={20}
+                  value={minY}
+                  onChange={(e, value) => setMinY(value)}
+                  valueLabelDisplay="auto"
+                />
+                <Typography gutterBottom>Max Y: {maxY}</Typography>
+                <Slider
+                  min={20}
+                  max={60}
+                  value={maxY}
+                  onChange={(e, value) => setMaxY(value)}
+                  valueLabelDisplay="auto"
+                />
+              </Box>
+            </Paper>
           </Grid>
         </Grid>
       </Container>
