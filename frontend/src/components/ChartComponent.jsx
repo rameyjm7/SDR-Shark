@@ -11,7 +11,10 @@ const ChartComponent = ({ data, minY, maxY }) => {
         type: 'line',
         data: {
           labels: data.labels,
-          datasets: data.datasets,
+          datasets: data.datasets.map(dataset => ({
+            ...dataset,
+            pointRadius: 2,  // Smaller dots
+          })),
         },
         options: {
           responsive: true,
@@ -33,16 +36,17 @@ const ChartComponent = ({ data, minY, maxY }) => {
           },
           plugins: {
             legend: {
-              labels: {
-                color: 'white',
-              },
+              display: false,  // Hide legend
             },
           },
         },
       });
     } else if (chartInstance.current) {
       chartInstance.current.data.labels = data.labels;
-      chartInstance.current.data.datasets = data.datasets;
+      chartInstance.current.data.datasets = data.datasets.map(dataset => ({
+        ...dataset,
+        pointRadius: 1,  // Smaller dots
+      }));
       chartInstance.current.options.scales.y.min = minY;
       chartInstance.current.options.scales.y.max = maxY;
       chartInstance.current.update('none'); // Use 'none' to avoid animations

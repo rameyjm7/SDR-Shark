@@ -12,7 +12,9 @@ import {
   Button,
   Slider,
   Box,
-  Grid
+  Grid,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 
 const theme = createTheme({
@@ -107,11 +109,19 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
+            Spectrum Viewer
+          </Typography>
+          <Typography variant="h6">
+            {time}
+          </Typography>
+        </Toolbar>
+      </AppBar>
       <Container maxWidth="xl">
-        <Typography variant="h4" gutterBottom>FFT and Current Time</Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} style={{ marginTop: '16px' }}>
           <Grid item xs={9}>
-            <Typography variant="h6">Current Time: {time}</Typography>
             <div className="chart-container">
               <ChartComponent data={chartData} minY={minY} maxY={maxY} />
             </div>
