@@ -1,5 +1,5 @@
 from flask import Flask
-from python_flask_simple.api import api_blueprint
+from sdr_plot_backend.api import api_blueprint
 
 def create_app():
     app = Flask(__name__)

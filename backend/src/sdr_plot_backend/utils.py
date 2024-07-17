@@ -1,5 +1,5 @@
 import pytest
-from python_flask_simple import create_app
+from sdr_plot_backend import create_app
 
 @pytest.fixture
 def app():

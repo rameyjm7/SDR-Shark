@@ -1,0 +1,25 @@
+[project]
+name = "sdr_plot_backend"
+version = "0.1.0"
+description = "SDR plot backend"
+authors = [
+    {name = "Jacob Ramey", email = "rameyjm7@gmail.com"}
+]
+
+[tool.hatch.metadata.hooks.plugin]
+name = "hatch_pth"
+
+[tool.hatch.build.targets.wheel.hooks.plugin]
+name = "hatch_pth"
+
+[tool.hatch.envs.default]
+dependencies = [
+    "flask",
+    "numpy",
+    "pyhackrf",
+    "requests",
+    "bluetooth_demod",
+]
+
+[scripts]
+start = "sdr_plot_backend.__init__:create_app"
