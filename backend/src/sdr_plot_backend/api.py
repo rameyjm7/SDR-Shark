@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, Response, stream_with_context, request
+from flask import Blueprint, jsonify, Response, request
 from datetime import datetime
 import numpy as np
 import threading
@@ -80,7 +80,7 @@ def generate_fft_data():
             fft_data['original_fft'] = averaged_fft.tolist()
             fft_data['peaks'] = peaks.tolist()
             waterfall_buffer.append(averaged_fft.tolist())
-        
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         time.sleep(max(0, sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
@@ -107,15 +107,21 @@ def get_data():
 def stream():
     def event_stream():
         while True:
-            with data_lock:
-                fft_response = fft_data['original_fft'].copy()
-                peaks_response = fft_data['peaks'].copy()
-            # Get current time
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            yield f"data: {json.dumps({'fft': fft_response, 'peaks': peaks_response, 'time': current_time})}\n\n"
-            time.sleep(0.033)  # 30Hz
+            try:
+                with data_lock:
+                    fft_response = fft_data['original_fft'].copy()
+                    peaks_response = fft_data['peaks'].copy()
+                # Get current time
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                yield f"data: {json.dumps({'fft': fft_response, 'peaks': peaks_response, 'time': current_time})}\n\n"
+                time.sleep(0.033)  # 30Hz
+            except Exception as e:
+                print(f"Error in event stream: {e}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                time.sleep(1)  # Wait a second before retrying
 
     return Response(event_stream(), content_type='text/event-stream')
+
 
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():

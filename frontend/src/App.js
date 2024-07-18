@@ -1,56 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import './App.css';
-import 'chart.js/auto';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import {
   Container,
   CssBaseline,
   Typography,
-  TextField,
-  Button,
-  Slider,
-  Box,
   Grid,
   AppBar,
   Toolbar,
-  Paper,
-  Switch,
-  FormControlLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
 } from '@mui/material';
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    background: {
-      default: '#000',
-      paper: '#121212',
-    },
-    text: {
-      primary: '#fff',
-    },
-    primary: {
-      main: '#90caf9',
-    },
-    secondary: {
-      main: '#f48fb1',
-    },
-  },
-});
+import theme from './theme';
+import ControlPanel from './components/ControlPanel';
 
 function App() {
-  const [data, setData] = useState([]);
-  const [time, setTime] = useState('');
   const [minY, setMinY] = useState(-60);
   const [maxY, setMaxY] = useState(20);
-  const [peaks, setPeaks] = useState([]);
   const [settings, setSettings] = useState({
     frequency: 102.1,  // Default values in MHz and dB
     gain: 30,
@@ -61,23 +27,7 @@ function App() {
     numberOfPeaks: 5,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await axios('/api/data');
-        setData(result.data.fft || []);
-        setPeaks(result.data.peaks || []);
-        setTime(result.data.time);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setData([]);
-        setPeaks([]);
-      }
-    };
-
-    const interval = setInterval(fetchData, 33.33); // fetch new data every 30ms (30Hz)
-    return () => clearInterval(interval); // cleanup
-  }, []);
+  const chartRef = useRef(null);
 
   const updateSettings = async () => {
     try {
@@ -108,48 +58,6 @@ function App() {
     }));
   };
 
-  const detectPeaks = (data) => {
-    const peaks = [];
-    const threshold = Math.max(...data) - 10; // Example threshold for peak detection
-    for (let i = 1; i < data.length - 1; i++) {
-      if (data[i] > data[i - 1] && data[i] > data[i + 1] && data[i] > threshold) {
-        peaks.push({ x: i, y: data[i] });
-      }
-    }
-    peaks.sort((a, b) => b.y - a.y);
-    return peaks.slice(0, settings.numberOfPeaks);
-  };
-
-  useEffect(() => {
-    if (settings.peakDetection) {
-      setPeaks(detectPeaks(data));
-    } else {
-      setPeaks([]);
-    }
-  }, [data, settings.peakDetection, settings.numberOfPeaks]);
-
-  const chartData = {
-    labels: data.map((_, index) => index),
-    datasets: [
-      {
-        label: 'FFT Data',
-        data: data,
-        fill: false,
-        backgroundColor: 'yellow',
-        borderColor: 'orange',
-        pointRadius: 2,  // Smaller dots
-      },
-      ...peaks.map((peak, index) => ({
-        label: `Peak ${index + 1}`,
-        data: [{ x: peak.x, y: peak.y }],
-        backgroundColor: 'red',
-        borderColor: 'red',
-        pointRadius: 5,
-        showLine: false,
-      })),
-    ],
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -158,9 +66,6 @@ function App() {
           <Typography variant="h6" style={{ flexGrow: 1 }}>
             Spectrum Viewer
           </Typography>
-          <Typography variant="h6">
-            {time}
-          </Typography>
         </Toolbar>
       </AppBar>
       <Container maxWidth="xl">
@@ -168,7 +73,7 @@ function App() {
           <Grid item xs={9}>
             <div className="chart-container">
               <ChartComponent
-                data={chartData}
+                ref={chartRef}
                 minY={minY}
                 maxY={maxY}
                 centerFreq={settings.frequency}
@@ -177,138 +82,16 @@ function App() {
             </div>
           </Grid>
           <Grid item xs={3}>
-            <Paper elevation={3} sx={{ padding: 2 }}>
-              <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  label="Frequency (MHz)"
-                  name="frequency"
-                  type="number"
-                  value={settings.frequency}
-                  onChange={handleChange}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 0.1 }}
-                />
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  label="Gain (dB)"
-                  name="gain"
-                  type="number"
-                  value={settings.gain}
-                  onChange={handleChange}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 1 }}
-                />
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  label="Sample Rate (MHz)"
-                  name="sampleRate"
-                  type="number"
-                  value={settings.sampleRate}
-                  onChange={handleChange}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 0.1 }}
-                />
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  label="Bandwidth (MHz)"
-                  name="bandwidth"
-                  type="number"
-                  value={settings.bandwidth}
-                  onChange={handleChange}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 0.1 }}
-                />
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  label="Averaging Count"
-                  name="averagingCount"
-                  type="number"
-                  value={settings.averagingCount}
-                  onChange={handleChange}
-                  variant="outlined"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 1 }}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.peakDetection}
-                      onChange={handleChange}
-                      name="peakDetection"
-                      color="primary"
-                    />
-                  }
-                  label="Enable Peak Detection"
-                />
-                {settings.peakDetection && (
-                  <TextField
-                    fullWidth
-                    margin="dense"
-                    label="Number of Peaks"
-                    name="numberOfPeaks"
-                    type="number"
-                    value={settings.numberOfPeaks}
-                    onChange={handleChange}
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 1 }}
-                  />
-                )}
-                <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
-                  Update Settings
-                </Button>
-              </Box>
-              <Box sx={{ mt: 2 }}>
-                <Typography gutterBottom>Min Y: {minY}</Typography>
-                <Slider
-                  min={-60}
-                  max={20}
-                  value={minY}
-                  onChange={(e, value) => setMinY(value)}
-                  valueLabelDisplay="auto"
-                />
-                <Typography gutterBottom>Max Y: {maxY}</Typography>
-                <Slider
-                  min={20}
-                  max={60}
-                  value={maxY}
-                  onChange={(e, value) => setMaxY(value)}
-                  valueLabelDisplay="auto"
-                />
-              </Box>
-              {settings.peakDetection && peaks.length > 0 && (
-                <TableContainer component={Paper} sx={{ mt: 2 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Peak</TableCell>
-                        <TableCell>Frequency (MHz)</TableCell>
-                        <TableCell>Amplitude (dB)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {peaks.map((peak, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak.x * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
-                          <TableCell>{peak.y.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </Paper>
+            <ControlPanel
+              settings={settings}
+              minY={minY}
+              maxY={maxY}
+              peaks={[]}
+              data={[]}
+              handleChange={handleChange}
+              handleSliderChange={handleSliderChange}
+              handleSubmit={handleSubmit}
+            />
           </Grid>
         </Grid>
       </Container>
