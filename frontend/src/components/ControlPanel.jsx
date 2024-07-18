@@ -13,8 +13,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  InputAdornment,
+  TableRow
 } from '@mui/material';
 
 const ControlPanel = ({
@@ -25,7 +24,7 @@ const ControlPanel = ({
   data,
   handleChange,
   handleSliderChange,
-  handleSubmit,
+  handleSubmit
 }) => {
   return (
     <Paper elevation={3} sx={{ padding: 2 }}>
@@ -101,9 +100,6 @@ const ControlPanel = ({
           variant="outlined"
           InputLabelProps={{ shrink: true }}
           inputProps={{ step: 1, min: 1, max: 1000 }}
-          InputProps={{
-            endAdornment: <InputAdornment position="end">ms</InputAdornment>,
-          }}
         />
         <FormControlLabel
           control={
@@ -166,14 +162,8 @@ const ControlPanel = ({
               {peaks.map((peak, index) => (
                 <TableRow key={index}>
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>
-                    {(
-                      settings.frequency -
-                      settings.sampleRate / 2 +
-                      (peak * settings.sampleRate) / data.length
-                    ).toFixed(2)}
-                  </TableCell>
-                  <TableCell>{peak.y !== undefined ? peak.y.toFixed(2) : 'N/A'}</TableCell>
+                  <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
+                  <TableCell>{data[peak] !== undefined ? data[peak].toFixed(2) : 'N/A'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

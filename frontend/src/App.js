@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import ControlPanel from './components/ControlPanel';
@@ -9,9 +9,9 @@ import {
   Container,
   CssBaseline,
   Typography,
-  Grid,
   AppBar,
   Toolbar,
+  Grid
 } from '@mui/material';
 
 const theme = createTheme({
@@ -49,6 +49,31 @@ function App() {
     numberOfPeaks: 5,
     throttleInterval: 10,
   });
+  const eventSourceRef = useRef(null);
+
+  useEffect(() => {
+    eventSourceRef.current = new EventSource('/api/stream');
+
+    eventSourceRef.current.onmessage = (event) => {
+      const parsedData = JSON.parse(event.data);
+      setData(parsedData.fft || []);
+      setPeaks(parsedData.peaks || []);
+      setTime(parsedData.time || '');
+    };
+
+    return () => {
+      eventSourceRef.current.close();
+    };
+  }, []);
+
+  const updateSettings = async () => {
+    try {
+      const response = await axios.post('/api/update_settings', settings);
+      console.log('Settings updated:', response.data);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -59,25 +84,36 @@ function App() {
   };
 
   const handleSliderChange = (name) => (e, value) => {
-    if (name === 'minY') {
-      setMinY(value);
-    } else if (name === 'maxY') {
-      setMaxY(value);
-    }
     setSettings((prevSettings) => ({
       ...prevSettings,
       [name]: value,
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post('/api/update_settings', settings);
-      console.log('Settings updated:', response.data);
-    } catch (error) {
-      console.error('Error updating settings:', error);
-    }
+    updateSettings();
+  };
+
+  const chartData = {
+    labels: data.map((_, index) => index),
+    datasets: [
+      {
+        label: 'FFT Data',
+        data: data,
+        fill: false,
+        backgroundColor: 'yellow',
+        borderColor: 'orange',
+        pointRadius: 2,  // Smaller dots
+      },
+      ...peaks.map((peak, index) => ({
+        label: `Peak ${index + 1}`,
+        data: [{ x: peak.x, y: peak.y }],
+        backgroundColor: 'red',
+        borderColor: 'red',
+        pointRadius: 5,
+      })),
+    ],
   };
 
   return (
@@ -97,7 +133,14 @@ function App() {
         <Grid container spacing={2} style={{ marginTop: '16px' }}>
           <Grid item xs={9}>
             <div className="chart-container">
-              <ChartComponent settings={{ ...settings, minY, maxY }} />
+              <ChartComponent
+                data={chartData}
+                minY={minY}
+                maxY={maxY}
+                centerFreq={settings.frequency}
+                sampleRate={settings.sampleRate}
+                throttleInterval={settings.throttleInterval}
+              />
             </div>
           </Grid>
           <Grid item xs={3}>

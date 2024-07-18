@@ -1,28 +1,41 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Chart from 'chart.js/auto';
 import { debounce } from 'lodash';
 
-const ChartComponent = ({ settings }) => {
+const ChartComponent = ({ data, minY, maxY, centerFreq, sampleRate, throttleInterval }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
-  const [throttleInterval, setThrottleInterval] = useState(settings.throttleInterval || 10);
+
+  const generateFrequencyLabels = () => {
+    const numLabels = data.labels.length;
+    const startFreq = centerFreq - (sampleRate / 2);
+    const endFreq = centerFreq + (sampleRate / 2);
+    const step = (endFreq - startFreq) / (numLabels - 1);
+    return Array.from({ length: numLabels }, (_, index) => (startFreq + (index * step)).toFixed(2));
+  };
+
+  const labels = generateFrequencyLabels();
+
+  const updateChart = debounce(() => {
+    if (chartInstance.current) {
+      chartInstance.current.data.labels = labels;
+      chartInstance.current.data.datasets = data.datasets;
+      chartInstance.current.options.scales.y.min = minY;
+      chartInstance.current.options.scales.y.max = maxY;
+      chartInstance.current.update('none');
+    }
+  }, throttleInterval);
 
   useEffect(() => {
     if (chartRef.current && !chartInstance.current) {
       chartInstance.current = new Chart(chartRef.current, {
         type: 'line',
         data: {
-          labels: [],
-          datasets: [
-            {
-              label: 'FFT Data',
-              data: [],
-              fill: false,
-              backgroundColor: 'yellow',
-              borderColor: 'orange',
-              pointRadius: 2,
-            },
-          ],
+          labels: labels,
+          datasets: data.datasets.map(dataset => ({
+            ...dataset,
+            pointRadius: 2,
+          })),
         },
         options: {
           responsive: true,
@@ -43,8 +56,8 @@ const ChartComponent = ({ settings }) => {
             y: {
               ticks: { color: 'white' },
               grid: { color: '#444' },
-              min: settings.minY,
-              max: settings.maxY,
+              min: minY,
+              max: maxY,
             },
           },
           plugins: {
@@ -54,43 +67,10 @@ const ChartComponent = ({ settings }) => {
           },
         },
       });
+    } else if (chartInstance.current) {
+      updateChart();
     }
-  }, []);
-
-  useEffect(() => {
-    if (chartInstance.current) {
-      chartInstance.current.options.scales.y.min = settings.minY;
-      chartInstance.current.options.scales.y.max = settings.maxY;
-      chartInstance.current.update('none');
-    }
-  }, [settings.minY, settings.maxY]);
-
-  const updateChart = (data, time) => {
-    if (chartInstance.current) {
-      const chart = chartInstance.current;
-      chart.data.labels = data.map((_, index) => index);
-      chart.data.datasets[0].data = data;
-      chart.update('none');
-    }
-  };
-
-  const throttledUpdateChart = debounce(updateChart, throttleInterval);
-
-  useEffect(() => {
-    const eventSource = new EventSource('/api/stream');
-    eventSource.onmessage = (event) => {
-      const { fft, time } = JSON.parse(event.data);
-      throttledUpdateChart(fft, time);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [throttleInterval]);
-
-  useEffect(() => {
-    setThrottleInterval(settings.throttleInterval);
-  }, [settings.throttleInterval]);
+  }, [data, minY, maxY, throttleInterval]);
 
   return (
     <div style={{ width: '100%', height: '75vh' }}>
