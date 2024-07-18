@@ -1,22 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Chart from 'chart.js/auto';
-import { Typography } from '@mui/material';
+import { debounce } from 'lodash';
 
-const ChartComponent = ({ minY, maxY, centerFreq, sampleRate }) => {
+const ChartComponent = ({ settings }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
-  const [time, setTime] = useState('');
-  const [fftData, setFftData] = useState([]);
-  const [peaksData, setPeaksData] = useState([]);
-
-  // Helper function to generate X-axis labels based on center frequency and sample rate
-  const generateFrequencyLabels = (dataLength) => {
-    const numLabels = dataLength;
-    const startFreq = centerFreq - (sampleRate / 2);
-    const endFreq = centerFreq + (sampleRate / 2);
-    const step = (endFreq - startFreq) / (numLabels - 1);
-    return Array.from({ length: numLabels }, (_, index) => (startFreq + (index * step)).toFixed(2));
-  };
+  const [throttleInterval, setThrottleInterval] = useState(settings.throttleInterval || 10);
 
   useEffect(() => {
     if (chartRef.current && !chartInstance.current) {
@@ -24,13 +13,22 @@ const ChartComponent = ({ minY, maxY, centerFreq, sampleRate }) => {
         type: 'line',
         data: {
           labels: [],
-          datasets: [],
+          datasets: [
+            {
+              label: 'FFT Data',
+              data: [],
+              fill: false,
+              backgroundColor: 'yellow',
+              borderColor: 'orange',
+              pointRadius: 2,
+            },
+          ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           animation: {
-            duration: 0, // Disable animations for smoother updates
+            duration: 0,
           },
           scales: {
             x: {
@@ -45,93 +43,58 @@ const ChartComponent = ({ minY, maxY, centerFreq, sampleRate }) => {
             y: {
               ticks: { color: 'white' },
               grid: { color: '#444' },
-              min: minY,
-              max: maxY,
+              min: settings.minY,
+              max: settings.maxY,
             },
           },
           plugins: {
             legend: {
-              display: false,  // Hide legend
+              display: false,
             },
           },
         },
       });
     }
-  }, [minY, maxY]);
+  }, []);
+
+  useEffect(() => {
+    if (chartInstance.current) {
+      chartInstance.current.options.scales.y.min = settings.minY;
+      chartInstance.current.options.scales.y.max = settings.maxY;
+      chartInstance.current.update('none');
+    }
+  }, [settings.minY, settings.maxY]);
+
+  const updateChart = (data, time) => {
+    if (chartInstance.current) {
+      const chart = chartInstance.current;
+      chart.data.labels = data.map((_, index) => index);
+      chart.data.datasets[0].data = data;
+      chart.update('none');
+    }
+  };
+
+  const throttledUpdateChart = debounce(updateChart, throttleInterval);
 
   useEffect(() => {
     const eventSource = new EventSource('/api/stream');
-
-    const debounceUpdate = (() => {
-      let timer;
-      return (callback, delay) => {
-        clearTimeout(timer);
-        timer = setTimeout(callback, delay);
-      };
-    })();
-
     eventSource.onmessage = (event) => {
-      try {
-        const parsedData = JSON.parse(event.data);
-        const { fft, peaks, time } = parsedData;
-
-        // Debugging output
-        // console.log('Received FFT Data:', fft.slice(0, 10)); // Print first 10 points for brevity
-        // console.log('Received Peaks:', peaks);
-        // console.log('Received Time:', time);
-
-        setTime(time || '');
-        setFftData(fft);
-        setPeaksData(peaks);
-
-        debounceUpdate(() => {
-          if (chartInstance.current) {
-            const labels = generateFrequencyLabels(fft.length);
-            chartInstance.current.data.labels = labels;
-            chartInstance.current.data.datasets = [
-              {
-                label: 'FFT Data',
-                data: fft,
-                fill: false,
-                backgroundColor: 'yellow',
-                borderColor: 'orange',
-                pointRadius: 2,  // Smaller dots
-              },
-              ...peaks.map((peak, index) => ({
-                label: `Peak ${index + 1}`,
-                data: [{ x: labels[peak], y: fft[peak] }],
-                backgroundColor: 'red',
-                borderColor: 'red',
-                pointRadius: 5,
-              })),
-            ];
-            chartInstance.current.update('none'); // Update chart without animation
-          }
-        }, 10); // Update chart at most every 100ms
-      } catch (error) {
-        console.error('Error parsing event data:', error);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-    };
-
-    eventSource.onopen = () => {
-      console.log('EventSource connection opened.');
+      const { fft, time } = JSON.parse(event.data);
+      throttledUpdateChart(fft, time);
     };
 
     return () => {
       eventSource.close();
     };
-  }, [centerFreq, sampleRate]);
+  }, [throttleInterval]);
+
+  useEffect(() => {
+    setThrottleInterval(settings.throttleInterval);
+  }, [settings.throttleInterval]);
 
   return (
     <div style={{ width: '100%', height: '75vh' }}>
       <canvas ref={chartRef}></canvas>
-      <Typography variant="h6" style={{ color: 'white' }}>
-        {time}
-      </Typography>
     </div>
   );
 };
