@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, Response, stream_with_context, request
+from flask import Blueprint, jsonify, Response, request
 from datetime import datetime
 import numpy as np
 import threading
@@ -6,8 +6,6 @@ import time
 from collections import deque
 import json
 import atexit
-import shutil
-import os
 from scipy.signal import find_peaks
 
 # Import the HackRFSdr class from the bluetooth_demod module
@@ -49,13 +47,18 @@ def process_fft(samples):
     fft_magnitude = 20 * np.log10(np.abs(fft_result))
     return fft_magnitude
 
-def detect_peaks(fft_magnitude, threshold=-50):
-    peaks, _ = find_peaks(fft_magnitude, height=threshold)
-    return peaks
+def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
+    sample_rate = 16e6  # Example sample rate in Hz
+    distance_in_samples = int(min_distance * len(fft_magnitude) / sample_rate)
+    peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
+    sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
+    return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
     global running, dc_suppress, fft_averaging
     averaged_fft = None
+    number_of_peaks = 5  # Default number of peaks
+
     while running:
         start_time = time.time()
         capture_samples()
@@ -74,16 +77,19 @@ def generate_fft_data():
             dc_index = len(averaged_fft) // 2
             averaged_fft[dc_index] = averaged_fft[dc_index + 1]
         
-        peaks = detect_peaks(averaged_fft)
+        peaks = detect_peaks(averaged_fft, number_of_peaks=number_of_peaks)
+        peaks = [int(p) for p in peaks]  # Convert to list of Python integers
 
         with data_lock:
             fft_data['original_fft'] = averaged_fft.tolist()
-            fft_data['peaks'] = peaks.tolist()
+            fft_data['peaks'] = peaks
             waterfall_buffer.append(averaged_fft.tolist())
         
         end_time = time.time()
         elapsed_time = end_time - start_time
         time.sleep(max(0, sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
+
+
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -103,20 +109,6 @@ def get_data():
         'time': current_time
     })
 
-@api_blueprint.route('/api/stream')
-def stream():
-    def event_stream():
-        while True:
-            with data_lock:
-                fft_response = fft_data['original_fft'].copy()
-                peaks_response = fft_data['peaks'].copy()
-            # Get current time
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            yield f"data: {json.dumps({'fft': fft_response, 'peaks': peaks_response, 'time': current_time})}\n\n"
-            time.sleep(0.033)  # 30Hz
-
-    return Response(event_stream(), content_type='text/event-stream')
-
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
     try:
@@ -127,10 +119,12 @@ def update_settings():
         sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
         bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
         global fft_averaging
+        global number_of_peaks
         fft_averaging = int(settings.get('averagingCount', fft_averaging))
+        number_of_peaks = int(settings.get('numberOfPeaks', 5))
         
         # Log the settings
-        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}")
+        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Number of Peaks = {number_of_peaks}")
 
         # Perform the SDR configuration update
         hackrf_sdr.set_frequency(frequency)

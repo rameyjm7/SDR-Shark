@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import './App.css';
-import 'chart.js/auto';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   Container,
@@ -108,48 +107,6 @@ function App() {
     }));
   };
 
-  const detectPeaks = (data) => {
-    const peaks = [];
-    const threshold = Math.max(...data) - 10; // Example threshold for peak detection
-    for (let i = 1; i < data.length - 1; i++) {
-      if (data[i] > data[i - 1] && data[i] > data[i + 1] && data[i] > threshold) {
-        peaks.push({ x: i, y: data[i] });
-      }
-    }
-    peaks.sort((a, b) => b.y - a.y);
-    return peaks.slice(0, settings.numberOfPeaks);
-  };
-
-  useEffect(() => {
-    if (settings.peakDetection) {
-      setPeaks(detectPeaks(data));
-    } else {
-      setPeaks([]);
-    }
-  }, [data, settings.peakDetection, settings.numberOfPeaks]);
-
-  const chartData = {
-    labels: data.map((_, index) => index),
-    datasets: [
-      {
-        label: 'FFT Data',
-        data: data,
-        fill: false,
-        backgroundColor: 'yellow',
-        borderColor: 'orange',
-        pointRadius: 2,  // Smaller dots
-      },
-      ...peaks.map((peak, index) => ({
-        label: `Peak ${index + 1}`,
-        data: [{ x: peak.x, y: peak.y }],
-        backgroundColor: 'red',
-        borderColor: 'red',
-        pointRadius: 5,
-        showLine: false,
-      })),
-    ],
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -168,11 +125,11 @@ function App() {
           <Grid item xs={9}>
             <div className="chart-container">
               <ChartComponent
-                data={chartData}
+                data={data}
+                settings={settings}
                 minY={minY}
                 maxY={maxY}
-                centerFreq={settings.frequency}
-                sampleRate={settings.sampleRate}
+                peaks={settings.peakDetection ? peaks : []}
               />
             </div>
           </Grid>
@@ -300,8 +257,8 @@ function App() {
                       {peaks.map((peak, index) => (
                         <TableRow key={index}>
                           <TableCell>{index + 1}</TableCell>
-                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak.x * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
-                          <TableCell>{peak.y.toFixed(2)}</TableCell>
+                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
+                          <TableCell>{data[peak]?.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
