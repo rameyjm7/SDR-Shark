@@ -69,7 +69,45 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     });
   };
 
+  const generatePeakTableAnnotation = (peaks, fftData) => {
+    if (!settings.peakDetection || peaks.length === 0) return null;
+
+    const rows = peaks.map((peak, index) => {
+      const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
+      const power = fftData[peak]?.toFixed(2);
+      return `Peak ${index + 1} | ${freq} MHz | ${power} dB<br>`;
+    }).join('');
+
+    const tableText = rows;
+
+    return {
+      x: 1,
+      y: 1,
+      xref: 'paper',
+      yref: 'paper',
+      text: tableText,
+      showarrow: false,
+      font: {
+        size: 12,
+        color: 'white',
+      },
+      align: 'left',
+      bgcolor: 'rgba(0, 0, 0, 0.7)',
+      bordercolor: 'white',
+      borderwidth: 1,
+      xanchor: 'right',
+      yanchor: 'top',
+      pad: {
+        t: 10,
+        r: 10,
+        b: 10,
+        l: 10,
+      },
+    };
+  };
+
   const peakAnnotations = generateAnnotations(peaks, fftData);
+  const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
 
   const generateTickValsAndLabels = (centerFreq, bandwidth) => {
     const halfBandwidth = bandwidth / 2;
@@ -128,7 +166,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
           font: {
             color: 'white',
           },
-          annotations: peakAnnotations,
+          annotations: [...peakAnnotations, peakTableAnnotation].filter(Boolean),
         }}
         style={{ width: '100%', height: '40vh' }}
       />

@@ -19,6 +19,8 @@ sample_rate = 16e6     # Sample rate in Hz
 gain = 30              # Gain in dB
 fft_averaging = 20
 dc_suppress = True
+min_peak_distance = 250e3  # Default minimum peak distance in Hz
+number_of_peaks = 5        # Default number of peaks to detect
 
 hackrf_sdr = HackRFSdr(center_freq=center_freq, sample_rate=sample_rate, bandwidth=sample_rate, gain=gain, size=sample_size)
 hackrf_sdr.start()
@@ -65,9 +67,8 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
-    global running, dc_suppress, fft_averaging
+    global running, dc_suppress, fft_averaging, min_peak_distance, number_of_peaks
     averaged_fft = None
-    number_of_peaks = 5  # Default number of peaks
 
     while running:
         start_time = time.time()
@@ -87,7 +88,7 @@ def generate_fft_data():
             dc_index = len(averaged_fft) // 2
             averaged_fft[dc_index] = averaged_fft[dc_index + 1]
         
-        peaks = detect_peaks(averaged_fft, number_of_peaks=number_of_peaks)
+        peaks = detect_peaks(averaged_fft, min_distance=min_peak_distance, number_of_peaks=number_of_peaks)
         peaks = [int(p) for p in peaks]  # Convert to list of Python integers
 
         with data_lock:
@@ -128,13 +129,13 @@ def update_settings():
         gain = float(settings.get('gain'))
         sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
         bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-        global fft_averaging
-        global number_of_peaks
+        global fft_averaging, min_peak_distance, number_of_peaks
         fft_averaging = int(settings.get('averagingCount', fft_averaging))
+        min_peak_distance = float(settings.get('minPeakDistance', 0.25)) * 1e6  # Convert MHz to Hz
         number_of_peaks = int(settings.get('numberOfPeaks', 5))
         
         # Log the settings
-        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Number of Peaks = {number_of_peaks}")
+        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Min Peak Distance = {min_peak_distance} Hz, Number of Peaks = {number_of_peaks}")
 
         # Perform the SDR configuration update
         hackrf_sdr.set_frequency(frequency)
