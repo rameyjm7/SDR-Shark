@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -7,11 +7,11 @@ import {
   Switch,
   Typography,
 } from '@mui/material';
+import axios from 'axios';
 
 const ControlPanel = ({
   settings,
   setSettings,
-  updateSettings,
   minY,
   setMinY,
   maxY,
@@ -25,18 +25,29 @@ const ControlPanel = ({
 }) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const newValue = type === 'checkbox' ? checked : parseFloat(value);
+    const newSettings = { ...settings, [name]: newValue };
+    setSettings(newSettings);
+    updateSettings(newSettings);
   };
 
   const handleSliderChange = (e, value, name) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [name]: value,
-    }));
+    const newSettings = { ...settings, [name]: value };
+    setSettings(newSettings);
+    updateSettings(newSettings);
   };
+
+  const updateSettings = async (newSettings) => {
+    try {
+      await axios.post('/api/update_settings', newSettings);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+    }
+  };
+
+  useEffect(() => {
+    updateSettings(settings);
+  }, []);
 
   return (
     <Box>
@@ -119,7 +130,12 @@ const ControlPanel = ({
         control={
           <Switch
             checked={showWaterfall}
-            onChange={() => setShowWaterfall(!showWaterfall)}
+            onChange={() => {
+              setShowWaterfall(!showWaterfall);
+              const newSettings = { ...settings, showWaterfall: !showWaterfall };
+              setSettings(newSettings);
+              updateSettings(newSettings);
+            }}
             name="showWaterfall"
             color="primary"
           />
