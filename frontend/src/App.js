@@ -7,7 +7,6 @@ import {
   AppBar,
   Box,
   CssBaseline,
-  FormControlLabel,
   Menu,
   MenuItem,
   Dialog,
@@ -16,13 +15,14 @@ import {
   DialogContentText,
   DialogTitle,
   Button,
-  Slider,
-  Switch,
   Tab,
   Tabs,
   Typography,
   Grid,
   TextField,
+  Switch,
+  FormControlLabel,
+  Slider // Add this line
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import './App.css';
@@ -65,11 +65,12 @@ function App() {
   });
   const [updateInterval, setUpdateInterval] = useState(30);
   const [waterfallSamples, setWaterfallSamples] = useState(100);
-  const [tabIndex, setTabIndex] = useState(0);
-
+  const [mainTabIndex, setMainTabIndex] = useState(0);
+  const [controlPanelTabIndex, setControlPanelTabIndex] = useState(0);
   const [contextMenu, setContextMenu] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tuneSettings, setTuneSettings] = useState({ frequency: '', bandwidth: '' });
+  const [showWaterfall, setShowWaterfall] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,8 +100,12 @@ function App() {
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabIndex(newValue);
+  const handleMainTabChange = (event, newValue) => {
+    setMainTabIndex(newValue);
+  };
+
+  const handleControlPanelTabChange = (event, newValue) => {
+    setControlPanelTabIndex(newValue);
   };
 
   const handleChange = (e) => {
@@ -186,145 +191,172 @@ function App() {
           Spectrum Viewer
         </Typography>
       </AppBar>
-      <Grid container spacing={2} sx={{ p: 2 }}>
-        <Grid item xs={9}>
-          <ChartComponent
-            data={data}
-            settings={settings}
-            minY={minY}
-            maxY={maxY}
-            peaks={settings.peakDetection ? peaks : []}
-          />
-        </Grid>
-        <Grid item xs={3}>
-          <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-            <Tabs value={tabIndex} onChange={handleTabChange}>
-              <Tab label="Settings" />
-              <Tab label="Analysis" />
-            </Tabs>
-          </Box>
-          <Box sx={{ p: 3 }}>
-            {tabIndex === 0 && (
-              <ControlPanel
-                settings={settings}
-                setSettings={setSettings}
-                updateSettings={updateSettings}
-                minY={minY}
-                setMinY={setMinY}
-                maxY={maxY}
-                setMaxY={setMaxY}
-                updateInterval={updateInterval}
-                setUpdateInterval={setUpdateInterval}
-                waterfallSamples={waterfallSamples}
-                setWaterfallSamples={setWaterfallSamples}
-              />
+      <Box sx={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Tabs value={mainTabIndex} onChange={handleMainTabChange}>
+            <Tab label="Plots" />
+            <Tab label="Actions" />
+            <Tab label="File Manager" />
+          </Tabs>
+          <Box sx={{ flexGrow: 1, p: 3 }}>
+            {mainTabIndex === 0 && (
+              <Grid container spacing={2}>
+                <Grid item xs={9}>
+                  <ChartComponent
+                    settings={settings}
+                    minY={minY}
+                    maxY={maxY}
+                    updateInterval={updateInterval}
+                    waterfallSamples={waterfallSamples}
+                    peaks={settings.peakDetection ? peaks : []}
+                    showWaterfall={showWaterfall}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <Tabs value={controlPanelTabIndex} onChange={handleControlPanelTabChange}>
+                      <Tab label="Controls" />
+                      <Tab label="Analysis" />
+                    </Tabs>
+                    <Box sx={{ flexGrow: 1, p: 2, overflow: 'auto' }}>
+                      {controlPanelTabIndex === 0 && (
+                        <ControlPanel
+                          settings={settings}
+                          setSettings={setSettings}
+                          updateSettings={updateSettings}
+                          minY={minY}
+                          setMinY={setMinY}
+                          maxY={maxY}
+                          setMaxY={setMaxY}
+                          updateInterval={updateInterval}
+                          setUpdateInterval={setUpdateInterval}
+                          waterfallSamples={waterfallSamples}
+                          setWaterfallSamples={setWaterfallSamples}
+                          showWaterfall={showWaterfall}
+                          setShowWaterfall={setShowWaterfall}
+                        />
+                      )}
+                      {controlPanelTabIndex === 1 && (
+                        <Box>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={settings.peakDetection}
+                                onChange={handleChange}
+                                name="peakDetection"
+                                color="primary"
+                              />
+                            }
+                            label="Enable Peak Detection"
+                          />
+                          {settings.peakDetection && (
+                            <Box sx={{ height: 400, width: '100%', mt: 2 }}>
+                              <DataGrid
+                                rows={rows}
+                                columns={columns}
+                                pageSize={5}
+                                onRowClick={handleRowClick}
+                              />
+                              <Menu
+                                open={contextMenu !== null}
+                                onClose={() => setContextMenu(null)}
+                                anchorReference="anchorPosition"
+                                anchorPosition={
+                                  contextMenu !== null
+                                    ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                                    : undefined
+                                }
+                              >
+                                <MenuItem onClick={handleTuneToClick}>Tune to</MenuItem>
+                              </Menu>
+                              <Dialog open={dialogOpen} onClose={handleDialogClose}>
+                                <DialogTitle>Tune to Peak</DialogTitle>
+                                <DialogContent>
+                                  <DialogContentText>
+                                    Set the frequency and bandwidth to tune to this peak.
+                                  </DialogContentText>
+                                  <TextField
+                                    autoFocus
+                                    margin="dense"
+                                    label="Frequency (MHz)"
+                                    name="frequency"
+                                    type="number"
+                                    value={tuneSettings.frequency}
+                                    onChange={handleTuneSettingsChange}
+                                    fullWidth
+                                    variant="standard"
+                                  />
+                                  <TextField
+                                    margin="dense"
+                                    label="Bandwidth (MHz)"
+                                    name="bandwidth"
+                                    type="number"
+                                    value={tuneSettings.bandwidth}
+                                    onChange={handleTuneSettingsChange}
+                                    fullWidth
+                                    variant="standard"
+                                  />
+                                </DialogContent>
+                                <DialogActions>
+                                  <Button onClick={handleDialogClose}>Cancel</Button>
+                                  <Button onClick={handleTuneSettingsSubmit}>Tune</Button>
+                                </DialogActions>
+                              </Dialog>
+                            </Box>
+                          )}
+                          {settings.peakDetection && (
+                            <Box sx={{ mt: 2 }}>
+                              <Typography variant="h6">Peak Detection</Typography>
+                              <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
+                              <Slider
+                                min={0.01}
+                                max={1.0}
+                                value={settings.minPeakDistance}
+                                onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
+                                valueLabelDisplay="auto"
+                                step={0.01}
+                                marks={[
+                                  { value: 0.01, label: '0.01 MHz' },
+                                  { value: 0.5, label: '0.5 MHz' },
+                                  { value: 1.0, label: '1 MHz' }
+                                ]}
+                              />
+                              <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
+                              <Slider
+                                min={1}
+                                max={20}
+                                value={settings.numberOfPeaks}
+                                onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
+                                valueLabelDisplay="auto"
+                                step={1}
+                                marks={[
+                                  { value: 1, label: '1' },
+                                  { value: 10, label: '10' },
+                                  { value: 20, label: '20' }
+                                ]}
+                              />
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
             )}
-            {tabIndex === 1 && (
+            {mainTabIndex === 1 && (
               <Box>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={settings.peakDetection}
-                      onChange={handleChange}
-                      name="peakDetection"
-                      color="primary"
-                    />
-                  }
-                  label="Enable Peak Detection"
-                />
-                {settings.peakDetection && (
-                  <Box sx={{ height: 400, width: '100%', mt: 2 }}>
-                    <DataGrid
-                      rows={rows}
-                      columns={columns}
-                      pageSize={5}
-                      onRowClick={handleRowClick}
-                    />
-                    <Menu
-                      open={contextMenu !== null}
-                      onClose={() => setContextMenu(null)}
-                      anchorReference="anchorPosition"
-                      anchorPosition={
-                        contextMenu !== null
-                          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                          : undefined
-                      }
-                    >
-                      <MenuItem onClick={handleTuneToClick}>Tune to</MenuItem>
-                    </Menu>
-                    <Dialog open={dialogOpen} onClose={handleDialogClose}>
-                      <DialogTitle>Tune to Peak</DialogTitle>
-                      <DialogContent>
-                        <DialogContentText>
-                          Set the frequency and bandwidth to tune to this peak.
-                        </DialogContentText>
-                        <TextField
-                          autoFocus
-                          margin="dense"
-                          label="Frequency (MHz)"
-                          name="frequency"
-                          type="number"
-                          value={tuneSettings.frequency}
-                          onChange={handleTuneSettingsChange}
-                          fullWidth
-                          variant="standard"
-                        />
-                        <TextField
-                          margin="dense"
-                          label="Bandwidth (MHz)"
-                          name="bandwidth"
-                          type="number"
-                          value={tuneSettings.bandwidth}
-                          onChange={handleTuneSettingsChange}
-                          fullWidth
-                          variant="standard"
-                        />
-                      </DialogContent>
-                      <DialogActions>
-                        <Button onClick={handleDialogClose}>Cancel</Button>
-                        <Button onClick={handleTuneSettingsSubmit}>Tune</Button>
-                      </DialogActions>
-                    </Dialog>
-                  </Box>
-                )}
-                {settings.peakDetection && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="h6">Peak Detection</Typography>
-                    <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
-                    <Slider
-                      min={0.01}
-                      max={1.0}
-                      value={settings.minPeakDistance}
-                      onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
-                      valueLabelDisplay="auto"
-                      step={0.01}
-                      marks={[
-                        { value: 0.01, label: '0.01 MHz' },
-                        { value: 0.5, label: '0.5 MHz' },
-                        { value: 1.0, label: '1 MHz' }
-                      ]}
-                    />
-                    <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
-                    <Slider
-                      min={1}
-                      max={20}
-                      value={settings.numberOfPeaks}
-                      onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
-                      valueLabelDisplay="auto"
-                      step={1}
-                      marks={[
-                        { value: 1, label: '1' },
-                        { value: 10, label: '10' },
-                        { value: 20, label: '20' }
-                      ]}
-                    />
-                  </Box>
-                )}
+                {/* Actions content */}
+              </Box>
+            )}
+            {mainTabIndex === 2 && (
+              <Box>
+                {/* File Manager content */}
               </Box>
             )}
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </ThemeProvider>
   );
 }

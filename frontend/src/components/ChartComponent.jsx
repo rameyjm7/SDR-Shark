@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, peaks }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, peaks, showWaterfall }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -145,7 +145,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
         layout={{
           title: `Spectrum Viewer (Time: ${time})`,
           xaxis: {
-            title: '',
+            title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
           },
@@ -158,7 +158,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
           margin: {
             l: 50,
             r: 50,
-            b: 0,
+            b: 50,
             t: 50,
             pad: 4
           },
@@ -171,49 +171,51 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
         }}
         style={{ width: '100%', height: '40vh' }}
       />
-      <Plot
-        data={[
-          {
-            z: waterfallData,
-            type: 'heatmap',
-            colorscale: 'Jet',
-            zsmooth: 'fast',
-            zmin: minY,
-            zmax: maxY,
-          },
-        ]}
-        layout={{
-          title: '',
-          xaxis: {
-            title: 'Frequency (MHz)',
-            color: 'white',
-            gridcolor: '#444',
-            tickvals: tickVals,
-            ticktext: tickText,
-          },
-          yaxis: {
-            title: 'Samples',
-            color: 'white',
-            gridcolor: '#444',
-          },
-          margin: {
-            l: 50,
-            r: 50,
-            b: 50,
-            t: 0,
-            pad: 4
-          },
-          paper_bgcolor: '#000',
-          plot_bgcolor: '#000',
-          font: {
-            color: 'white',
-          },
-        }}
-        config={{
-          displayModeBar: false, // Hide the mode bar
-        }}
-        style={{ width: '100%', height: '40vh' }}
-      />
+      {showWaterfall && (
+        <Plot
+          data={[
+            {
+              z: waterfallData,
+              type: 'heatmap',
+              colorscale: 'Jet',
+              zsmooth: 'fast',
+              zmin: minY,
+              zmax: maxY,
+            },
+          ]}
+          layout={{
+            title: '',
+            xaxis: {
+              title: 'Frequency (MHz)',
+              color: 'white',
+              gridcolor: '#444',
+              tickvals: tickVals,
+              ticktext: tickText,
+            },
+            yaxis: {
+              title: 'Samples',
+              color: 'white',
+              gridcolor: '#444',
+            },
+            margin: {
+              l: 50,
+              r: 50,
+              b: 50,
+              t: 0,
+              pad: 4
+            },
+            paper_bgcolor: '#000',
+            plot_bgcolor: '#000',
+            font: {
+              color: 'white',
+            },
+          }}
+          config={{
+            displayModeBar: false, // Hide the mode bar
+          }}
+          style={{ width: '100%', height: '40vh' }}
+        />
+      )}
     </div>
   );
 };
