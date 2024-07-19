@@ -117,6 +117,17 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
           }
           label="Block DC Spike"
         />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.peakDetection}
+              onChange={handleChange}
+              name="peakDetection"
+              color="primary"
+            />
+          }
+          label="Enable Peak Detection"
+        />
         <Grid container spacing={2}>
           <Grid item xs={6}>
             <Typography gutterBottom>Min Y: {minY}</Typography>
