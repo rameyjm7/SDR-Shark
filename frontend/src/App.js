@@ -2,17 +2,26 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import ControlPanel from './components/ControlPanel';
-import './App.css';
-import 'chart.js/auto';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
-  Container,
-  CssBaseline,
-  Typography,
   AppBar,
-  Toolbar,
-  Grid
+  Box,
+  CssBaseline,
+  FormControlLabel,
+  Paper,
+  Slider,
+  Switch,
+  Tab,
+  Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
+  Typography,
+  Grid,
 } from '@mui/material';
+import './App.css';
 
 const theme = createTheme({
   palette: {
@@ -40,39 +49,51 @@ function App() {
   const [maxY, setMaxY] = useState(20);
   const [peaks, setPeaks] = useState([]);
   const [settings, setSettings] = useState({
-    frequency: 102.1,  // Default values in MHz and dB
+    frequency: 102.1,
     gain: 30,
     sampleRate: 16,
     bandwidth: 16,
     averagingCount: 20,
+    dcSuppress: true,
     peakDetection: false,
+    minPeakDistance: 0.25,
     numberOfPeaks: 5,
     throttleInterval: 10,
   });
-  const eventSourceRef = useRef(null);
+  const [updateInterval, setUpdateInterval] = useState(30);
+  const [waterfallSamples, setWaterfallSamples] = useState(100);
+  const [tabIndex, setTabIndex] = useState(0);
 
   useEffect(() => {
-    eventSourceRef.current = new EventSource('/api/stream');
-
-    eventSourceRef.current.onmessage = (event) => {
-      const parsedData = JSON.parse(event.data);
-      setData(parsedData.fft || []);
-      setPeaks(parsedData.peaks || []);
-      setTime(parsedData.time || '');
+    const fetchData = async () => {
+      try {
+        const result = await axios('/api/data');
+        setData(result.data.fft || []);
+        setPeaks(result.data.peaks || []);
+        setTime(result.data.time);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setData([]);
+        setPeaks([]);
+      }
     };
 
-    return () => {
-      eventSourceRef.current.close();
-    };
-  }, []);
+    const interval = setInterval(fetchData, updateInterval);
+    return () => clearInterval(interval);
+  }, [updateInterval]);
 
-  const updateSettings = async () => {
+  const updateSettings = async (newSettings) => {
     try {
-      const response = await axios.post('/api/update_settings', settings);
+      const response = await axios.post('/api/update_settings', newSettings);
+      setSettings(newSettings);
       console.log('Settings updated:', response.data);
     } catch (error) {
       console.error('Error updating settings:', error);
     }
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
   };
 
   const handleChange = (e) => {
@@ -83,80 +104,122 @@ function App() {
     }));
   };
 
-  const handleSliderChange = (name) => (e, value) => {
+  const handleSliderChange = (e, value, name) => {
     setSettings((prevSettings) => ({
       ...prevSettings,
       [name]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    updateSettings();
-  };
-
-  const chartData = {
-    labels: data.map((_, index) => index),
-    datasets: [
-      {
-        label: 'FFT Data',
-        data: data,
-        fill: false,
-        backgroundColor: 'yellow',
-        borderColor: 'orange',
-        pointRadius: 2,  // Smaller dots
-      },
-      ...peaks.map((peak, index) => ({
-        label: `Peak ${index + 1}`,
-        data: [{ x: peak.x, y: peak.y }],
-        backgroundColor: 'red',
-        borderColor: 'red',
-        pointRadius: 5,
-      })),
-    ],
-  };
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" style={{ flexGrow: 1 }}>
-            Spectrum Viewer
-          </Typography>
-          <Typography variant="h6">
-            {time}
-          </Typography>
-        </Toolbar>
+        <Typography variant="h6" sx={{ flexGrow: 1, padding: 2 }}>
+          Spectrum Viewer
+        </Typography>
       </AppBar>
-      <Container maxWidth="xl">
-        <Grid container spacing={2} style={{ marginTop: '16px' }}>
-          <Grid item xs={9}>
-            <div className="chart-container">
-              <ChartComponent
-                data={chartData}
-                minY={minY}
-                maxY={maxY}
-                centerFreq={settings.frequency}
-                sampleRate={settings.sampleRate}
-                throttleInterval={settings.throttleInterval}
-              />
-            </div>
-          </Grid>
-          <Grid item xs={3}>
-            <ControlPanel
-              settings={settings}
-              minY={minY}
-              maxY={maxY}
-              peaks={peaks}
-              data={data}
-              handleChange={handleChange}
-              handleSliderChange={handleSliderChange}
-              handleSubmit={handleSubmit}
-            />
-          </Grid>
+      <Grid container spacing={2} sx={{ p: 2 }}>
+        <Grid item xs={9}>
+          <ChartComponent
+            data={data}
+            settings={settings}
+            minY={minY}
+            maxY={maxY}
+            peaks={settings.peakDetection ? peaks : []}
+          />
         </Grid>
-      </Container>
+        <Grid item xs={3}>
+          <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+            <Tabs value={tabIndex} onChange={handleTabChange}>
+              <Tab label="Settings" />
+              <Tab label="Analysis" />
+            </Tabs>
+          </Box>
+          <Box sx={{ p: 3 }}>
+            {tabIndex === 0 && (
+              <ControlPanel
+                settings={settings}
+                setSettings={setSettings}
+                updateSettings={updateSettings}
+                minY={minY}
+                setMinY={setMinY}
+                maxY={maxY}
+                setMaxY={setMaxY}
+                updateInterval={updateInterval}
+                setUpdateInterval={setUpdateInterval}
+                waterfallSamples={waterfallSamples}
+                setWaterfallSamples={setWaterfallSamples}
+                fftData={data}
+                peaks={peaks}
+              />
+            )}
+            {tabIndex === 1 && (
+              <Box>
+                {settings.peakDetection && peaks.length > 0 && (
+                  <TableContainer component={Paper} sx={{ mt: 2 }}>
+                    <Table>
+                      <TableBody>
+                        {peaks.map((peak, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{`Peak ${index + 1}`}</TableCell>
+                            <TableCell>{`${((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)} MHz`}</TableCell>
+                            <TableCell>{`${data[peak]?.toFixed(2)} dB`}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+                <Typography variant="h6" sx={{ mt: 2 }}>Peak Detection</Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={settings.peakDetection}
+                      onChange={handleChange}
+                      name="peakDetection"
+                      color="primary"
+                    />
+                  }
+                  label="Enable Peak Detection"
+                />
+                {settings.peakDetection && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
+                    <Slider
+                      min={0.01}
+                      max={1.0}
+                      value={settings.minPeakDistance}
+                      onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
+                      valueLabelDisplay="auto"
+                      step={0.01}
+                      marks={[
+                        { value: 0.01, label: '0.01 MHz' },
+                        { value: 0.5, label: '0.5 MHz' },
+                        { value: 1.0, label: '1 MHz' }
+                      ]}
+                    />
+                    <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
+                    <Slider
+                      min={1}
+                      max={20}
+                      value={settings.numberOfPeaks}
+                      onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
+                      valueLabelDisplay="auto"
+                      step={1}
+                      marks={[
+                        { value: 1, label: '1' },
+                        { value: 10, label: '10' },
+                        { value: 20, label: '20' }
+                      ]}
+                    />
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
+        </Grid>
+      </Grid>
     </ThemeProvider>
   );
 }

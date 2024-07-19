@@ -1,82 +1,109 @@
 import React from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Slider,
-  Typography,
-  Paper,
-  FormControlLabel,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
-} from '@mui/material';
+import { Box, Button, Paper, Slider, TextField, Typography, Grid, FormControlLabel, Switch } from '@mui/material';
 
-const ControlPanel = ({
-  settings,
-  minY,
-  maxY,
-  peaks,
-  data,
-  handleChange,
-  handleSliderChange,
-  handleSubmit
-}) => {
+const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, maxY, setMaxY, updateInterval, setUpdateInterval, waterfallSamples, setWaterfallSamples }) => {
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSliderChange = (name) => (e, value) => {
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [name]: value,
+    }));
+  };
+
+  const handleUpdateIntervalChange = (e, value) => {
+    setUpdateInterval(value);
+  };
+
+  const handleWaterfallSamplesChange = (e, value) => {
+    setWaterfallSamples(value);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      updateSettings(settings);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateSettings(settings);
+  };
+
   return (
     <Paper elevation={3} sx={{ padding: 2 }}>
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-        <TextField
-          fullWidth
-          margin="dense"
-          label="Frequency (MHz)"
-          name="frequency"
-          type="number"
-          value={settings.frequency}
-          onChange={handleChange}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 0.1 }}
-        />
-        <TextField
-          fullWidth
-          margin="dense"
-          label="Gain (dB)"
-          name="gain"
-          type="number"
-          value={settings.gain}
-          onChange={handleChange}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 1 }}
-        />
-        <TextField
-          fullWidth
-          margin="dense"
-          label="Sample Rate (MHz)"
-          name="sampleRate"
-          type="number"
-          value={settings.sampleRate}
-          onChange={handleChange}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 0.1 }}
-        />
-        <TextField
-          fullWidth
-          margin="dense"
-          label="Bandwidth (MHz)"
-          name="bandwidth"
-          type="number"
-          value={settings.bandwidth}
-          onChange={handleChange}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 0.1 }}
-        />
+        <Typography variant="h6">SDR Settings</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Frequency (MHz)"
+              name="frequency"
+              type="number"
+              value={settings.frequency}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 0.1 }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Gain (dB)"
+              name="gain"
+              type="number"
+              value={settings.gain}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 1 }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Sample Rate (MHz)"
+              name="sampleRate"
+              type="number"
+              value={settings.sampleRate}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 0.1 }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              fullWidth
+              margin="dense"
+              label="Bandwidth (MHz)"
+              name="bandwidth"
+              type="number"
+              value={settings.bandwidth}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 0.1 }}
+            />
+          </Grid>
+        </Grid>
+
+        <Typography variant="h6" sx={{ mt: 2 }}>Plot Settings</Typography>
         <TextField
           fullWidth
           margin="dense"
@@ -85,91 +112,73 @@ const ControlPanel = ({
           type="number"
           value={settings.averagingCount}
           onChange={handleChange}
+          onKeyPress={handleKeyPress}
           variant="outlined"
           InputLabelProps={{ shrink: true }}
           inputProps={{ step: 1 }}
         />
-        <TextField
-          fullWidth
-          margin="dense"
-          label="Throttle Interval (ms)"
-          name="throttleInterval"
-          type="number"
-          value={settings.throttleInterval}
-          onChange={handleChange}
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 1, min: 1, max: 1000 }}
-        />
         <FormControlLabel
           control={
             <Switch
-              checked={settings.peakDetection}
+              checked={settings.dcSuppress}
               onChange={handleChange}
-              name="peakDetection"
+              name="dcSuppress"
               color="primary"
             />
           }
-          label="Enable Peak Detection"
+          label="Block DC Spike"
         />
-        {settings.peakDetection && (
-          <TextField
-            fullWidth
-            margin="dense"
-            label="Number of Peaks"
-            name="numberOfPeaks"
-            type="number"
-            value={settings.numberOfPeaks}
-            onChange={handleChange}
-            variant="outlined"
-            InputLabelProps={{ shrink: true }}
-            inputProps={{ step: 1 }}
-          />
-        )}
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Typography gutterBottom>Min Y: {minY}</Typography>
+            <Slider
+              min={-60}
+              max={20}
+              value={minY}
+              onChange={(e, value) => setMinY(value)}
+              valueLabelDisplay="auto"
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <Typography gutterBottom>Max Y: {maxY}</Typography>
+            <Slider
+              min={20}
+              max={60}
+              value={maxY}
+              onChange={(e, value) => setMaxY(value)}
+              valueLabelDisplay="auto"
+            />
+          </Grid>
+        </Grid>
+
+        <Typography variant="h6" sx={{ mt: 2 }}>Waterfall Settings</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={6}>
+            <Typography gutterBottom>Update Interval (ms): {updateInterval}</Typography>
+            <Slider
+              min={10}
+              max={1000}
+              value={updateInterval}
+              onChange={handleUpdateIntervalChange}
+              valueLabelDisplay="auto"
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <Typography gutterBottom>Waterfall Samples: {waterfallSamples}</Typography>
+            <Slider
+              min={25}
+              max={1000}
+              value={waterfallSamples}
+              onChange={handleWaterfallSamplesChange}
+              valueLabelDisplay="auto"
+            />
+          </Grid>
+        </Grid>
+
         <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
           Update Settings
         </Button>
       </Box>
-      <Box sx={{ mt: 2 }}>
-        <Typography gutterBottom>Min Y: {minY}</Typography>
-        <Slider
-          min={-60}
-          max={20}
-          value={minY}
-          onChange={(e, value) => handleSliderChange('minY')(e, value)}
-          valueLabelDisplay="auto"
-        />
-        <Typography gutterBottom>Max Y: {maxY}</Typography>
-        <Slider
-          min={20}
-          max={60}
-          value={maxY}
-          onChange={(e, value) => handleSliderChange('maxY')(e, value)}
-          valueLabelDisplay="auto"
-        />
-      </Box>
-      {settings.peakDetection && peaks.length > 0 && (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Peak</TableCell>
-                <TableCell>Frequency (MHz)</TableCell>
-                <TableCell>Amplitude (dB)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {peaks.map((peak, index) => (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
-                  <TableCell>{data[peak] !== undefined ? data[peak].toFixed(2) : 'N/A'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
     </Paper>
   );
 };
