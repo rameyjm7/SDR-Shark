@@ -28,16 +28,16 @@ const Analysis = ({ settings, setSettings }) => {
   ];
 
   const rows = peaks.map((peak, index) => ({
-    id: index, // Ensure each row has a unique id
-    frequency: peak.frequency.toFixed(2), // Convert to MHz
-    power: peak.power.toFixed(2),
+    id: index,
+    frequency: peak.frequency,
+    power: peak.power,
     classification: peak.classification,
   }));
 
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/analytics');
+        const response = await axios.get('/api/analytics');
         const data = response.data;
         setPeaks(data.peaks);
       } catch (error) {

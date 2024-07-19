@@ -19,6 +19,7 @@ sample_rate = 16e6     # Sample rate in Hz
 gain = 30              # Gain in dB
 fft_averaging = 20
 dc_suppress = True
+number_of_peaks = 5
 
 hackrf_sdr = HackRFSdr(center_freq=center_freq, sample_rate=sample_rate, bandwidth=sample_rate, gain=gain, size=sample_size)
 hackrf_sdr.start()
@@ -58,15 +59,15 @@ def process_fft(samples):
     return fft_magnitude
 
 def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
+    sample_rate = 16e6  # Example sample rate in Hz
     distance_in_samples = int(min_distance * len(fft_magnitude) / sample_rate)
     peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
     sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
     return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
-    global running, dc_suppress, fft_averaging
+    global running, dc_suppress, fft_averaging, number_of_peaks
     averaged_fft = None
-    number_of_peaks = 5  # Default number of peaks
 
     while running:
         start_time = time.time()
@@ -110,41 +111,13 @@ def get_data():
     
     # Get current time
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    data = {
+    
+    return jsonify({
         'fft': fft_response,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time
-    }
-    return jsonify(data)
-
-@api_blueprint.route('/api/update_settings', methods=['POST'])
-def update_settings():
-    try:
-        settings = request.json
-        # Update settings
-        frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
-        gain = float(settings.get('gain'))
-        sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
-        bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-        global fft_averaging
-        global number_of_peaks
-        fft_averaging = int(settings.get('averagingCount', fft_averaging))
-        number_of_peaks = int(settings.get('numberOfPeaks', 5))
-        
-        # Log the settings
-        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Number of Peaks = {number_of_peaks}")
-
-        # Perform the SDR configuration update
-        hackrf_sdr.set_frequency(frequency)
-        hackrf_sdr.set_gain(gain)
-        hackrf_sdr.set_sample_rate(sample_rate)
-        hackrf_sdr.set_bandwidth(bandwidth)
-
-        return jsonify({'success': True, 'settings': settings})
-    except Exception as e:
-        print(f'Error updating settings: {e}')
-        return jsonify({'error': str(e)}), 500
+    })
 
 @api_blueprint.route('/api/analytics')
 def get_analytics():
@@ -164,6 +137,34 @@ def get_analytics():
             })
 
     return jsonify({'peaks': peaks_data})
+
+@api_blueprint.route('/api/update_settings', methods=['POST'])
+def update_settings():
+    try:
+        settings = request.json
+        # Update settings
+        frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
+        gain = float(settings.get('gain'))
+        sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
+        bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
+        global fft_averaging, number_of_peaks
+        fft_averaging = int(settings.get('averagingCount', fft_averaging))
+        number_of_peaks = int(settings.get('numberOfPeaks', 5))
+        
+        # Log the settings
+        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Number of Peaks = {number_of_peaks}")
+
+        # Perform the SDR configuration update
+        hackrf_sdr.set_frequency(frequency)
+        hackrf_sdr.set_gain(gain)
+        hackrf_sdr.set_sample_rate(sample_rate)
+        hackrf_sdr.set_bandwidth(bandwidth)
+
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        print(f'Error updating settings: {e}')
+        return jsonify({'error': str(e)}), 500
+    
 
 # Ensure the SDR stops when the application exits
 @atexit.register

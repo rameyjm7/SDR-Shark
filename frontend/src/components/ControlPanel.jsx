@@ -47,7 +47,7 @@ const ControlPanel = ({
 
   useEffect(() => {
     updateSettings(settings);
-  }, []);
+  }, [settings]);
 
   return (
     <Box>
@@ -131,8 +131,9 @@ const ControlPanel = ({
           <Switch
             checked={showWaterfall}
             onChange={() => {
-              setShowWaterfall(!showWaterfall);
-              const newSettings = { ...settings, showWaterfall: !showWaterfall };
+              const newShowWaterfall = !showWaterfall;
+              setShowWaterfall(newShowWaterfall);
+              const newSettings = { ...settings, showWaterfall: newShowWaterfall };
               setSettings(newSettings);
               updateSettings(newSettings);
             }}
