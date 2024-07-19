@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ChartComponent from './components/ChartComponent';
 import ControlPanel from './components/ControlPanel';
@@ -58,7 +58,6 @@ function App() {
     peakDetection: false,
     minPeakDistance: 0.25,
     numberOfPeaks: 5,
-    throttleInterval: 10,
   });
   const [updateInterval, setUpdateInterval] = useState(30);
   const [waterfallSamples, setWaterfallSamples] = useState(100);
@@ -150,28 +149,10 @@ function App() {
                 setUpdateInterval={setUpdateInterval}
                 waterfallSamples={waterfallSamples}
                 setWaterfallSamples={setWaterfallSamples}
-                fftData={data}
-                peaks={peaks}
               />
             )}
             {tabIndex === 1 && (
               <Box>
-                {settings.peakDetection && peaks.length > 0 && (
-                  <TableContainer component={Paper} sx={{ mt: 2 }}>
-                    <Table>
-                      <TableBody>
-                        {peaks.map((peak, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{`Peak ${index + 1}`}</TableCell>
-                            <TableCell>{`${((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)} MHz`}</TableCell>
-                            <TableCell>{`${data[peak]?.toFixed(2)} dB`}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-                <Typography variant="h6" sx={{ mt: 2 }}>Peak Detection</Typography>
                 <FormControlLabel
                   control={
                     <Switch
@@ -183,8 +164,25 @@ function App() {
                   }
                   label="Enable Peak Detection"
                 />
+                {settings.peakDetection && peaks.length > 0 && (
+                  <TableContainer component={Paper} sx={{ mt: 2 }}>
+                    <Table>
+                      <TableBody>
+                        {peaks.map((peak, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{`Peak ${index + 1}`}</TableCell>
+                            <TableCell>{`${((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)} MHz`}</TableCell>
+                            <TableCell>{`${data[peak]?.toFixed(2)} dB`}</TableCell>
+                            <TableCell>Classification</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
                 {settings.peakDetection && (
                   <Box sx={{ mt: 2 }}>
+                    <Typography variant="h6">Peak Detection</Typography>
                     <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
                     <Slider
                       min={0.01}

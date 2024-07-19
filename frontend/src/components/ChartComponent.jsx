@@ -89,6 +89,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
       showarrow: false,
       font: {
         size: 12,
+        family: 'monospace',
         color: 'white',
       },
       align: 'left',
