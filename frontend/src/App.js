@@ -17,6 +17,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableHead,
   TableRow,
   Typography,
   Grid,
@@ -164,16 +165,24 @@ function App() {
                   }
                   label="Enable Peak Detection"
                 />
-                {settings.peakDetection && peaks.length > 0 && (
+                {settings.peakDetection && (
                   <TableContainer component={Paper} sx={{ mt: 2 }}>
                     <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Peak</TableCell>
+                          <TableCell>Frequency (MHz)</TableCell>
+                          <TableCell>Power (dB)</TableCell>
+                          <TableCell>Classification</TableCell>
+                        </TableRow>
+                      </TableHead>
                       <TableBody>
                         {peaks.map((peak, index) => (
                           <TableRow key={index}>
                             <TableCell>{`Peak ${index + 1}`}</TableCell>
                             <TableCell>{`${((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)} MHz`}</TableCell>
                             <TableCell>{`${data[peak]?.toFixed(2)} dB`}</TableCell>
-                            <TableCell>Classification</TableCell>
+                            <TableCell>???</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
