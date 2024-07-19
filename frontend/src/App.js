@@ -17,12 +17,6 @@ import {
   Paper,
   Switch,
   FormControlLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow
 } from '@mui/material';
 
 const theme = createTheme({
@@ -45,11 +39,6 @@ const theme = createTheme({
 });
 
 function App() {
-  const [data, setData] = useState([]);
-  const [time, setTime] = useState('');
-  const [minY, setMinY] = useState(-60);
-  const [maxY, setMaxY] = useState(20);
-  const [peaks, setPeaks] = useState([]);
   const [settings, setSettings] = useState({
     frequency: 102.1,  // Default values in MHz and dB
     gain: 30,
@@ -59,24 +48,10 @@ function App() {
     peakDetection: false,
     numberOfPeaks: 5,
   });
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await axios('/api/data');
-        setData(result.data.fft || []);
-        setPeaks(result.data.peaks || []);
-        setTime(result.data.time);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setData([]);
-        setPeaks([]);
-      }
-    };
-
-    const interval = setInterval(fetchData, 33.33); // fetch new data every 30ms (30Hz)
-    return () => clearInterval(interval); // cleanup
-  }, []);
+  const [minY, setMinY] = useState(-60);
+  const [maxY, setMaxY] = useState(20);
+  const [updateInterval, setUpdateInterval] = useState(100); // Default update interval in ms
+  const [waterfallSamples, setWaterfallSamples] = useState(25); // Default number of samples in the waterfall plot
 
   const updateSettings = async () => {
     try {
@@ -95,16 +70,24 @@ function App() {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    updateSettings();
-  };
-
   const handleSliderChange = (name) => (e, value) => {
     setSettings((prevSettings) => ({
       ...prevSettings,
       [name]: value,
     }));
+  };
+
+  const handleUpdateIntervalChange = (e, value) => {
+    setUpdateInterval(value);
+  };
+
+  const handleWaterfallSamplesChange = (e, value) => {
+    setWaterfallSamples(value);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateSettings();
   };
 
   return (
@@ -115,9 +98,6 @@ function App() {
           <Typography variant="h6" style={{ flexGrow: 1 }}>
             Spectrum Viewer
           </Typography>
-          <Typography variant="h6">
-            {time}
-          </Typography>
         </Toolbar>
       </AppBar>
       <Container maxWidth="xl">
@@ -125,11 +105,11 @@ function App() {
           <Grid item xs={9}>
             <div className="chart-container">
               <ChartComponent
-                data={data}
                 settings={settings}
                 minY={minY}
                 maxY={maxY}
-                peaks={settings.peakDetection ? peaks : []}
+                updateInterval={updateInterval}
+                waterfallSamples={waterfallSamples}
               />
             </div>
           </Grid>
@@ -212,6 +192,22 @@ function App() {
                 </Button>
               </Box>
               <Box sx={{ mt: 2 }}>
+                <Typography gutterBottom>Update Interval (ms): {updateInterval}</Typography>
+                <Slider
+                  min={10}
+                  max={1000}
+                  value={updateInterval}
+                  onChange={handleUpdateIntervalChange}
+                  valueLabelDisplay="auto"
+                />
+                <Typography gutterBottom>Waterfall Samples: {waterfallSamples}</Typography>
+                <Slider
+                  min={1}
+                  max={100}
+                  value={waterfallSamples}
+                  onChange={handleWaterfallSamplesChange}
+                  valueLabelDisplay="auto"
+                />
                 <Typography gutterBottom>Min Y: {minY}</Typography>
                 <Slider
                   min={-60}
@@ -229,28 +225,6 @@ function App() {
                   valueLabelDisplay="auto"
                 />
               </Box>
-              {settings.peakDetection && peaks.length > 0 && (
-                <TableContainer component={Paper} sx={{ mt: 2 }}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Peak</TableCell>
-                        <TableCell>Frequency (MHz)</TableCell>
-                        <TableCell>Amplitude (dB)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {peaks.map((peak, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)}</TableCell>
-                          <TableCell>{data[peak]?.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
             </Paper>
           </Grid>
         </Grid>

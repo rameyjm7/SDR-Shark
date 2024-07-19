@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples }) => {
   const [fftData, setFftData] = useState([]);
   const [peaks, setPeaks] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
@@ -15,16 +15,16 @@ const ChartComponent = ({ settings, minY, maxY }) => {
         const data = response.data;
         setFftData(data.fft);
         setPeaks(data.peaks);
-        setWaterfallData(data.waterfall);
+        setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
 
-    const interval = setInterval(fetchData, 30); // Fetch data every 30ms
+    const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
-  }, []);
+  }, [updateInterval, waterfallSamples]);
 
   const generateColor = (value) => {
     if (value >= 0) {
@@ -122,8 +122,7 @@ const ChartComponent = ({ settings, minY, maxY }) => {
             title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
-            tickvals: fftData.map((_, index) => index),
-            ticktext: fftData.map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / fftData.length)).toFixed(2)),
+            showticklabels: false, // Hide the X-axis labels
           },
           yaxis: {
             title: 'Time',
