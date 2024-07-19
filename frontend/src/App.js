@@ -58,7 +58,6 @@ function App() {
   const [maxY, setMaxY] = useState(20);
   const [updateInterval, setUpdateInterval] = useState(100); // Default update interval in ms
   const [waterfallSamples, setWaterfallSamples] = useState(25); // Default number of samples in the waterfall plot
-  const [showColorWheel, setShowColorWheel] = useState(true); // Default to show the color wheel
   const [peaks, setPeaks] = useState([]);
   const [fftData, setFftData] = useState([]);
 
@@ -110,10 +109,6 @@ function App() {
     setWaterfallSamples(value);
   };
 
-  const handleColorWheelChange = (e) => {
-    setShowColorWheel(e.target.checked);
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettings();
@@ -139,7 +134,6 @@ function App() {
                 maxY={maxY}
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
-                showColorWheel={showColorWheel}
                 peaks={peaks}
               />
             </div>
@@ -217,17 +211,6 @@ function App() {
                     />
                   }
                   label="Enable Peak Detection"
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={showColorWheel}
-                      onChange={handleColorWheelChange}
-                      name="showColorWheel"
-                      color="primary"
-                    />
-                  }
-                  label="Show Color Wheel"
                 />
                 <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
                   Update Settings

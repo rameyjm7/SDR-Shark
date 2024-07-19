@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showColorWheel, peaks }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, peaks }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -139,20 +139,6 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             type: 'heatmap',
             colorscale: 'Jet',
             zsmooth: 'fast',
-            colorbar: showColorWheel ? {
-              orientation: 'v',
-              x: 1.05,
-              y: 0.5,
-              thickness: 15,
-              len: 0.5,
-              title: {
-                text: 'Power (dB)',
-                side: 'right',
-                font: {
-                  color: 'white',
-                },
-              },
-            } : null,
           },
         ]}
         layout={{
