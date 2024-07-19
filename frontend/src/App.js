@@ -8,12 +8,21 @@ import {
   Box,
   CssBaseline,
   FormControlLabel,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Button,
   Slider,
   Switch,
   Tab,
   Tabs,
   Typography,
   Grid,
+  TextField,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import './App.css';
@@ -58,10 +67,14 @@ function App() {
   const [waterfallSamples, setWaterfallSamples] = useState(100);
   const [tabIndex, setTabIndex] = useState(0);
 
+  const [contextMenu, setContextMenu] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [tuneSettings, setTuneSettings] = useState({ frequency: '', bandwidth: '' });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await axios('/api/data');
+        const result = await axios.get('/api/data');
         setData(result.data.fft || []);
         setPeaks(result.data.peaks || []);
         setTime(result.data.time);
@@ -103,6 +116,51 @@ function App() {
       ...prevSettings,
       [name]: value,
     }));
+  };
+
+  const handleRowClick = (params, event) => {
+    event.preventDefault();
+    if (event.type === 'contextmenu') {
+      setContextMenu(
+        contextMenu === null
+          ? {
+              mouseX: event.clientX - 2,
+              mouseY: event.clientY - 4,
+              rowData: params.row,
+            }
+          : null,
+      );
+    }
+  };
+
+  const handleTuneToClick = () => {
+    setTuneSettings({
+      frequency: contextMenu.rowData.frequency,
+      bandwidth: settings.bandwidth,
+    });
+    setDialogOpen(true);
+    setContextMenu(null);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+  };
+
+  const handleTuneSettingsChange = (e) => {
+    const { name, value } = e.target;
+    setTuneSettings((prevSettings) => ({
+      ...prevSettings,
+      [name]: value,
+    }));
+  };
+
+  const handleTuneSettingsSubmit = () => {
+    updateSettings({
+      ...settings,
+      frequency: parseFloat(tuneSettings.frequency),
+      bandwidth: parseFloat(tuneSettings.bandwidth),
+    });
+    setDialogOpen(false);
   };
 
   const columns = [
@@ -176,7 +234,57 @@ function App() {
                 />
                 {settings.peakDetection && (
                   <Box sx={{ height: 400, width: '100%', mt: 2 }}>
-                    <DataGrid rows={rows} columns={columns} pageSize={5} />
+                    <DataGrid
+                      rows={rows}
+                      columns={columns}
+                      pageSize={5}
+                      onRowClick={handleRowClick}
+                    />
+                    <Menu
+                      open={contextMenu !== null}
+                      onClose={() => setContextMenu(null)}
+                      anchorReference="anchorPosition"
+                      anchorPosition={
+                        contextMenu !== null
+                          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                          : undefined
+                      }
+                    >
+                      <MenuItem onClick={handleTuneToClick}>Tune to</MenuItem>
+                    </Menu>
+                    <Dialog open={dialogOpen} onClose={handleDialogClose}>
+                      <DialogTitle>Tune to Peak</DialogTitle>
+                      <DialogContent>
+                        <DialogContentText>
+                          Set the frequency and bandwidth to tune to this peak.
+                        </DialogContentText>
+                        <TextField
+                          autoFocus
+                          margin="dense"
+                          label="Frequency (MHz)"
+                          name="frequency"
+                          type="number"
+                          value={tuneSettings.frequency}
+                          onChange={handleTuneSettingsChange}
+                          fullWidth
+                          variant="standard"
+                        />
+                        <TextField
+                          margin="dense"
+                          label="Bandwidth (MHz)"
+                          name="bandwidth"
+                          type="number"
+                          value={tuneSettings.bandwidth}
+                          onChange={handleTuneSettingsChange}
+                          fullWidth
+                          variant="standard"
+                        />
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={handleDialogClose}>Cancel</Button>
+                        <Button onClick={handleTuneSettingsSubmit}>Tune</Button>
+                      </DialogActions>
+                    </Dialog>
                   </Box>
                 )}
                 {settings.peakDetection && (

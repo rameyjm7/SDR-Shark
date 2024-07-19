@@ -139,7 +139,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'orange' },
-            line: { shape: 'spline' },
+            line: { shape: 'spline', width: 1 }, // Thinner trace lines
           },
         ]}
         layout={{
