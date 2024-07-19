@@ -1,38 +1,30 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
-  const waterfallData = useRef([]);
-  const [heatmapData, setHeatmapData] = useState([]);
-  const frameRef = useRef();
-
-  const downsample = useCallback((data, factor) => {
-    if (factor <= 1) return data;
-    const downsampled = [];
-    for (let i = 0; i < data.length; i += factor) {
-      const chunk = data.slice(i, i + factor);
-      const avg = chunk.reduce((acc, val) => acc + val, 0) / chunk.length;
-      downsampled.push(avg);
-    }
-    return downsampled;
-  }, []);
-
-  const updateWaterfallData = useCallback(() => {
-    const downsampledData = downsample(data, 4); // Adjust factor as needed
-    if (downsampledData.length > 0) {
-      if (waterfallData.current.length >= 100) {
-        waterfallData.current.shift();
-      }
-      waterfallData.current.push([...downsampledData]);
-      setHeatmapData([...waterfallData.current]);
-    }
-    frameRef.current = requestAnimationFrame(updateWaterfallData);
-  }, [data, downsample]);
+const ChartComponent = ({ settings, minY, maxY }) => {
+  const [fftData, setFftData] = useState([]);
+  const [peaks, setPeaks] = useState([]);
+  const [waterfallData, setWaterfallData] = useState([]);
+  const [time, setTime] = useState('');
 
   useEffect(() => {
-    frameRef.current = requestAnimationFrame(updateWaterfallData);
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [updateWaterfallData]);
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://10.139.1.185:5000/api/data');
+        const data = response.data;
+        setFftData(data.fft);
+        setPeaks(data.peaks);
+        setWaterfallData(data.waterfall);
+        setTime(data.time);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    const interval = setInterval(fetchData, 30); // Fetch data every 30ms
+    return () => clearInterval(interval);
+  }, []);
 
   const generateColor = (value) => {
     if (value >= 0) {
@@ -78,15 +70,15 @@ const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
     });
   };
 
-  const peakAnnotations = generateAnnotations(peaks, data);
+  const peakAnnotations = generateAnnotations(peaks, fftData);
 
   return (
     <div>
       <Plot
         data={[
           {
-            x: Array.isArray(data) ? data.map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / data.length)).toFixed(2)) : [],
-            y: Array.isArray(data) ? data : [],
+            x: Array.isArray(fftData) ? fftData.map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / fftData.length)).toFixed(2)) : [],
+            y: Array.isArray(fftData) ? fftData : [],
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'orange' },
@@ -94,7 +86,7 @@ const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
           },
         ]}
         layout={{
-          title: 'Spectrum Viewer',
+          title: `Spectrum Viewer (Time: ${time})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
@@ -118,7 +110,7 @@ const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
       <Plot
         data={[
           {
-            z: heatmapData,
+            z: waterfallData,
             type: 'heatmap',
             colorscale: 'Jet',
             zsmooth: 'fast',
@@ -130,8 +122,8 @@ const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
             title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
-            tickvals: downsample(data, 4).map((_, index) => index),
-            ticktext: downsample(data, 4).map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / data.length)).toFixed(2)),
+            tickvals: fftData.map((_, index) => index),
+            ticktext: fftData.map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / fftData.length)).toFixed(2)),
           },
           yaxis: {
             title: 'Time',

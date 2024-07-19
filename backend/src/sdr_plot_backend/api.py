@@ -1,14 +1,12 @@
-from flask import Blueprint, jsonify, Response, request
+from flask import Blueprint, jsonify, request
 from datetime import datetime
 import numpy as np
 import threading
 import time
 from collections import deque
-import json
+from numba import jit
 import atexit
 from scipy.signal import find_peaks
-
-# Import the HackRFSdr class from the bluetooth_demod module
 from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
 
 api_blueprint = Blueprint('api', __name__)
@@ -37,6 +35,18 @@ fft_data = {
     'peaks': [],
 }
 running = True
+
+@jit(nopython=True)
+def downsample(data, target_length=256):
+    step = len(data) / target_length
+    downsampled = np.zeros(target_length, dtype=np.float64)
+    for i in range(target_length):
+        start = int(i * step)
+        end = int((i + 1) * step)
+        chunk = data[start:end]
+        avg = np.mean(chunk)
+        downsampled[i] = avg
+    return downsampled
 
 def capture_samples():
     global sample_buffer
@@ -83,13 +93,11 @@ def generate_fft_data():
         with data_lock:
             fft_data['original_fft'] = averaged_fft.tolist()
             fft_data['peaks'] = peaks
-            waterfall_buffer.append(averaged_fft.tolist())
+            waterfall_buffer.append(downsample(averaged_fft).tolist())
         
         end_time = time.time()
         elapsed_time = end_time - start_time
         time.sleep(max(0, sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
-
-
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -99,6 +107,7 @@ def get_data():
     with data_lock:
         fft_response = fft_data['original_fft'].copy()
         peaks_response = fft_data['peaks'].copy()
+        waterfall_response = list(waterfall_buffer)
     
     # Get current time
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
@@ -106,6 +115,7 @@ def get_data():
     return jsonify({
         'fft': fft_response,
         'peaks': peaks_response,
+        'waterfall': waterfall_response,
         'time': current_time
     })
 
