@@ -7,11 +7,10 @@ const Analysis = ({ settings, setSettings }) => {
   const [peaks, setPeaks] = useState([]);
 
   const handleChange = (e) => {
-    const { name, type, checked } = e.target;
-    const value = type === 'checkbox' ? checked : parseFloat(e.target.value);
+    const { name, value, type, checked } = e.target;
     setSettings((prevSettings) => ({
       ...prevSettings,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -23,16 +22,22 @@ const Analysis = ({ settings, setSettings }) => {
   };
 
   const columns = [
-    { field: 'peak', headerName: 'Peak', width: 100 },
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
     { field: 'power', headerName: 'Power (dB)', width: 140 },
     { field: 'classification', headerName: 'Classification', width: 150 },
   ];
 
+  const rows = peaks.map((peak, index) => ({
+    id: index, // Ensure each row has a unique id
+    frequency: peak.frequency.toFixed(2), // Convert to MHz
+    power: peak.power.toFixed(2),
+    classification: peak.classification,
+  }));
+
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/data');
+        const response = await axios.get('http://10.139.1.185:5000/api/analytics');
         const data = response.data;
         setPeaks(data.peaks);
       } catch (error) {
@@ -42,20 +47,7 @@ const Analysis = ({ settings, setSettings }) => {
 
     const interval = setInterval(fetchPeaks, 250); // Fetch peaks data every 250ms
     return () => clearInterval(interval);
-  }, [settings]);
-
-  const rows = peaks.map((peak, index) => {
-    const freq = peak.toFixed(2); // Peaks are already in MHz
-    const indexValue = Math.round((peak * 1e6 - settings.frequency * 1e6 + settings.sampleRate / 2) / settings.sampleRate * settings.peaks.length);
-    const power = settings.peaks[indexValue]?.toFixed(2);
-    return {
-      id: index,
-      peak: `Peak ${index + 1}`,
-      frequency: freq, // Convert to MHz
-      power: power,
-      classification: '???',
-    };
-  });
+  }, [setSettings]);
 
   return (
     <Box>

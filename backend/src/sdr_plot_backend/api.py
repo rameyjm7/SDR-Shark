@@ -58,7 +58,6 @@ def process_fft(samples):
     return fft_magnitude
 
 def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
-    sample_rate = 16e6  # Example sample rate in Hz
     distance_in_samples = int(min_distance * len(fft_magnitude) / sample_rate)
     peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
     sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
@@ -106,7 +105,7 @@ fft_thread.start()
 def get_data():
     with data_lock:
         fft_response = fft_data['original_fft'].copy()
-        peaks_response = [(p * sample_rate / len(fft_response) / 1e6) for p in fft_data['peaks'].copy()]  # Convert to MHz
+        peaks_response = fft_data['peaks'].copy()
         waterfall_response = list(waterfall_buffer)
     
     # Get current time
@@ -146,7 +145,25 @@ def update_settings():
     except Exception as e:
         print(f'Error updating settings: {e}')
         return jsonify({'error': str(e)}), 500
-    
+
+@api_blueprint.route('/api/analytics')
+def get_analytics():
+    with data_lock:
+        peaks_response = fft_data['peaks'].copy()
+        fft_response = fft_data['original_fft'].copy()
+        peaks_data = []
+        for peak in peaks_response:
+            freq = ((center_freq - sample_rate / 2) + (peak * sample_rate / len(fft_response))) / 1e6  # Convert to MHz
+            power = fft_response[peak]
+            classification = "???"  # Placeholder for classification
+            peaks_data.append({
+                'peak': f'Peak {peak + 1}',
+                'frequency': freq,
+                'power': power,
+                'classification': classification
+            })
+
+    return jsonify({'peaks': peaks_data})
 
 # Ensure the SDR stops when the application exits
 @atexit.register
