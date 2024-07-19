@@ -207,20 +207,6 @@ function App() {
                   }
                   label="Enable Peak Detection"
                 />
-                {settings.peakDetection && (
-                  <TextField
-                    fullWidth
-                    margin="dense"
-                    label="Number of Peaks"
-                    name="numberOfPeaks"
-                    type="number"
-                    value={settings.numberOfPeaks}
-                    onChange={handleChange}
-                    variant="outlined"
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 1 }}
-                  />
-                )}
                 <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
                   Update Settings
                 </Button>
