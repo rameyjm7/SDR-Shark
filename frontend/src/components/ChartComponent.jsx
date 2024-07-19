@@ -2,19 +2,23 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, peaks, showWaterfall }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
+  const [peaks, setPeaks] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
+        console.log('Fetched data from /api/data:', data);
         setFftData(data.fft);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
+        console.log('Updated fftData:', data.fft);
+        console.log('Updated waterfallData:', data.waterfall.slice(-waterfallSamples));
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -23,6 +27,21 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples]);
+
+  useEffect(() => {
+    const fetchPeaks = async () => {
+      try {
+        const response = await axios.get('http://10.139.1.185:5000/api/analytics');
+        console.log('Fetched data from /api/analytics:', response.data);
+        setPeaks(response.data.peaks);
+      } catch (error) {
+        console.error('Error fetching peaks:', error);
+      }
+    };
+
+    const interval = setInterval(fetchPeaks, 250);
+    return () => clearInterval(interval);
+  }, []);
 
   const generateColor = (value) => {
     if (value >= 0) {
@@ -44,11 +63,12 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     }
   };
 
-  const generateAnnotations = (peaks, fftData) => {
-    if (!settings.peakDetection) return [];
+  const generateAnnotations = (peaks) => {
+    if (!settings.peakDetection || !Array.isArray(peaks)) return [];
+    console.log('Generating annotations for peaks:', peaks);
     return peaks.map((peak) => {
-      const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
-      const power = fftData[peak]?.toFixed(2);
+      const freq = peak.frequency.toFixed(2);
+      const power = peak.power.toFixed(2);
       const powerColor = generateColor(power);
       return {
         x: parseFloat(freq),
@@ -69,12 +89,12 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     });
   };
 
-  const generatePeakTableAnnotation = (peaks, fftData) => {
-    if (!settings.peakDetection || peaks.length === 0) return null;
-
+  const generatePeakTableAnnotation = (peaks) => {
+    if (!settings.peakDetection || !Array.isArray(peaks) || peaks.length === 0) return null;
+    console.log('Generating peak table annotation for peaks:', peaks);
     const rows = peaks.map((peak, index) => {
-      const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
-      const power = fftData[peak]?.toFixed(2);
+      const freq = peak.frequency.toFixed(2);
+      const power = peak.power.toFixed(2);
       return `Peak ${index + 1} | ${freq} MHz | ${power} dB<br>`;
     }).join('');
 
@@ -107,8 +127,8 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     };
   };
 
-  const peakAnnotations = generateAnnotations(peaks, fftData);
-  const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
+  const peakAnnotations = generateAnnotations(peaks);
+  const peakTableAnnotation = generatePeakTableAnnotation(peaks);
 
   const generateTickValsAndLabels = (centerFreq, bandwidth) => {
     const halfBandwidth = bandwidth / 2;
@@ -128,6 +148,8 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
   };
 
   const { tickVals, tickText } = generateTickValsAndLabels(settings.frequency * 1e6, settings.bandwidth * 1e6);
+
+  console.log('Rendering ChartComponent with peaks:', peaks);
 
   return (
     <div>

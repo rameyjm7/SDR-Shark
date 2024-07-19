@@ -110,13 +110,13 @@ def get_data():
     
     # Get current time
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    
-    return jsonify({
+    data = {
         'fft': fft_response,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time
-    })
+    }
+    return jsonify(data)
 
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
