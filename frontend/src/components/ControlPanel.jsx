@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Button, FormControlLabel, Paper, Slider, Switch, TextField, Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Button, Paper, Slider, TextField, Typography, Grid, FormControlLabel, Switch } from '@mui/material';
 
-const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, maxY, setMaxY, updateInterval, setUpdateInterval, waterfallSamples, setWaterfallSamples, fftData, peaks }) => {
+const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, maxY, setMaxY, updateInterval, setUpdateInterval, waterfallSamples, setWaterfallSamples }) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setSettings((prevSettings) => ({
@@ -25,6 +25,12 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
     setWaterfallSamples(value);
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      updateSettings(settings);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     updateSettings(settings);
@@ -44,6 +50,7 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
               type="number"
               value={settings.frequency}
               onChange={handleChange}
+              onKeyPress={handleKeyPress}
               variant="outlined"
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 0.1 }}
@@ -58,6 +65,7 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
               type="number"
               value={settings.gain}
               onChange={handleChange}
+              onKeyPress={handleKeyPress}
               variant="outlined"
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 1 }}
@@ -72,6 +80,7 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
               type="number"
               value={settings.sampleRate}
               onChange={handleChange}
+              onKeyPress={handleKeyPress}
               variant="outlined"
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 0.1 }}
@@ -86,6 +95,7 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
               type="number"
               value={settings.bandwidth}
               onChange={handleChange}
+              onKeyPress={handleKeyPress}
               variant="outlined"
               InputLabelProps={{ shrink: true }}
               inputProps={{ step: 0.1 }}
@@ -102,6 +112,7 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
           type="number"
           value={settings.averagingCount}
           onChange={handleChange}
+          onKeyPress={handleKeyPress}
           variant="outlined"
           InputLabelProps={{ shrink: true }}
           inputProps={{ step: 1 }}
@@ -164,77 +175,10 @@ const ControlPanel = ({ settings, setSettings, updateSettings, minY, setMinY, ma
           </Grid>
         </Grid>
 
-        <Typography variant="h6" sx={{ mt: 2 }}>Peak Detection</Typography>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={settings.peakDetection}
-              onChange={handleChange}
-              name="peakDetection"
-              color="primary"
-            />
-          }
-          label="Enable Peak Detection"
-        />
-        {settings.peakDetection && (
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
-            <Slider
-              min={0.01}
-              max={1.0}
-              value={settings.minPeakDistance}
-              onChange={handleSliderChange('minPeakDistance')}
-              valueLabelDisplay="auto"
-              step={0.01}
-              marks={[
-                { value: 0.01, label: '0.01 MHz' },
-                { value: 0.5, label: '0.5 MHz' },
-                { value: 1.0, label: '1 MHz' }
-              ]}
-            />
-            <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
-            <Slider
-              min={1}
-              max={20}
-              value={settings.numberOfPeaks}
-              onChange={handleSliderChange('numberOfPeaks')}
-              valueLabelDisplay="auto"
-              step={1}
-              marks={[
-                { value: 1, label: '1' },
-                { value: 10, label: '10' },
-                { value: 20, label: '20' }
-              ]}
-            />
-          </Box>
-        )}
-        
         <Button variant="contained" color="primary" type="submit" fullWidth sx={{ mt: 2 }}>
           Update Settings
         </Button>
       </Box>
-      {settings.peakDetection && peaks.length > 0 && (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Peak</TableCell>
-                <TableCell>Frequency (MHz)</TableCell>
-                <TableCell>Amplitude (dB)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {peaks.map((peak, index) => (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2)}</TableCell>
-                  <TableCell>{fftData[peak]?.toFixed(2)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
     </Paper>
   );
 };

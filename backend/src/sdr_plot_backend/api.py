@@ -66,6 +66,7 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
     return sorted_peaks[:number_of_peaks]
 
+
 def generate_fft_data():
     global running, dc_suppress, fft_averaging, min_peak_distance, number_of_peaks
     averaged_fft = None
