@@ -2,21 +2,35 @@ import React from 'react';
 import Plot from 'react-plotly.js';
 
 const ChartComponent = ({ data = [], settings, minY, maxY, peaks = [] }) => {
-  const generateColor = (value, min, max) => {
-    const percentage = (value - min) / (max - min);
-    const red = Math.min(255, Math.floor(255 * percentage));
-    const green = Math.min(255, Math.floor(255 * (1 - percentage)));
-    return `rgb(${red},${green},0)`;
+  const generateColor = (value) => {
+    if (value >= 0) {
+      // Green for hot signals
+      return 'rgb(0, 255, 0)';
+    } else if (value >= -10) {
+      // Gradient from green to yellow for middle signals
+      const ratio = (value + 10) / 10;
+      const red = Math.floor(255 * (1 - ratio));
+      const green = 255;
+      const blue = 0;
+      return `rgb(${red}, ${green}, ${blue})`;
+    } else if (value >= -20) {
+      // Gradient from yellow to red for cooler signals
+      const ratio = (value + 20) / 10;
+      const red = 255;
+      const green = Math.floor(255 * ratio);
+      const blue = 0;
+      return `rgb(${red}, ${green}, ${blue})`;
+    } else {
+      // Red for cool signals
+      return 'rgb(255, 0, 0)';
+    }
   };
 
   const generateAnnotations = (peaks, fftData) => {
-    const minPower = Math.min(...fftData);
-    const maxPower = Math.max(...fftData);
-
     return peaks.map((peak) => {
       const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
       const power = fftData[peak]?.toFixed(2);
-      const powerColor = generateColor(power, minPower, maxPower);
+      const powerColor = generateColor(power);
       return {
         x: parseFloat(freq),
         y: parseFloat(power),
