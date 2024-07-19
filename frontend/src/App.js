@@ -8,20 +8,14 @@ import {
   Box,
   CssBaseline,
   FormControlLabel,
-  Paper,
   Slider,
   Switch,
   Tab,
   Tabs,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
   Grid,
 } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid';
 import './App.css';
 
 const theme = createTheme({
@@ -111,6 +105,21 @@ function App() {
     }));
   };
 
+  const columns = [
+    { field: 'peak', headerName: 'Peak', width: 100 },
+    { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
+    { field: 'power', headerName: 'Power (dB)', width: 140 },
+    { field: 'classification', headerName: 'Classification', width: 150 },
+  ];
+
+  const rows = peaks.map((peak, index) => ({
+    id: index,
+    peak: `Peak ${index + 1}`,
+    frequency: ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2),
+    power: data[peak]?.toFixed(2),
+    classification: '???',
+  }));
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -166,28 +175,9 @@ function App() {
                   label="Enable Peak Detection"
                 />
                 {settings.peakDetection && (
-                  <TableContainer component={Paper} sx={{ mt: 2 }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Peak</TableCell>
-                          <TableCell>Frequency (MHz)</TableCell>
-                          <TableCell>Power (dB)</TableCell>
-                          <TableCell>Classification</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {peaks.map((peak, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{`Peak ${index + 1}`}</TableCell>
-                            <TableCell>{`${((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / data.length)).toFixed(2)} MHz`}</TableCell>
-                            <TableCell>{`${data[peak]?.toFixed(2)} dB`}</TableCell>
-                            <TableCell>???</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                  <Box sx={{ height: 400, width: '100%', mt: 2 }}>
+                    <DataGrid rows={rows} columns={columns} pageSize={5} />
+                  </Box>
                 )}
                 {settings.peakDetection && (
                   <Box sx={{ mt: 2 }}>
