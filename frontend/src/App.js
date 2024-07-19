@@ -17,6 +17,12 @@ import {
   Paper,
   Switch,
   FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 
 const theme = createTheme({
@@ -53,6 +59,24 @@ function App() {
   const [updateInterval, setUpdateInterval] = useState(100); // Default update interval in ms
   const [waterfallSamples, setWaterfallSamples] = useState(25); // Default number of samples in the waterfall plot
   const [showColorWheel, setShowColorWheel] = useState(true); // Default to show the color wheel
+  const [peaks, setPeaks] = useState([]);
+  const [fftData, setFftData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('/api/data');
+        setFftData(response.data.fft);
+        setPeaks(response.data.peaks);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, updateInterval);
+    return () => clearInterval(interval);
+  }, [updateInterval]);
 
   const updateSettings = async () => {
     try {
@@ -116,6 +140,7 @@ function App() {
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
                 showColorWheel={showColorWheel}
+                peaks={peaks}
               />
             </div>
           </Grid>
@@ -242,6 +267,28 @@ function App() {
                   valueLabelDisplay="auto"
                 />
               </Box>
+              {settings.peakDetection && peaks.length > 0 && (
+                <TableContainer component={Paper} sx={{ mt: 2 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Peak</TableCell>
+                        <TableCell>Frequency (MHz)</TableCell>
+                        <TableCell>Amplitude (dB)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {peaks.map((peak, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{index + 1}</TableCell>
+                          <TableCell>{((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2)}</TableCell>
+                          <TableCell>{fftData[peak]?.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Paper>
           </Grid>
         </Grid>

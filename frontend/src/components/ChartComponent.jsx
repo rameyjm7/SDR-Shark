@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showColorWheel }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showColorWheel, peaks }) => {
   const [fftData, setFftData] = useState([]);
-  const [peaks, setPeaks] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
 
@@ -14,7 +13,6 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
         setFftData(data.fft);
-        setPeaks(data.peaks);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
       } catch (error) {
@@ -47,6 +45,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
   };
 
   const generateAnnotations = (peaks, fftData) => {
+    if (!settings.peakDetection) return [];
     return peaks.map((peak) => {
       const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
       const power = fftData[peak]?.toFixed(2);
@@ -166,7 +165,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             ticktext: tickText,
           },
           yaxis: {
-            title: 'Time',
+            title: 'Samples',
             color: 'white',
             gridcolor: '#444',
           },
