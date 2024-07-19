@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples }) => {
+const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showColorWheel }) => {
   const [fftData, setFftData] = useState([]);
   const [peaks, setPeaks] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
@@ -72,6 +72,25 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
 
   const peakAnnotations = generateAnnotations(peaks, fftData);
 
+  const generateTickValsAndLabels = (centerFreq, bandwidth) => {
+    const halfBandwidth = bandwidth / 2;
+    const startFreq = centerFreq - halfBandwidth;
+    const endFreq = centerFreq + halfBandwidth;
+    const step = bandwidth / 4; // 5 ticks total, so 4 intervals
+
+    const tickVals = [];
+    const tickText = [];
+    for (let i = 0; i <= 4; i++) {
+      const freq = startFreq + i * step;
+      tickVals.push(freq);
+      tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
+    }
+
+    return { tickVals, tickText };
+  };
+
+  const { tickVals, tickText } = generateTickValsAndLabels(settings.frequency * 1e6, settings.bandwidth * 1e6);
+
   return (
     <div>
       <Plot
@@ -88,7 +107,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
         layout={{
           title: `Spectrum Viewer (Time: ${time})`,
           xaxis: {
-            title: 'Frequency (MHz)',
+            title: '',
             color: 'white',
             gridcolor: '#444',
           },
@@ -97,6 +116,13 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             range: [minY, maxY],
             color: 'white',
             gridcolor: '#444',
+          },
+          margin: {
+            l: 50,
+            r: 50,
+            b: 0,
+            t: 50,
+            pad: 4
           },
           paper_bgcolor: '#000',
           plot_bgcolor: '#000',
@@ -114,26 +140,51 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             type: 'heatmap',
             colorscale: 'Jet',
             zsmooth: 'fast',
+            colorbar: showColorWheel ? {
+              orientation: 'v',
+              x: 1.05,
+              y: 0.5,
+              thickness: 15,
+              len: 0.5,
+              title: {
+                text: 'Power (dB)',
+                side: 'right',
+                font: {
+                  color: 'white',
+                },
+              },
+            } : null,
           },
         ]}
         layout={{
-          title: 'Waterfall Plot',
+          title: '',
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
-            showticklabels: false, // Hide the X-axis labels
+            tickvals: tickVals,
+            ticktext: tickText,
           },
           yaxis: {
             title: 'Time',
             color: 'white',
             gridcolor: '#444',
           },
+          margin: {
+            l: 50,
+            r: 50,
+            b: 50,
+            t: 0,
+            pad: 4
+          },
           paper_bgcolor: '#000',
           plot_bgcolor: '#000',
           font: {
             color: 'white',
           },
+        }}
+        config={{
+          displayModeBar: false, // Hide the mode bar
         }}
         style={{ width: '100%', height: '40vh' }}
       />
