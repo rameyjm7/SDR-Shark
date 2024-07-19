@@ -13,12 +13,9 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
-        console.log('Fetched data from /api/data:', data);
         setFftData(data.fft);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
-        console.log('Updated fftData:', data.fft);
-        console.log('Updated waterfallData:', data.waterfall.slice(-waterfallSamples));
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -32,7 +29,6 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     const fetchPeaks = async () => {
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/analytics');
-        console.log('Fetched data from /api/analytics:', response.data);
         setPeaks(response.data.peaks);
       } catch (error) {
         console.error('Error fetching peaks:', error);
@@ -65,7 +61,6 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
 
   const generateAnnotations = (peaks) => {
     if (!settings.peakDetection || !Array.isArray(peaks)) return [];
-    console.log('Generating annotations for peaks:', peaks);
     return peaks.map((peak) => {
       const freq = peak.frequency.toFixed(2);
       const power = peak.power.toFixed(2);
@@ -91,7 +86,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
 
   const generatePeakTableAnnotation = (peaks) => {
     if (!settings.peakDetection || !Array.isArray(peaks) || peaks.length === 0) return null;
-    console.log('Generating peak table annotation for peaks:', peaks);
+
     const rows = peaks.map((peak, index) => {
       const freq = peak.frequency.toFixed(2);
       const power = peak.power.toFixed(2);
@@ -148,8 +143,6 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
   };
 
   const { tickVals, tickText } = generateTickValsAndLabels(settings.frequency * 1e6, settings.bandwidth * 1e6);
-
-  console.log('Rendering ChartComponent with peaks:', peaks);
 
   return (
     <div>
