@@ -20,7 +20,7 @@ function App() {
   const [minY, setMinY] = useState(-60);
   const [maxY, setMaxY] = useState(20);
   const [updateInterval, setUpdateInterval] = useState(100);
-  const [waterfallSamples, setWaterfallSamples] = useState(25);
+  const [waterfallSamples, setWaterfallSamples] = useState(100);
   const [peaks, setPeaks] = useState([]);
   const [fftData, setFftData] = useState([]);
 

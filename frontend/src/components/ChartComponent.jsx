@@ -139,6 +139,8 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             type: 'heatmap',
             colorscale: 'Jet',
             zsmooth: 'fast',
+            zmin: minY,
+            zmax: maxY,
           },
         ]}
         layout={{
