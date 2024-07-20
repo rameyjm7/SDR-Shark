@@ -1,12 +1,5 @@
-import React, { useEffect } from 'react';
-import {
-  Box,
-  TextField,
-  Slider,
-  FormControlLabel,
-  Switch,
-  Typography,
-} from '@mui/material';
+import React from 'react';
+import { Box, Typography, Slider, FormControlLabel, Switch, TextField } from '@mui/material';
 import axios from 'axios';
 
 const ControlPanel = ({
@@ -32,26 +25,24 @@ const ControlPanel = ({
   };
 
   const handleSliderChange = (e, value, name) => {
-    console.log(`Slider ${name} changed to ${value}`);
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [name]: value,
-    }));
-    updateSettings({ ...settings, [name]: value });
+    const newSettings = { ...settings, [name]: value };
+    setSettings(newSettings);
+    updateSettings(newSettings);
   };
 
   const updateSettings = async (newSettings) => {
     try {
-      console.log('Updating settings:', newSettings);
-      await axios.post('/api/update_settings', newSettings);
+      await axios.post('/api/update_settings', newSettings, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     } catch (error) {
       console.error('Error updating settings:', error);
     }
   };
 
-  useEffect(() => {
-    updateSettings(settings);
-  }, []);
+  // other component logic...
 
   return (
     <Box>

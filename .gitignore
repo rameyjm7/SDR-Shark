@@ -21,4 +21,4 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-backend/src/sdr_plot_backend/__pycache__/api.cpython-312.pyc
+*.pyc

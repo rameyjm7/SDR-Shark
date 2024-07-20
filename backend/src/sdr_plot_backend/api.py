@@ -8,25 +8,19 @@ from numba import jit
 import atexit
 from scipy.signal import find_peaks
 from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
+from sdr_plot_backend.utils import vars
 
 api_blueprint = Blueprint('api', __name__)
 
 # Initialize SDR
-sleeptime = 0.01
-sample_size = 1 * 1024  # Adjust sample size to receive more data
-center_freq = 102.1e6  # Center frequency in Hz
-sample_rate = 16e6     # Sample rate in Hz
-gain = 30              # Gain in dB
-fft_averaging = 20
-dc_suppress = True
-number_of_peaks = 5
 
-hackrf_sdr = HackRFSdr(center_freq=center_freq, sample_rate=sample_rate, bandwidth=sample_rate, gain=gain, size=sample_size)
-hackrf_sdr.start()
-sample_buffer = np.zeros(sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
+
+vars.hackrf_sdr = HackRFSdr(center_freq=vars.center_freq, sample_rate=vars.sample_rate, bandwidth=vars.sample_rate, gain=vars.gain, size=vars.sample_size)
+vars.hackrf_sdr.start()
+sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
 
 # Buffer for streaming data
-data_buffer = deque(maxlen=fft_averaging)
+data_buffer = deque(maxlen=vars.fft_averaging)
 waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 
 # Shared data structure for processed data
@@ -51,7 +45,7 @@ def downsample(data, target_length=256):
 
 def capture_samples():
     global sample_buffer
-    sample_buffer = hackrf_sdr.get_latest_samples()
+    sample_buffer = vars.hackrf_sdr.get_latest_samples()
 
 def process_fft(samples):
     fft_result = np.fft.fftshift(np.fft.fft(samples))
@@ -66,7 +60,6 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
-    global running, dc_suppress, fft_averaging, number_of_peaks
     averaged_fft = None
 
     while running:
@@ -77,17 +70,17 @@ def generate_fft_data():
         if averaged_fft is None:
             averaged_fft = current_fft
         else:
-            averaged_fft = (averaged_fft * (fft_averaging - 1) + current_fft) / fft_averaging
+            averaged_fft = (averaged_fft * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
         
         # Replace -Infinity with -20
         averaged_fft = np.where(np.isinf(averaged_fft), -20, averaged_fft)
         
         # Suppress DC spike
-        if dc_suppress:
+        if vars.dc_suppress:
             dc_index = len(averaged_fft) // 2
             averaged_fft[dc_index] = averaged_fft[dc_index + 1]
         
-        peaks = detect_peaks(averaged_fft, number_of_peaks=number_of_peaks)
+        peaks = detect_peaks(averaged_fft, number_of_peaks=vars.number_of_peaks)
         peaks = [int(p) for p in peaks]  # Convert to list of Python integers
 
         with data_lock:
@@ -97,7 +90,7 @@ def generate_fft_data():
         
         end_time = time.time()
         elapsed_time = end_time - start_time
-        time.sleep(max(0, sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
+        time.sleep(max(0, vars.sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -126,7 +119,7 @@ def get_analytics():
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
         for peak in peaks_response:
-            freq = ((center_freq - sample_rate / 2) + (peak * sample_rate / len(fft_response))) / 1e6  # Convert to MHz
+            freq = ((vars.center_freq - vars.sample_rate / 2) + (peak * vars.sample_rate / len(fft_response))) / 1e6  # Convert to MHz
             power = fft_response[peak]
             classification = "???"  # Placeholder for classification
             peaks_data.append({
@@ -140,30 +133,26 @@ def get_analytics():
 
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
-    try:
-        settings = request.json
-        # Update settings
-        frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
-        gain = float(settings.get('gain'))
-        sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
-        bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-        global fft_averaging, number_of_peaks
-        fft_averaging = int(settings.get('averagingCount', fft_averaging))
-        number_of_peaks = int(settings.get('numberOfPeaks', 5))
-        
-        # Log the settings
-        print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {fft_averaging}, Number of Peaks = {number_of_peaks}")
+    settings = request.json
+    # Update settings
+    frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
+    gain = float(settings.get('gain'))
+    sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
+    bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
+    vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
+    vars.number_of_peaks = int(settings.get('numberOfPeaks', 5))
+    
+    # Log the settings
+    print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
-        # Perform the SDR configuration update
-        hackrf_sdr.set_frequency(frequency)
-        hackrf_sdr.set_gain(gain)
-        hackrf_sdr.set_sample_rate(sample_rate)
-        hackrf_sdr.set_bandwidth(bandwidth)
+    # Perform the SDR configuration update
+    vars.hackrf_sdr.set_frequency(frequency)
+    vars.hackrf_sdr.set_gain(gain)
+    vars.hackrf_sdr.set_sample_rate(sample_rate)
+    vars.hackrf_sdr.set_bandwidth(bandwidth)
 
-        return jsonify({'success': True, 'settings': settings})
-    except Exception as e:
-        print(f'Error updating settings: {e}')
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'success': True, 'settings': settings})
+
     
 
 # Ensure the SDR stops when the application exits
@@ -171,5 +160,5 @@ def update_settings():
 def cleanup():
     global running
     running = False
-    hackrf_sdr.stop()
+    vars.hackrf_sdr.stop()
     fft_thread.join()

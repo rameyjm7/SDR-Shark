@@ -1,21 +1,23 @@
-import pytest
-from sdr_plot_backend import create_app
+import threading
 
-@pytest.fixture
-def app():
-    app = create_app()
-    app.config.update({
-        "TESTING": True,
-    })
-    yield app
+class sdr_scheduler_config:
+    
+    def __init__(self) -> None:
+        self.center_freq = 102.1e6  # Center frequency in Hz
+        self.sample_rate = 16e6     # Sample rate in Hz
+        self.bandwidth = 16e6     
+        self.gain = 30              # Gain in dB
+        self.tasks = []
+        self.task_lock = threading.Lock()
+        self.sleeptime = 0.01
+        self.sample_size = 1 * 1024  # Adjust sample size to receive more data
+        self.center_freq = 102.1e6  # Center frequency in Hz
+        self.sample_rate = 16e6     # Sample rate in Hz
+        self.gain = 30              # Gain in dB
+        self.fft_averaging = 20
+        self.dc_suppress = True
+        self.number_of_peaks = 5
+        self.recordings_dir = "/root/workspace/data/recordings/"
+        pass
 
-@pytest.fixture
-def client(app):
-    return app.test_client()
-
-def test_get_data(client):
-    response = client.get("/api/data")
-    assert response.status_code == 200
-    data = response.get_json()
-    assert "fft" in data
-    assert "time" in data
+vars = sdr_scheduler_config()

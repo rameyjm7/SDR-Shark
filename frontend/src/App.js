@@ -130,8 +130,7 @@ const App = () => {
           <Analysis settings={settings} setSettings={setSettings} />
         </TabPanel>
         <TabPanel value={tabValue} index={3}>
-          <TaskForm addTask={(task) => setTasks([...tasks, task])} />
-          <TaskList tasks={tasks} onAnalyze={handleAnalyze} />
+          <Actions tasks={tasks} setTasks={setTasks} />
         </TabPanel>
         <TabPanel value={tabValue} index={4}>
           <FileBrowser onAnalyze={handleAnalyze} />
