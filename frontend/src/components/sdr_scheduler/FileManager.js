@@ -56,7 +56,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   };
 
   const handleDelete = () => {
-    axios.post(`${config.base_url}/api/files/delete`, { path: `${currentPath}${selectedFile.name}` })
+    axios.post(`${config.base_url}/file_manager/files/delete`, { path: `${currentPath}${selectedFile.name}` })
       .then(response => {
         fetchFiles(currentPath);
       })
@@ -72,7 +72,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
 
   const handleRenameSubmit = () => {
     if (selectedFile && newName.trim()) {
-      axios.post(`${config.base_url}/api/files/rename`, { old_path: `${currentPath}${selectedFile.name}`, new_path: `${currentPath}${newName}` })
+      axios.post(`${config.base_url}/file_manager/files/rename`, { old_path: `${currentPath}${selectedFile.name}`, new_path: `${currentPath}${newName}` })
         .then(response => {
           fetchFiles(currentPath);
           setRenameDialogOpen(false);

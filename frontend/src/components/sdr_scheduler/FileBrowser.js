@@ -21,7 +21,7 @@ const FileBrowser = ({ onAnalyze }) => {
   }, [currentPath]);
 
   const fetchFiles = (path) => {
-    axios.get(`${config.base_url}/api/files?path=${encodeURIComponent(path)}`)
+    axios.get(`${config.base_url}/file_manager/files?path=${encodeURIComponent(path)}`)
       .then(response => {
         setFiles(response.data.files);
         setMetadata(null);  // Clear metadata when changing directory
@@ -45,7 +45,7 @@ const FileBrowser = ({ onAnalyze }) => {
   };
 
   const fetchFileMetadata = (file) => {
-    axios.get(`${config.base_url}/api/files/metadata?path=${encodeURIComponent(currentPath + file.name)}`)
+    axios.get(`${config.base_url}/file_manager/files/metadata?path=${encodeURIComponent(currentPath + "/" + file.name)}`)
       .then(response => {
         setSelectedFile(file);
         setMetadata(response.data.metadata);
@@ -54,7 +54,7 @@ const FileBrowser = ({ onAnalyze }) => {
   };
 
   const handleCreateDirectory = () => {
-    axios.post(`${config.base_url}/api/files/create_directory`, { path: currentPath, name: newDirectoryName })
+    axios.post(`${config.base_url}/file_manager/files/create_directory`, { path: currentPath, name: newDirectoryName })
       .then(response => {
         fetchFiles(currentPath);
         setDialogOpen(false);
@@ -68,7 +68,7 @@ const FileBrowser = ({ onAnalyze }) => {
   };
 
   const handleMoveFile = (src, dest, name) => {
-    axios.post(`${config.base_url}/api/files/move`, { src, dest, name })
+    axios.post(`${config.base_url}/file_manager/files/move`, { src, dest, name })
       .then(response => {
         fetchFiles(currentPath);
       })
