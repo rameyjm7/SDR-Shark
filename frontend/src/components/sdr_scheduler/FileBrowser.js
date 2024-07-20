@@ -58,8 +58,8 @@ const FileBrowser = ({ onAnalyze }) => {
     })
       .then(response => {
         console.log('Metadata fetched:', response.data.metadata);
-        console.log('FFT data fetched:', response.data.fft_data);
         setSelectedFile(file);
+        console.log(response.data.metadata)
         setMetadata(response.data.metadata);
         onAnalyze(file, response.data.fft_data, response.data.metadata); // Pass fft_data and metadata
       })

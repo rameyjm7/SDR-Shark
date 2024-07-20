@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
   List, ListItem, ListItemText, Menu, MenuItem, TextField,
-  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button, IconButton
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button,
+  Typography, IconButton
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { DataGrid } from '@mui/x-data-grid';
@@ -14,6 +15,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [newName, setNewName] = useState('');
+  const [metadata, setMetadata] = useState(null);
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -88,9 +90,23 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   };
 
   const handleAnalyze = (file) => {
-    if (file) {
-      onAnalyze(file);
-    }
+    const fullPath = `${currentPath}${currentPath.endsWith('/') ? '' : '/'}${file.name}`;
+    console.log(`Fetching metadata for file: ${file.name} in path: ${currentPath}`);
+    console.log(`Full path for metadata request: ${fullPath}`);
+    axios.get(`${config.base_url}/file_manager/files/metadata`, {
+      params: {
+        path: file.name,
+        current_dir: currentPath,
+      }
+    })
+      .then(response => {
+        console.log('Metadata fetched:', response.data.metadata);
+        console.log('FFT data fetched:', response.data.fft_data);
+        setSelectedFile(file);
+        setMetadata(response.data.metadata);
+        onAnalyze(file, response.data.fft_data, response.data.metadata); // Pass fft_data and metadata
+      })
+      .catch(error => console.error('Error fetching metadata:', error));
   };
 
   const columns = [
@@ -129,6 +145,12 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
     gain: file.metadata ? file.metadata.gain : '-',
     averaging: file.metadata ? file.metadata.fft_averaging : '-',
   }));
+
+  const handleRowClick = (params, event) => {
+    if (params.row.isDir) {
+      onDirectoryClick(params.row);
+    }
+  };
 
   return (
     <div>
@@ -212,6 +234,12 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
           rows={rows}
           columns={columns}
           pageSize={5}
+          onRowClick={handleRowClick}
+          onCellClick={(params, event) => {
+            if (params.field === 'analyze') {
+              handleAnalyze(params.row);
+            }
+          }}
         />
       </div>
     </div>
