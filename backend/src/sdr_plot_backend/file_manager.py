@@ -111,21 +111,7 @@ def delete_file():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-# @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
-# def get_file_metadata():
-#     file_path = request.args.get('path')
-#     current_dir = request.args.get('current_dir', '')
-#     full_path = os.path.join(vars.recordings_dir, current_dir, file_path)
-    
-#     try:
-#         with open(full_path, 'rb') as f:
-#             data = pickle.load(f)
-#             metadata = data['metadata']
-#             fft_data = data['fft_data']
-#             return jsonify({'metadata': metadata, 'fft_data': fft_data})
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
+
 
 @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
 def get_file_metadata():
