@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
   List, ListItem, ListItemText, Menu, MenuItem, TextField,
-  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { ContextMenuTrigger } from 'react-contextmenu';
+import { DataGrid } from '@mui/x-data-grid';
 import axios from 'axios';
 import config from '../../config';
 
@@ -94,6 +94,41 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
     }
   };
 
+  const columns = [
+    { field: 'name', headerName: 'Name', flex: 1 },
+    { field: 'size', headerName: 'Size (bytes)', flex: 1 },
+    { field: 'date', headerName: 'Date', flex: 1 },
+    { field: 'type', headerName: 'Type', flex: 1 },
+    { field: 'label', headerName: 'Label', flex: 1 },
+    { field: 'frequency', headerName: 'Frequency (MHz)', flex: 1 },
+    { field: 'bandwidth', headerName: 'Bandwidth (MHz)', flex: 1 },
+    { field: 'sample_rate', headerName: 'Sample Rate (MHz)', flex: 1 },
+    { field: 'gain', headerName: 'Gain', flex: 1 },
+    { field: 'averaging', headerName: 'Averaging', flex: 1 },
+  ];
+
+  const rows = files.map((file, index) => ({
+    id: file.id,
+    name: file.name,
+    size: file.size,
+    date: file.date,
+    type: file.isDir ? 'Directory' : 'File',
+    label: file.metadata ? file.metadata.label : '-',
+    frequency: file.metadata ? file.metadata.center_freq / 1e6 : '-',
+    bandwidth: file.metadata ? file.metadata.bandwidth / 1e6 : '-',
+    sample_rate: file.metadata ? file.metadata.sample_rate / 1e6 : '-',
+    gain: file.metadata ? file.metadata.gain : '-',
+    averaging: file.metadata ? file.metadata.fft_averaging : '-',
+  }));
+
+  const handleRowClick = (params, event) => {
+    if (event.type === 'contextmenu') {
+      handleContextMenu(event, params.row);
+    } else if (params.row.isDir) {
+      onDirectoryClick(params.row);
+    }
+  };
+
   return (
     <div>
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -174,40 +209,14 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
         </DialogActions>
       </Dialog>
 
-      <TableContainer component={Paper} style={{ marginTop: '20px' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Size (bytes)</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Label</TableCell>
-              <TableCell>Frequency (MHz)</TableCell>
-              <TableCell>Bandwidth (MHz)</TableCell>
-              <TableCell>Sample Rate (MHz)</TableCell>
-              <TableCell>Gain</TableCell>
-              <TableCell>Averaging</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {files.map((file) => (
-              <TableRow key={file.id}>
-                <TableCell>{file.name}</TableCell>
-                <TableCell>{file.size}</TableCell>
-                <TableCell>{file.date}</TableCell>
-                <TableCell>{file.isDir ? 'Directory' : 'File'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.label : '-'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.center_freq / 1e6 : '-'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.bandwidth / 1e6 : '-'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.sample_rate / 1e6 : '-'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.gain : '-'}</TableCell>
-                <TableCell>{file.metadata ? file.metadata.fft_averaging : '-'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <div style={{ height: 400, width: '100%', marginTop: '20px' }}>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pageSize={5}
+          onRowClick={handleRowClick}
+        />
+      </div>
     </div>
   );
 };
