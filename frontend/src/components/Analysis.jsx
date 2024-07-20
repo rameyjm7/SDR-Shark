@@ -8,17 +8,26 @@ const Analysis = ({ settings, setSettings }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const newSettings = {
+      ...settings,
+      [name]: type === 'checkbox' ? checked : parseFloat(value),
+    };
+    setSettings(newSettings);
+    updateSettings(newSettings);
   };
 
   const handleSliderChange = (e, value, name) => {
-    setSettings((prevSettings) => ({
-      ...prevSettings,
-      [name]: value,
-    }));
+    const newSettings = { ...settings, [name]: value };
+    setSettings(newSettings);
+    updateSettings(newSettings);
+  };
+
+  const updateSettings = async (newSettings) => {
+    try {
+      await axios.post('/api/update_settings', newSettings);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+    }
   };
 
   const columns = [

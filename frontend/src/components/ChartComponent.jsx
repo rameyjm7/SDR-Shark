@@ -35,7 +35,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
       }
     };
 
-    const interval = setInterval(fetchPeaks, 250);
+    const interval = setInterval(fetchPeaks, 50);
     return () => clearInterval(interval);
   }, []);
 

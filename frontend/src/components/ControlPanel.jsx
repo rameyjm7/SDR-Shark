@@ -32,6 +32,7 @@ const ControlPanel = ({
   };
 
   const handleSliderChange = (e, value, name) => {
+    console.log(`Slider ${name} changed to ${value}`);
     const newSettings = { ...settings, [name]: value };
     setSettings(newSettings);
     updateSettings(newSettings);
@@ -47,7 +48,7 @@ const ControlPanel = ({
 
   useEffect(() => {
     updateSettings(settings);
-  }, [settings]);
+  }, []);
 
   return (
     <Box>
@@ -131,9 +132,8 @@ const ControlPanel = ({
           <Switch
             checked={showWaterfall}
             onChange={() => {
-              const newShowWaterfall = !showWaterfall;
-              setShowWaterfall(newShowWaterfall);
-              const newSettings = { ...settings, showWaterfall: newShowWaterfall };
+              setShowWaterfall(!showWaterfall);
+              const newSettings = { ...settings, showWaterfall: !showWaterfall };
               setSettings(newSettings);
               updateSettings(newSettings);
             }}
@@ -149,7 +149,10 @@ const ControlPanel = ({
         min={10}
         max={1000}
         value={updateInterval}
-        onChange={(e, value) => setUpdateInterval(value)}
+        onChange={(e, value) => {
+          setUpdateInterval(value);
+          updateSettings({ ...settings, updateInterval: value });
+        }}
         valueLabelDisplay="auto"
         step={10}
         marks={[
@@ -163,7 +166,10 @@ const ControlPanel = ({
         min={25}
         max={1000}
         value={waterfallSamples}
-        onChange={(e, value) => setWaterfallSamples(value)}
+        onChange={(e, value) => {
+          setWaterfallSamples(value);
+          updateSettings({ ...settings, waterfallSamples: value });
+        }}
         valueLabelDisplay="auto"
         step={25}
         marks={[
