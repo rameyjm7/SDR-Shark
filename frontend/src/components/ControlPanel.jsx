@@ -33,13 +33,16 @@ const ControlPanel = ({
 
   const handleSliderChange = (e, value, name) => {
     console.log(`Slider ${name} changed to ${value}`);
-    const newSettings = { ...settings, [name]: value };
-    setSettings(newSettings);
-    updateSettings(newSettings);
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [name]: value,
+    }));
+    updateSettings({ ...settings, [name]: value });
   };
 
   const updateSettings = async (newSettings) => {
     try {
+      console.log('Updating settings:', newSettings);
       await axios.post('/api/update_settings', newSettings);
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -149,10 +152,7 @@ const ControlPanel = ({
         min={10}
         max={1000}
         value={updateInterval}
-        onChange={(e, value) => {
-          setUpdateInterval(value);
-          updateSettings({ ...settings, updateInterval: value });
-        }}
+        onChange={(e, value) => setUpdateInterval(value)}
         valueLabelDisplay="auto"
         step={10}
         marks={[
@@ -166,10 +166,7 @@ const ControlPanel = ({
         min={25}
         max={1000}
         value={waterfallSamples}
-        onChange={(e, value) => {
-          setWaterfallSamples(value);
-          updateSettings({ ...settings, waterfallSamples: value });
-        }}
+        onChange={(e, value) => setWaterfallSamples(value)}
         valueLabelDisplay="auto"
         step={25}
         marks={[
