@@ -21,8 +21,10 @@ const FileBrowser = ({ onAnalyze }) => {
   }, [currentPath]);
 
   const fetchFiles = (path) => {
+    console.log(`Fetching files in path: ${path}`);
     axios.get(`${config.base_url}/file_manager/files?path=${encodeURIComponent(path)}`)
       .then(response => {
+        console.log('Files fetched:', response.data.files);
         setFiles(response.data.files);
         setMetadata(null);  // Clear metadata when changing directory
       })
@@ -45,15 +47,27 @@ const FileBrowser = ({ onAnalyze }) => {
   };
 
   const fetchFileMetadata = (file) => {
-    axios.get(`${config.base_url}/file_manager/files/metadata?path=${encodeURIComponent(currentPath + "/" + file.name)}`)
+    const fullPath = `${currentPath}${currentPath.endsWith('/') ? '' : '/'}${file.name}`;
+    console.log(`Fetching metadata for file: ${file.name} in path: ${currentPath}`);
+    console.log(`Full path for metadata request: ${fullPath}`);
+    axios.get(`${config.base_url}/file_manager/files/metadata`, {
+      params: {
+        path: file.name,
+        current_dir: currentPath,
+      }
+    })
       .then(response => {
+        console.log('Metadata fetched:', response.data.metadata);
+        console.log('FFT data fetched:', response.data.fft_data);
         setSelectedFile(file);
         setMetadata(response.data.metadata);
+        onAnalyze(file, response.data.fft_data, response.data.metadata); // Pass fft_data and metadata
       })
       .catch(error => console.error('Error fetching metadata:', error));
   };
 
   const handleCreateDirectory = () => {
+    console.log(`Creating directory: ${newDirectoryName} in path: ${currentPath}`);
     axios.post(`${config.base_url}/file_manager/files/create_directory`, { path: currentPath, name: newDirectoryName })
       .then(response => {
         fetchFiles(currentPath);
@@ -96,10 +110,9 @@ const FileBrowser = ({ onAnalyze }) => {
         currentPath={currentPath}
         fetchFiles={fetchFiles}
         onAnalyze={(file) => {
-          const relativePath = currentPath + file.name;
+          const relativePath = normalizePath(`${currentPath}/${file.name}`);
           console.log(`Analyzing file: ${relativePath}`);
           fetchFileMetadata(file);
-          onAnalyze(file);
         }}
       />
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>

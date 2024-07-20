@@ -7,8 +7,7 @@ import Analysis from './components/Analysis';
 import Actions from './components/Actions';
 import FileBrowser from './components/sdr_scheduler/FileBrowser';
 import Analyzer from './components/sdr_scheduler/Analyzer';
-import TaskList from './components/sdr_scheduler/TaskList';
-import TaskForm from './components/sdr_scheduler/TaskForm';
+import axios from 'axios';
 
 const theme = createTheme({
   palette: {
@@ -81,10 +80,15 @@ const App = () => {
   const handleAnalyze = (file) => {
     const relativePath = currentPath + file.name;
     console.log(`Analyzing file: ${relativePath}`);
-    // Fetch metadata and fftData from the server for the selected file
-    // axios.get(...)
-    setMetadata({ /* fetched metadata */ });
-    setFftData({ /* fetched fftData */ });
+    axios.get(`/file_manager/files/metadata?path=${encodeURIComponent(relativePath)}`)
+      .then(response => {
+        setMetadata(response.data.metadata);
+        setFftData(response.data.fft_data);
+        setTabValue(5);  // Switch to Data Analyzer tab
+      })
+      .catch(error => {
+        console.error('Error analyzing file:', error);
+      });
   };
 
   return (

@@ -112,11 +112,32 @@ def delete_file():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+# @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
+# def get_file_metadata():
+#     file_path = request.args.get('path')
+#     current_dir = request.args.get('current_dir', '')
+#     full_path = os.path.join(vars.recordings_dir, current_dir, file_path)
+    
+#     try:
+#         with open(full_path, 'rb') as f:
+#             data = pickle.load(f)
+#             metadata = data['metadata']
+#             fft_data = data['fft_data']
+#             return jsonify({'metadata': metadata, 'fft_data': fft_data})
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), 500
+
 @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
 def get_file_metadata():
     file_path = request.args.get('path')
-    full_path = os.path.join(vars.recordings_dir, file_path[1:])
-    
+    current_dir = request.args.get('current_dir', '')
+    current_dir_abs = vars.recordings_dir + current_dir[1:]
+    full_path = current_dir_abs + file_path
+    # full_path = os.path.join(vars.recordings_dir, current_dir, file_path)
+
+    print(f"Received request for file metadata. File path: {file_path}, Current dir: {current_dir}")
+    print(f"Full path: {full_path}")
+
     try:
         with open(full_path, 'rb') as f:
             data = pickle.load(f)
@@ -124,4 +145,5 @@ def get_file_metadata():
             fft_data = data['fft_data']
             return jsonify({'metadata': metadata, 'fft_data': fft_data})
     except Exception as e:
+        print(f"Error loading file metadata: {e}")
         return jsonify({'error': str(e)}), 500

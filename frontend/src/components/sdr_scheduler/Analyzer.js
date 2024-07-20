@@ -1,6 +1,7 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography } from '@mui/material';
+import axios from 'axios'; // Ensure axios is imported
 
 const Analyzer = ({ fftData, metadata }) => {
   const createXAxis = () => {
