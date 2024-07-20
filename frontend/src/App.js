@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
+import { Container, Typography, CssBaseline, Tabs, Tab, Box } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { AppBar, Box, CssBaseline, Tab, Tabs, Typography } from '@mui/material';
+import ControlPanel from './components/ControlPanel';
 import Plots from './components/Plots';
+import Analysis from './components/Analysis';
 import Actions from './components/Actions';
-import './App.css';
+import FileBrowser from './components/sdr_scheduler/FileBrowser';
+import Analyzer from './components/sdr_scheduler/Analyzer';
+import TaskList from './components/sdr_scheduler/TaskList';
+import TaskForm from './components/sdr_scheduler/TaskForm';
 
 const theme = createTheme({
   palette: {
@@ -24,37 +29,119 @@ const theme = createTheme({
   },
 });
 
-function App() {
-  const [mainTabIndex, setMainTabIndex] = useState(0);
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
 
-  const handleMainTabChange = (event, newValue) => {
-    setMainTabIndex(newValue);
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+const App = () => {
+  const [settings, setSettings] = useState({
+    frequency: 100.1,
+    gain: 10,
+    sampleRate: 1,
+    bandwidth: 1,
+    averagingCount: 10,
+    dcSuppress: true,
+    peakDetection: true,
+    minPeakDistance: 0.1,
+    numberOfPeaks: 5,
+    showWaterfall: true,
+  });
+  const [minY, setMinY] = useState(-120);
+  const [maxY, setMaxY] = useState(0);
+  const [updateInterval, setUpdateInterval] = useState(500);
+  const [waterfallSamples, setWaterfallSamples] = useState(100);
+  const [showWaterfall, setShowWaterfall] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const [tasks, setTasks] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [currentPath, setCurrentPath] = useState('/');
+  const [metadata, setMetadata] = useState(null);
+  const [fftData, setFftData] = useState([]);
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  const handleAnalyze = (file) => {
+    const relativePath = currentPath + file.name;
+    console.log(`Analyzing file: ${relativePath}`);
+    // Fetch metadata and fftData from the server for the selected file
+    // axios.get(...)
+    setMetadata({ /* fetched metadata */ });
+    setFftData({ /* fetched fftData */ });
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="static">
-        <Typography variant="h6" sx={{ flexGrow: 1, padding: 2 }}>
-          Spectrum Viewer
-        </Typography>
-      </AppBar>
-      <Box sx={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-          <Tabs value={mainTabIndex} onChange={handleMainTabChange}>
-            <Tab label="Plots" />
-            <Tab label="Actions" />
-            <Tab label="File Manager" />
-          </Tabs>
-          <Box sx={{ flexGrow: 1, p: 3 }}>
-            {mainTabIndex === 0 && <Plots />}
-            {mainTabIndex === 1 && <Actions />}
-            {mainTabIndex === 2 && <Box>{/* File Manager content */}</Box>}
-          </Box>
-        </Box>
-      </Box>
+      <Container>
+        <Typography variant="h4" gutterBottom>SDR Plot Application</Typography>
+        <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="Control Panel" />
+          <Tab label="Plots" />
+          <Tab label="Analysis" />
+          <Tab label="Actions" />
+          <Tab label="File Manager" />
+          <Tab label="Data Analyzer" />
+        </Tabs>
+        <TabPanel value={tabValue} index={0}>
+          <ControlPanel
+            settings={settings}
+            setSettings={setSettings}
+            minY={minY}
+            setMinY={setMinY}
+            maxY={maxY}
+            setMaxY={setMaxY}
+            updateInterval={updateInterval}
+            setUpdateInterval={setUpdateInterval}
+            waterfallSamples={waterfallSamples}
+            setWaterfallSamples={setWaterfallSamples}
+            showWaterfall={showWaterfall}
+            setShowWaterfall={setShowWaterfall}
+          />
+        </TabPanel>
+        <TabPanel value={tabValue} index={1}>
+          <Plots
+            settings={settings}
+            minY={minY}
+            maxY={maxY}
+            updateInterval={updateInterval}
+            waterfallSamples={waterfallSamples}
+            showWaterfall={showWaterfall}
+          />
+        </TabPanel>
+        <TabPanel value={tabValue} index={2}>
+          <Analysis settings={settings} setSettings={setSettings} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={3}>
+          <TaskForm addTask={(task) => setTasks([...tasks, task])} />
+          <TaskList tasks={tasks} onAnalyze={handleAnalyze} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={4}>
+          <FileBrowser onAnalyze={handleAnalyze} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={5}>
+          <Analyzer fftData={fftData} metadata={metadata} />
+        </TabPanel>
+      </Container>
     </ThemeProvider>
   );
-}
+};
 
 export default App;
