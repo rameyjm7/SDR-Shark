@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
   List, ListItem, ListItemText, Menu, MenuItem, TextField,
-  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button, IconButton
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { ContextMenuTrigger } from 'react-contextmenu';
 import { DataGrid } from '@mui/x-data-grid';
+import { Visibility } from '@mui/icons-material';
 import axios from 'axios';
 import config from '../../config';
 
@@ -87,14 +87,23 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
     setSelectedFile(null);
   };
 
-  const handleAnalyze = () => {
-    if (selectedFile) {
-      onAnalyze(selectedFile);
-      handleClose();
+  const handleAnalyze = (file) => {
+    if (file) {
+      onAnalyze(file);
     }
   };
 
   const columns = [
+    {
+      field: 'analyze',
+      headerName: 'Analyze',
+      renderCell: (params) => (
+        <IconButton onClick={() => handleAnalyze(params.row)}>
+          <Visibility />
+        </IconButton>
+      ),
+      flex: 0.5,
+    },
     { field: 'name', headerName: 'Name', flex: 1 },
     { field: 'size', headerName: 'Size (bytes)', flex: 1 },
     { field: 'date', headerName: 'Date', flex: 1 },
@@ -121,14 +130,6 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
     averaging: file.metadata ? file.metadata.fft_averaging : '-',
   }));
 
-  const handleRowClick = (params, event) => {
-    if (event.type === 'contextmenu') {
-      handleContextMenu(event, params.row);
-    } else if (params.row.isDir) {
-      onDirectoryClick(params.row);
-    }
-  };
-
   return (
     <div>
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -149,22 +150,20 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
                 )}
               </Draggable>
               {files.map((file, index) => (
-                <ContextMenuTrigger id="contextmenu" key={file.id} holdToDisplay={-1}>
-                  <Draggable draggableId={file.id} index={index + 1}>
-                    {(provided) => (
-                      <ListItem
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        button
-                        onClick={() => file.isDir ? onDirectoryClick(file) : null}
-                        onContextMenu={(event) => handleContextMenu(event, file)}
-                      >
-                        <ListItemText primary={file.name} />
-                      </ListItem>
-                    )}
-                  </Draggable>
-                </ContextMenuTrigger>
+                <Draggable draggableId={file.id} index={index + 1} key={file.id}>
+                  {(provided) => (
+                    <ListItem
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      button
+                      onClick={() => file.isDir ? onDirectoryClick(file) : null}
+                      onContextMenu={(event) => handleContextMenu(event, file)}
+                    >
+                      <ListItemText primary={file.name} />
+                    </ListItem>
+                  )}
+                </Draggable>
               ))}
               {provided.placeholder}
             </List>
@@ -184,7 +183,6 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
       >
         <MenuItem onClick={handleRename}>Rename</MenuItem>
         <MenuItem onClick={handleDelete}>Delete</MenuItem>
-        <MenuItem onClick={handleAnalyze}>Analyze</MenuItem>
       </Menu>
 
       <Dialog open={renameDialogOpen} onClose={handleDialogClose}>
@@ -214,7 +212,6 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
           rows={rows}
           columns={columns}
           pageSize={5}
-          onRowClick={handleRowClick}
         />
       </div>
     </div>
