@@ -106,6 +106,8 @@ def delete_file():
 @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
 def get_file_metadata():
     file_path = request.args.get('path')
+    if file_path is None:
+        return jsonify({'error': str("File path is None")}), 500
     current_dir = request.args.get('current_dir', '')
     current_dir_abs = os.path.join(vars.recordings_dir, current_dir.strip('/'))
     full_path = os.path.join(current_dir_abs, file_path)

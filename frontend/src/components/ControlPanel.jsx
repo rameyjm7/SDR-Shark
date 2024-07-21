@@ -54,7 +54,7 @@ const ControlPanel = ({
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : parseFloat(value);
+    const newValue = type === 'checkbox' ? checked : parseFloat(value) || '';
     const newSettings = { ...localSettings, [name]: newValue };
     setLocalSettings(newSettings);
   };
@@ -62,6 +62,12 @@ const ControlPanel = ({
   const handleSliderChange = (e, value, name) => {
     const newSettings = { ...localSettings, [name]: value };
     setLocalSettings(newSettings);
+  };
+
+  const handleSliderChangeCommitted = (e, value, name) => {
+    if (name === 'averagingCount') {
+      applySettings({ ...localSettings, [name]: value });
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -167,7 +173,7 @@ const ControlPanel = ({
         label="Frequency (MHz)"
         name="frequency"
         type="number"
-        value={localSettings.frequency}
+        value={localSettings.frequency || ''}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -180,7 +186,7 @@ const ControlPanel = ({
         label="Gain (dB)"
         name="gain"
         type="number"
-        value={localSettings.gain}
+        value={localSettings.gain || ''}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -193,7 +199,7 @@ const ControlPanel = ({
         label="Sample Rate (MHz)"
         name="sampleRate"
         type="number"
-        value={localSettings.sampleRate}
+        value={localSettings.sampleRate || ''}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -206,7 +212,7 @@ const ControlPanel = ({
         label="Bandwidth (MHz)"
         name="bandwidth"
         type="number"
-        value={localSettings.bandwidth}
+        value={localSettings.bandwidth || ''}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -220,6 +226,7 @@ const ControlPanel = ({
         max={100}
         value={localSettings.averagingCount}
         onChange={(e, value) => handleSliderChange(e, value, 'averagingCount')}
+        onChangeCommitted={(e, value) => handleSliderChangeCommitted(e, value, 'averagingCount')}
         valueLabelDisplay="auto"
         step={1}
         marks={[
@@ -231,7 +238,7 @@ const ControlPanel = ({
       <FormControlLabel
         control={
           <Switch
-            checked={localSettings.dcSuppress}
+            checked={localSettings.dcSuppress || false}
             onChange={handleChange}
             name="dcSuppress"
             color="primary"
@@ -242,7 +249,7 @@ const ControlPanel = ({
       <FormControlLabel
         control={
           <Switch
-            checked={showWaterfall}
+            checked={showWaterfall || false}
             onChange={() => {
               setShowWaterfall(!showWaterfall);
               const newSettings = { ...localSettings, showWaterfall: !showWaterfall };
