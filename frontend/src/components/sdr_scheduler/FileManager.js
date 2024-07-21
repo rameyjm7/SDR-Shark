@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import {
   List, ListItem, ListItemText, Menu, MenuItem, TextField,
-  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button,
-  Typography, IconButton
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { DataGrid } from '@mui/x-data-grid';
-import { Visibility } from '@mui/icons-material';
-import axios from 'axios';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
 import config from '../../config';
+import axios from 'axios';
 
 const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFiles, onAnalyze }) => {
   const [contextMenu, setContextMenu] = useState(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [newName, setNewName] = useState('');
-  const [metadata, setMetadata] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
@@ -58,12 +58,18 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   };
 
   const handleDelete = () => {
-    axios.post(`${config.base_url}/file_manager/files/delete`, { path: `${currentPath}${selectedFile.name}` })
+    setDeleteDialogOpen(true);
+    handleClose();
+  };
+
+  const confirmDelete = () => {
+    axios.post(`${config.base_url}/file_manager/files/delete`, { path: `${currentPath}/${selectedFile.name}` })
       .then(response => {
         fetchFiles(currentPath);
+        setDeleteDialogOpen(false);
+        setSelectedFile(null);
       })
       .catch(error => console.error('Error deleting file:', error));
-    handleClose();
   };
 
   const handleRename = () => {
@@ -74,7 +80,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
 
   const handleRenameSubmit = () => {
     if (selectedFile && newName.trim()) {
-      axios.post(`${config.base_url}/file_manager/files/rename`, { old_path: `${currentPath}${selectedFile.name}`, new_path: `${currentPath}${newName}` })
+      axios.post(`${config.base_url}/file_manager/files/rename`, { old_path: `${currentPath}/${selectedFile.name}`, new_path: `${currentPath}/${newName}` })
         .then(response => {
           fetchFiles(currentPath);
           setRenameDialogOpen(false);
@@ -90,9 +96,6 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   };
 
   const handleAnalyze = (file) => {
-    const fullPath = `${currentPath}${currentPath.endsWith('/') ? '' : '/'}${file.name}`;
-    console.log(`Fetching metadata for file: ${file.name} in path: ${currentPath}`);
-    console.log(`Full path for metadata request: ${fullPath}`);
     axios.get(`${config.base_url}/file_manager/files/metadata`, {
       params: {
         path: file.name,
@@ -102,6 +105,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
       .then(response => {
         console.log('Metadata fetched:', response.data.metadata);
         setSelectedFile(file);
+        console.log(response.data.metadata)
         setMetadata(response.data.metadata);
         onAnalyze(file, response.data.fft_data, response.data.metadata); // Pass fft_data and metadata
       })
@@ -109,16 +113,6 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   };
 
   const columns = [
-    {
-      field: 'analyze',
-      headerName: 'Analyze',
-      renderCell: (params) => (
-        <IconButton onClick={() => handleAnalyze(params.row)}>
-          <Visibility />
-        </IconButton>
-      ),
-      flex: 0.5,
-    },
     { field: 'name', headerName: 'Name', flex: 1 },
     { field: 'size', headerName: 'Size (bytes)', flex: 1 },
     { field: 'date', headerName: 'Date', flex: 1 },
@@ -129,6 +123,27 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
     { field: 'sample_rate', headerName: 'Sample Rate (MHz)', flex: 1 },
     { field: 'gain', headerName: 'Gain', flex: 1 },
     { field: 'averaging', headerName: 'Averaging', flex: 1 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      type: 'actions',
+      flex: 1,
+      getActions: (params) => [
+        <GridActionsCellItem
+          icon={<SearchIcon />}
+          label="Analyze"
+          onClick={() => handleAnalyze(params.row)}
+        />,
+        <GridActionsCellItem
+          icon={<DeleteIcon />}
+          label="Delete"
+          onClick={() => {
+            setSelectedFile(params.row);
+            setDeleteDialogOpen(true);
+          }}
+        />
+      ],
+    },
   ];
 
   const rows = files.map((file, index) => ({
@@ -146,7 +161,9 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
   }));
 
   const handleRowClick = (params, event) => {
-    if (params.row.isDir) {
+    if (event.type === 'contextmenu') {
+      handleContextMenu(event, params.row);
+    } else if (params.row.isDir) {
       onDirectoryClick(params.row);
     }
   };
@@ -204,6 +221,7 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
       >
         <MenuItem onClick={handleRename}>Rename</MenuItem>
         <MenuItem onClick={handleDelete}>Delete</MenuItem>
+        <MenuItem onClick={handleAnalyze}>Analyze</MenuItem>
       </Menu>
 
       <Dialog open={renameDialogOpen} onClose={handleDialogClose}>
@@ -228,17 +246,25 @@ const FileManager = ({ files, onDirectoryClick, onMoveFile, currentPath, fetchFi
         </DialogActions>
       </Dialog>
 
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete File</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this file?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
       <div style={{ height: 400, width: '100%', marginTop: '20px' }}>
         <DataGrid
           rows={rows}
           columns={columns}
           pageSize={5}
           onRowClick={handleRowClick}
-          onCellClick={(params, event) => {
-            if (params.field === 'analyze') {
-              handleAnalyze(params.row);
-            }
-          }}
         />
       </div>
     </div>

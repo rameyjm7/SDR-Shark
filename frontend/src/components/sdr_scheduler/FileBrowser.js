@@ -50,7 +50,7 @@ const FileBrowser = ({ onAnalyze }) => {
     const fullPath = `${currentPath}${currentPath.endsWith('/') ? '' : '/'}${file.name}`;
     console.log(`Fetching metadata for file: ${file.name} in path: ${currentPath}`);
     console.log(`Full path for metadata request: ${fullPath}`);
-    axios.get(`${config.base_url}/file_manager/files/metadata`, {
+    axios.get(`${base_url}/file_manager/files/metadata`, {
       params: {
         path: file.name,
         current_dir: currentPath,

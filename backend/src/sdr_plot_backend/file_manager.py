@@ -1,15 +1,11 @@
-from flask import Blueprint, jsonify, request, Response
+from flask import Blueprint, jsonify, request
 from sdr_plot_backend.utils import vars
 import pickle
-from datetime import datetime
-import json
-import time
-import numpy as np
 import os
 import shutil
+from datetime import datetime
 
 file_mgr_blueprint = Blueprint('file_mgr', __name__)
-
 
 @file_mgr_blueprint.route('/file_manager/files', methods=['GET'])
 def list_files():
@@ -68,14 +64,9 @@ def move_file():
         if not os.path.exists(src_path):
             return jsonify({'error': 'Source file not found'}), 404
         
-        # Log source and destination paths
-        print(f'Moving file: {src_path} to {dest_path}')
-
         shutil.move(src_path, os.path.join(dest_path, ""))
         return jsonify({'success': True})
     except Exception as e:
-        # Log the exception
-        print(f'Error moving file: {e}')
         return jsonify({'error': str(e)}), 500
 
 @file_mgr_blueprint.route('/file_manager/files/rename', methods=['POST'])
@@ -112,14 +103,12 @@ def delete_file():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @file_mgr_blueprint.route('/file_manager/files/metadata', methods=['GET'])
 def get_file_metadata():
     file_path = request.args.get('path')
     current_dir = request.args.get('current_dir', '')
-    current_dir_abs = vars.recordings_dir + current_dir[1:]
-    full_path = current_dir_abs + file_path
-    # full_path = os.path.join(vars.recordings_dir, current_dir, file_path)
+    current_dir_abs = os.path.join(vars.recordings_dir, current_dir.strip('/'))
+    full_path = os.path.join(current_dir_abs, file_path)
 
     print(f"Received request for file metadata. File path: {file_path}, Current dir: {current_dir}")
     print(f"Full path: {full_path}")

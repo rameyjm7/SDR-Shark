@@ -78,9 +78,15 @@ const App = () => {
   };
 
   const handleAnalyze = (file) => {
-    const relativePath = currentPath + file.name;
+    const relativePath = currentPath +  file.name;
     console.log(`Analyzing file: ${relativePath}`);
-    axios.get(`/file_manager/files/metadata?path=${encodeURIComponent(relativePath)}`)
+
+      axios.get(`${config.base_url}/file_manager/files/metadata`, {
+        params: {
+          path: file.name,
+          current_dir: currentPath,
+        }
+      })
       .then(response => {
         setMetadata(response.data.metadata);
         setFftData(response.data.fft_data);
@@ -89,6 +95,8 @@ const App = () => {
       .catch(error => {
         console.error('Error analyzing file:', error);
       });
+
+        
   };
 
   return (

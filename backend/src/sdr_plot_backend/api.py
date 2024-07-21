@@ -7,15 +7,21 @@ from collections import deque
 from numba import jit
 import atexit
 from scipy.signal import find_peaks
-from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
+# from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
+# from bluetooth_demod.sdr.sdr_sidekiq import SidekiqSdr as Sdr
+from sdrfly.sdr.sdr_generic import SDRGeneric
 from sdr_plot_backend.utils import vars
 
 api_blueprint = Blueprint('api', __name__)
 
 # Initialize SDR
 
+# sdr = SDRGeneric("hackrf", center_freq=915e6, sample_rate=10e6, bandwidth=5e6, gain=20, size=1024)
+# sdr = SDRGeneric("sidekiq", center_freq=915e6, sample_rate=10e6, bandwidth=5e6, gain=20, size=1024)
 
-vars.hackrf_sdr = HackRFSdr(center_freq=vars.center_freq, sample_rate=vars.sample_rate, bandwidth=vars.sample_rate, gain=vars.gain, size=vars.sample_size)
+# vars.hackrf_sdr = Sdr(center_freq=vars.center_freq, sample_rate=vars.sample_rate, bandwidth=vars.sample_rate, gain=vars.gain, size=vars.sample_size)
+
+vars.hackrf_sdr =  SDRGeneric("hackrf", center_freq=vars.center_freq, sample_rate=vars.sample_rate, bandwidth=vars.sample_rate, gain=vars.gain, size=vars.sample_size)
 vars.hackrf_sdr.start()
 sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
 
