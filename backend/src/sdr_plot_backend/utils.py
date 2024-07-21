@@ -21,7 +21,7 @@ class sdr_scheduler_config:
         self.recordings_dir = "/root/workspace/data/recordings"
         
 
-        self.radio_name = "sidekiq"
+        self.radio_name = "hackrf"
         self.hackrf_sdr =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
         self.hackrf_sdr.start()
     
@@ -34,6 +34,7 @@ class sdr_scheduler_config:
                 self.hackrf_sdr = None
                 self.radio_name = name
                 self.hackrf_sdr =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
+                self.hackrf_sdr.start()
                 return 0
         return 1
         

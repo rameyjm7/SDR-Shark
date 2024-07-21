@@ -43,7 +43,10 @@ def downsample(data, target_length=256):
 
 def capture_samples():
     global sample_buffer
+    while vars.hackrf_sdr is None:
+        time.sleep(0.1)
     sample_buffer = vars.hackrf_sdr.get_latest_samples()
+    
 
 def process_fft(samples):
     fft_result = np.fft.fftshift(np.fft.fft(samples))
@@ -151,7 +154,11 @@ def update_settings():
 
     return jsonify({'success': True, 'settings': settings})
 
-    
+@api_blueprint.route('/api/select_sdr', methods=['POST'])
+def select_sdr():
+    sdr_name = request.json.get('sdr_name', 'hackrf')
+    result = vars.reselect_radio(sdr_name)
+    return jsonify({'status': 'success', 'result': result})
 
 # Ensure the SDR stops when the application exits
 @atexit.register
