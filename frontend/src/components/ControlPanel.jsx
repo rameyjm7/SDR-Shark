@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Slider, FormControlLabel, Switch, TextField, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Slider, FormControlLabel, Switch, TextField, Select, MenuItem, Button, IconButton } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
 
 const ControlPanel = ({
@@ -8,7 +10,6 @@ const ControlPanel = ({
   minY,
   setMinY,
   maxY,
-  setMaxY,
   updateInterval,
   setUpdateInterval,
   waterfallSamples,
@@ -18,31 +19,55 @@ const ControlPanel = ({
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
-    const fetchSdr = async () => {
-      try {
-        const response = await axios.get('/api/get_sdr');
-        setSdr(response.data.sdr);
-      } catch (error) {
-        console.error('Error fetching SDR:', error);
-      }
-    };
-    fetchSdr();
-  }, []);
+    if (!settingsLoaded) {
+      fetchSettings();
+    }
+  }, [settingsLoaded]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await axios.get('/api/get_settings');
+      const data = response.data;
+      setSdr(data.sdr);
+      setLocalSettings({
+        frequency: data.frequency,
+        gain: data.gain,
+        sampleRate: data.sampleRate,
+        bandwidth: data.bandwidth,
+        averagingCount: data.averagingCount,
+        dcSuppress: data.dcSuppress,
+        showWaterfall: data.showWaterfall,
+      });
+      setUpdateInterval(data.updateInterval);
+      setWaterfallSamples(data.waterfallSamples);
+      setStatus('Settings loaded');
+      setSettingsLoaded(true);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      setStatus('Error fetching settings');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : parseFloat(value);
-    const newSettings = { ...settings, [name]: newValue };
-    setSettings(newSettings);
-    updateSettings(newSettings);
+    const newSettings = { ...localSettings, [name]: newValue };
+    setLocalSettings(newSettings);
   };
 
   const handleSliderChange = (e, value, name) => {
-    const newSettings = { ...settings, [name]: value };
-    setSettings(newSettings);
-    updateSettings(newSettings);
+    const newSettings = { ...localSettings, [name]: value };
+    setLocalSettings(newSettings);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applySettings(localSettings);
+    }
   };
 
   const handleSdrChange = (e) => {
@@ -52,7 +77,9 @@ const ControlPanel = ({
     axios.post('/api/select_sdr', { sdr_name: newSdr })
       .then(response => {
         console.log('SDR changed:', response.data);
-        setSettings({ ...settings, sdr: newSdr });
+        const newSettings = { ...localSettings, sdr: newSdr };
+        setLocalSettings(newSettings);
+        applySettings(newSettings);
         setStatus(`SDR changed to ${newSdr}`);
       })
       .catch(error => {
@@ -61,14 +88,34 @@ const ControlPanel = ({
       });
   };
 
-  const updateSettings = async (newSettings) => {
+  const enforceLimits = (settings) => {
+    const newSettings = { ...settings };
+    const limitKeys = ['frequency', 'gain', 'sampleRate', 'bandwidth'];
+
+    limitKeys.forEach((key) => {
+      const limit = sdrLimits[sdr][key];
+      if (newSettings[key] < limit.min) {
+        newSettings[key] = limit.min;
+      }
+      if (newSettings[key] > limit.max) {
+        newSettings[key] = limit.max;
+      }
+    });
+
+    return newSettings;
+  };
+
+  const applySettings = async (newSettings) => {
+    const enforcedSettings = enforceLimits(newSettings);
     setStatus('Updating settings...');
     try {
-      await axios.post('/api/update_settings', newSettings, {
+      await axios.post('/api/update_settings', enforcedSettings, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
+      setSettings(enforcedSettings);
+      setLocalSettings(enforcedSettings); // Update the local state with enforced settings
       setStatus('Settings updated');
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -91,14 +138,24 @@ const ControlPanel = ({
     }
   };
 
-  const { frequency, gain, sampleRate, bandwidth } = sdrLimits[sdr];
-
   return (
     <Box>
-      <Typography variant="h6">SDR Settings</Typography>
-      <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-        Status: {status}
-      </Typography>
+      <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box>
+          <Typography variant="h6">SDR Settings</Typography>
+          <Box display="flex" alignItems="center">
+            <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
+              Status: {status}
+            </Typography>
+            <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
+              <RefreshIcon />
+            </IconButton>
+            <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
+              <SaveIcon />
+            </IconButton>
+          </Box>
+        </Box>
+      </Box>
       <Typography variant="body1">Select SDR:</Typography>
       <Select value={sdr} onChange={handleSdrChange} fullWidth>
         <MenuItem value="hackrf">HackRF</MenuItem>
@@ -110,11 +167,12 @@ const ControlPanel = ({
         label="Frequency (MHz)"
         name="frequency"
         type="number"
-        value={settings.frequency}
+        value={localSettings.frequency}
         onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1, min: frequency.min, max: frequency.max }}
+        inputProps={{ step: 0.1 }}
       />
       <TextField
         fullWidth
@@ -122,11 +180,12 @@ const ControlPanel = ({
         label="Gain (dB)"
         name="gain"
         type="number"
-        value={settings.gain}
+        value={localSettings.gain}
         onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 1, min: gain.min, max: gain.max }}
+        inputProps={{ step: 1 }}
       />
       <TextField
         fullWidth
@@ -134,11 +193,12 @@ const ControlPanel = ({
         label="Sample Rate (MHz)"
         name="sampleRate"
         type="number"
-        value={settings.sampleRate}
+        value={localSettings.sampleRate}
         onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1, min: sampleRate.min, max: sampleRate.max }}
+        inputProps={{ step: 0.1 }}
       />
       <TextField
         fullWidth
@@ -146,18 +206,19 @@ const ControlPanel = ({
         label="Bandwidth (MHz)"
         name="bandwidth"
         type="number"
-        value={settings.bandwidth}
+        value={localSettings.bandwidth}
         onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1, min: bandwidth.min, max: bandwidth.max }}
+        inputProps={{ step: 0.1 }}
       />
       <Typography variant="h6" sx={{ mt: 2 }}>Plot Settings</Typography>
-      <Typography gutterBottom>Averaging Count: {settings.averagingCount}</Typography>
+      <Typography gutterBottom>Averaging Count: {localSettings.averagingCount}</Typography>
       <Slider
         min={1}
         max={100}
-        value={settings.averagingCount}
+        value={localSettings.averagingCount}
         onChange={(e, value) => handleSliderChange(e, value, 'averagingCount')}
         valueLabelDisplay="auto"
         step={1}
@@ -170,7 +231,7 @@ const ControlPanel = ({
       <FormControlLabel
         control={
           <Switch
-            checked={settings.dcSuppress}
+            checked={localSettings.dcSuppress}
             onChange={handleChange}
             name="dcSuppress"
             color="primary"
@@ -184,9 +245,9 @@ const ControlPanel = ({
             checked={showWaterfall}
             onChange={() => {
               setShowWaterfall(!showWaterfall);
-              const newSettings = { ...settings, showWaterfall: !showWaterfall };
-              setSettings(newSettings);
-              updateSettings(newSettings);
+              const newSettings = { ...localSettings, showWaterfall: !showWaterfall };
+              setLocalSettings(newSettings);
+              applySettings(newSettings);
             }}
             name="showWaterfall"
             color="primary"

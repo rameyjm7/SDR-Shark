@@ -17,6 +17,8 @@ class sdr_scheduler_config:
         self.gain = 30              # Gain in dB
         self.fft_averaging = 20
         self.dc_suppress = True
+        self.show_waterfall = True
+        self.waterfall_samples = 100
         self.number_of_peaks = 5
         self.recordings_dir = "/root/workspace/data/recordings"
         

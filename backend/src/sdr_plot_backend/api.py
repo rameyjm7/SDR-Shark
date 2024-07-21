@@ -7,21 +7,15 @@ from collections import deque
 from numba import jit
 import atexit
 from scipy.signal import find_peaks
-# from bluetooth_demod.sdr.sdr_hackrf import HackRFSdr
-# from bluetooth_demod.sdr.sdr_sidekiq import SidekiqSdr as Sdr
 from sdr_plot_backend.utils import vars
+
 api_blueprint = Blueprint('api', __name__)
-
-# Initialize SDR
-
 
 sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
 
-# Buffer for streaming data
 data_buffer = deque(maxlen=vars.fft_averaging)
 waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 
-# Shared data structure for processed data
 data_lock = threading.Lock()
 fft_data = {
     'original_fft': [],
@@ -46,7 +40,6 @@ def capture_samples():
     while vars.hackrf_sdr is None:
         time.sleep(0.1)
     sample_buffer = vars.hackrf_sdr.get_latest_samples()
-    
 
 def process_fft(samples):
     fft_result = np.fft.fftshift(np.fft.fft(samples))
@@ -73,16 +66,14 @@ def generate_fft_data():
         else:
             averaged_fft = (averaged_fft * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
         
-        # Replace -Infinity with -20
         averaged_fft = np.where(np.isinf(averaged_fft), -20, averaged_fft)
         
-        # Suppress DC spike
         if vars.dc_suppress:
             dc_index = len(averaged_fft) // 2
             averaged_fft[dc_index] = averaged_fft[dc_index + 1]
         
         peaks = detect_peaks(averaged_fft, number_of_peaks=vars.number_of_peaks)
-        peaks = [int(p) for p in peaks]  # Convert to list of Python integers
+        peaks = [int(p) for p in peaks]
 
         with data_lock:
             fft_data['original_fft'] = averaged_fft.tolist()
@@ -91,7 +82,7 @@ def generate_fft_data():
         
         end_time = time.time()
         elapsed_time = end_time - start_time
-        time.sleep(max(0, vars.sleeptime - elapsed_time))  # Adjust sleep time for real-time performance
+        time.sleep(max(0, vars.sleeptime - elapsed_time))
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -103,7 +94,6 @@ def get_data():
         peaks_response = fft_data['peaks'].copy()
         waterfall_response = list(waterfall_buffer)
     
-    # Get current time
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
     
     return jsonify({
@@ -132,27 +122,7 @@ def get_analytics():
 
     return jsonify({'peaks': peaks_data})
 
-@api_blueprint.route('/api/update_settings', methods=['POST'])
-def update_settings():
-    settings = request.json
-    # Update settings
-    frequency = float(settings.get('frequency')) * 1e6  # Convert to Hz
-    gain = float(settings.get('gain'))
-    sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
-    bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-    vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
-    vars.number_of_peaks = int(settings.get('numberOfPeaks', 5))
-    
-    # Log the settings
-    print(f"Updating settings: Frequency = {frequency} Hz, Gain = {gain}, Sample Rate = {sample_rate} Hz, Bandwidth = {bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
-    # Perform the SDR configuration update
-    vars.hackrf_sdr.set_frequency(frequency)
-    vars.hackrf_sdr.set_gain(gain)
-    vars.hackrf_sdr.set_sample_rate(sample_rate)
-    vars.hackrf_sdr.set_bandwidth(bandwidth)
-
-    return jsonify({'success': True, 'settings': settings})
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
@@ -160,7 +130,41 @@ def select_sdr():
     result = vars.reselect_radio(sdr_name)
     return jsonify({'status': 'success', 'result': result})
 
-# Ensure the SDR stops when the application exits
+@api_blueprint.route('/api/get_settings', methods=['GET'])
+def get_settings():
+    settings = {
+        'sdr': vars.radio_name,
+        'frequency': vars.center_freq / 1e6,  # Convert to MHz
+        'gain': vars.gain,
+        'sampleRate': vars.sample_rate / 1e6,  # Convert to MHz
+        'bandwidth': vars.bandwidth / 1e6,  # Convert to MHz
+        'averagingCount': vars.fft_averaging,
+        'dcSuppress': vars.dc_suppress,
+        'showWaterfall': vars.show_waterfall,
+        'updateInterval': vars.sleeptime * 1000,  # Convert to ms
+        'waterfallSamples': vars.waterfall_samples,
+    }
+    return jsonify(settings)
+
+@api_blueprint.route('/api/update_settings', methods=['POST'])
+def update_settings():
+    settings = request.json
+    vars.center_freq = float(settings.get('frequency')) * 1e6  # Convert to Hz
+    vars.gain = float(settings.get('gain'))
+    vars.sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
+    vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
+    vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
+    vars.number_of_peaks = int(settings.get('numberOfPeaks', 5))
+    
+    print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
+
+    vars.hackrf_sdr.set_frequency(vars.center_freq)
+    vars.hackrf_sdr.set_gain(vars.gain)
+    vars.hackrf_sdr.set_sample_rate(vars.sample_rate)
+    vars.hackrf_sdr.set_bandwidth(vars.bandwidth)
+
+    return jsonify({'success': True, 'settings': settings})
+
 @atexit.register
 def cleanup():
     global running
