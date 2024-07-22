@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Plot from 'react-plotly.js';
 
 const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
+  const [tickVals, setTickVals] = useState([]);
+  const [tickText, setTickText] = useState([]);
+
   const generateColor = (value) => {
     if (value >= 0) {
       return 'rgb(0, 255, 0)';
@@ -85,10 +88,8 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
     };
   };
 
-  const peakAnnotations = generateAnnotations(peaks, fftData);
-  const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
-
   const generateTickValsAndLabels = (centerFreq, bandwidth) => {
+    console.log("Generating tick values and labels with centerFreq:", centerFreq, "and bandwidth:", bandwidth);
     const halfBandwidth = bandwidth / 2;
     const startFreq = centerFreq - halfBandwidth;
     const endFreq = centerFreq + halfBandwidth;
@@ -102,10 +103,36 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
     }
 
+    console.log("Generated tick values:", tickVals);
+    console.log("Generated tick labels:", tickText);
+
     return { tickVals, tickText };
   };
 
-  const { tickVals, tickText } = generateTickValsAndLabels(settings.frequency * 1e6, settings.bandwidth * 1e6);
+  useEffect(() => {
+    if (settings.sweeping_enabled) {
+      const { tickVals, tickText } = generateTickValsAndLabels(
+        (settings.frequency_start + settings.frequency_stop) / 2,
+        settings.frequency_stop - settings.frequency_start + (settings.sdr === 'sidekiq' ? 60e6 : 20e6)
+      );
+      setTickVals(tickVals);
+      setTickText(tickText);
+    } else {
+      const { tickVals, tickText } = generateTickValsAndLabels(
+        settings.frequency,
+        settings.bandwidth
+      );
+      setTickVals(tickVals);
+      setTickText(tickText);
+    }
+  }, [settings.sweeping_enabled, settings.frequency_start, settings.frequency_stop, settings.sdr]);
+
+  console.log("Plot settings:", settings);
+  console.log("Tick values:", tickVals);
+  console.log("Tick labels:", tickText);
+
+  const peakAnnotations = generateAnnotations(peaks, fftData);
+  const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
 
   return (
     <Plot
@@ -125,6 +152,8 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
           title: 'Frequency (MHz)',
           color: 'white',
           gridcolor: '#444',
+          tickvals: tickVals,
+          ticktext: tickText,
         },
         yaxis: {
           title: 'Amplitude (dB)',
@@ -137,7 +166,7 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
           r: 50,
           b: 50,
           t: 50,
-          pad: 4
+          pad: 4,
         },
         paper_bgcolor: '#000',
         plot_bgcolor: '#000',

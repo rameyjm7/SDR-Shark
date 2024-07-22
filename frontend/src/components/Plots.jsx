@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Grid, Tab, Tabs } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import axios from 'axios';
 import ChartComponent from './ChartComponent';
 import ControlPanel from './ControlPanel';
-import Analysis from './Analysis';
+import '../App.css';
 
 const Plots = () => {
-  const [controlPanelTabIndex, setControlPanelTabIndex] = useState(0);
   const [settings, setSettings] = useState({
     frequency: 102.1,
     gain: 30,
@@ -27,10 +26,6 @@ const Plots = () => {
   const [peaks, setPeaks] = useState([]);
   const [time, setTime] = useState('');
 
-  const handleControlPanelTabChange = (event, newValue) => {
-    setControlPanelTabIndex(newValue);
-  };
-
   const updateSettings = async (newSettings) => {
     setSettings(newSettings);
     try {
@@ -41,8 +36,8 @@ const Plots = () => {
   };
 
   return (
-    <Grid container spacing={2}>
-      <Grid item xs={9}>
+    <div className="plots_container">
+      <Box className="plots">
         <ChartComponent
           settings={settings}
           minY={minY}
@@ -54,35 +49,24 @@ const Plots = () => {
           setPeaks={setPeaks}
           setTime={setTime}
         />
-      </Grid>
-      <Grid item xs={3}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Tabs value={controlPanelTabIndex} onChange={handleControlPanelTabChange}>
-            <Tab label="Controls" />
-            <Tab label="Analysis" />
-          </Tabs>
-          <Box sx={{ flexGrow: 1, p: 2, overflow: 'auto' }}>
-            {controlPanelTabIndex === 0 && (
-              <ControlPanel
-                settings={settings}
-                setSettings={updateSettings}
-                minY={minY}
-                setMinY={setMinY}
-                maxY={maxY}
-                setMaxY={setMaxY}
-                updateInterval={updateInterval}
-                setUpdateInterval={setUpdateInterval}
-                waterfallSamples={waterfallSamples}
-                setWaterfallSamples={setWaterfallSamples}
-                showWaterfall={showWaterfall}
-                setShowWaterfall={setShowWaterfall}
-              />
-            )}
-            {controlPanelTabIndex === 1 && <Analysis settings={settings} setSettings={setSettings} />}
-          </Box>
-        </Box>
-      </Grid>
-    </Grid>
+      </Box>
+      <Box className="control-panel">
+        <ControlPanel
+          settings={settings}
+          setSettings={updateSettings}
+          minY={minY}
+          setMinY={setMinY}
+          maxY={maxY}
+          setMaxY={setMaxY}
+          updateInterval={updateInterval}
+          setUpdateInterval={setUpdateInterval}
+          waterfallSamples={waterfallSamples}
+          setWaterfallSamples={setWaterfallSamples}
+          showWaterfall={showWaterfall}
+          setShowWaterfall={setShowWaterfall}
+        />
+      </Box>
+    </div>
   );
 };
 

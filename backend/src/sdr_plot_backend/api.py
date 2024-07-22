@@ -92,7 +92,7 @@ def generate_fft_data():
                 
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.hackrf_sdr.set_frequency(current_freq)
-            time.sleep(0.01)
+            time.sleep(0.05)
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
@@ -122,12 +122,20 @@ def get_data():
     
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
     
-    return jsonify({
+    response = {
         'fft': fft_response,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time
-    })
+    }
+    
+    if vars.sweeping_enabled:
+        response['frequency_start'] = vars.sweep_settings['frequency_start']
+        response['frequency_stop'] = vars.sweep_settings['frequency_stop']
+        response['bandwidth'] = vars.sweep_settings['bandwidth']
+    
+    return jsonify(response)
+
 
 @api_blueprint.route('/api/analytics')
 def get_analytics():

@@ -8,6 +8,7 @@ import Actions from './components/Actions';
 import FileBrowser from './components/sdr_scheduler/FileBrowser';
 import Analyzer from './components/sdr_scheduler/Analyzer';
 import axios from 'axios';
+import './App.css';
 
 const theme = createTheme({
   palette: {
@@ -105,7 +106,6 @@ const App = () => {
       <Container>
         <Typography variant="h4" gutterBottom>SDR Plot Application</Typography>
         <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label="Control Panel" />
           <Tab label="Plots" />
           <Tab label="Analysis" />
           <Tab label="Actions" />
@@ -113,22 +113,6 @@ const App = () => {
           <Tab label="Data Analyzer" />
         </Tabs>
         <TabPanel value={tabValue} index={0}>
-          <ControlPanel
-            settings={settings}
-            setSettings={setSettings}
-            minY={minY}
-            setMinY={setMinY}
-            maxY={maxY}
-            setMaxY={setMaxY}
-            updateInterval={updateInterval}
-            setUpdateInterval={setUpdateInterval}
-            waterfallSamples={waterfallSamples}
-            setWaterfallSamples={setWaterfallSamples}
-            showWaterfall={showWaterfall}
-            setShowWaterfall={setShowWaterfall}
-          />
-        </TabPanel>
-        <TabPanel value={tabValue} index={1}>
           <Plots
             settings={settings}
             minY={minY}
@@ -138,16 +122,16 @@ const App = () => {
             showWaterfall={showWaterfall}
           />
         </TabPanel>
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={1}>
           <Analysis settings={settings} setSettings={setSettings} />
         </TabPanel>
-        <TabPanel value={tabValue} index={3}>
+        <TabPanel value={tabValue} index={2}>
           <Actions tasks={tasks} setTasks={setTasks} />
         </TabPanel>
-        <TabPanel value={tabValue} index={4}>
+        <TabPanel value={tabValue} index={3}>
           <FileBrowser onAnalyze={handleAnalyze} />
         </TabPanel>
-        <TabPanel value={tabValue} index={5}>
+        <TabPanel value={tabValue} index={4}>
           <Analyzer fftData={fftData} metadata={metadata} />
         </TabPanel>
       </Container>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, IconButton } from '@mui/material';
+import { Box, Typography, Select, MenuItem, IconButton, Tabs, Tab } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
@@ -8,6 +8,8 @@ import PlotSettings from './ControlPanel/PlotSettings';
 import WaterfallSettings from './ControlPanel/WaterfallSettings';
 import SweepSettings from './ControlPanel/SweepSettings';
 import debounce from 'lodash/debounce';
+import './ControlPanel.css';
+import Analysis from './Analysis';
 
 const ControlPanel = ({
   settings,
@@ -26,6 +28,7 @@ const ControlPanel = ({
   const [status, setStatus] = useState('Ready');
   const [localSettings, setLocalSettings] = useState(settings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [tabIndex, setTabIndex] = useState(0);
 
   useEffect(() => {
     if (!settingsLoaded) {
@@ -52,6 +55,7 @@ const ControlPanel = ({
         frequency_stop: data.frequency_stop,
         sweeping_enabled: data.sweeping_enabled,
       });
+      console.log(data);
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
       setStatus('Settings loaded');
@@ -161,33 +165,53 @@ const ControlPanel = ({
     }
   };
 
+  const handleTabChange = (event, newValue) => {
+    setTabIndex(newValue);
+  };
+
   return (
-    <Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box>
-          <Typography variant="h6">SDR Settings</Typography>
-          <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-              Status: {status}
-            </Typography>
-            <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
-              <RefreshIcon />
-            </IconButton>
-            <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
-              <SaveIcon />
-            </IconButton>
+    <Box className="tab-container">
+      <Box className="control-panel">
+        <Tabs value={tabIndex} onChange={handleTabChange}>
+          <Tab label="SDR" />
+          <Tab label="Plot" />
+          <Tab label="Analysis" />
+        </Tabs>
+        {tabIndex === 0 && (
+          <Box className="tab-content">
+            <Typography variant="h6">SDR Settings</Typography>
+            <Box display="flex" alignItems="center">
+              <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
+                Status: {status}
+              </Typography>
+              <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
+                <RefreshIcon />
+              </IconButton>
+              <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
+                <SaveIcon />
+              </IconButton>
+            </Box>
+            <Typography variant="body1">Select SDR:</Typography>
+            <Select value={sdr} onChange={handleSdrChange} fullWidth>
+              <MenuItem value="hackrf">HackRF</MenuItem>
+              <MenuItem value="sidekiq">Sidekiq</MenuItem>
+            </Select>
+            <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
+            <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
           </Box>
-        </Box>
+        )}
+        {tabIndex === 1 && (
+          <Box className="tab-content">
+            <PlotSettings settings={localSettings} handleSliderChange={handleSliderChange} handleSliderChangeCommitted={handleSliderChangeCommitted} handleChange={handleChange} />
+            <WaterfallSettings settings={localSettings} showWaterfall={showWaterfall} setShowWaterfall={setShowWaterfall} />
+          </Box>
+        )}
+        {tabIndex === 2 && (
+          <Box className="tab-content">
+              <Analysis settings={settings} setSettings={setSettings}></Analysis>
+          </Box>
+        )}
       </Box>
-      <Typography variant="body1">Select SDR:</Typography>
-      <Select value={sdr} onChange={handleSdrChange} fullWidth>
-        <MenuItem value="hackrf">HackRF</MenuItem>
-        <MenuItem value="sidekiq">Sidekiq</MenuItem>
-      </Select>
-      <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
-      <PlotSettings settings={localSettings} handleSliderChange={handleSliderChange} handleSliderChangeCommitted={handleSliderChangeCommitted} handleChange={handleChange} />
-      <WaterfallSettings settings={localSettings} showWaterfall={showWaterfall} setShowWaterfall={setShowWaterfall} />
-      <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
     </Box>
   );
 };

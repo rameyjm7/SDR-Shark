@@ -7,7 +7,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
   const [localSettings, setLocalSettings] = useState({
     frequency_start: settings.frequency_start,
     frequency_stop: settings.frequency_stop,
-    bandwidth: settings.bandwidth,
+    bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
     sweeping_enabled: settings.sweeping_enabled,
   });
 
@@ -15,7 +15,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
     setLocalSettings({
       frequency_start: settings.frequency_start,
       frequency_stop: settings.frequency_stop,
-      bandwidth: settings.bandwidth,
+      bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
       sweeping_enabled: settings.sweeping_enabled,
     });
   }, [settings]);
@@ -68,7 +68,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
         ...settings,
         frequency_start: localSettings.frequency_start,
         frequency_stop: localSettings.frequency_stop,
-        bandwidth: localSettings.bandwidth,
+        bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
         sweeping_enabled: localSettings.sweeping_enabled,
       };
 
@@ -85,6 +85,9 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
       setStatus('Error updating settings');
     }
   };
+
+  const totalBandwidth = localSettings.frequency_stop - localSettings.frequency_start;
+  const sweepSteps = totalBandwidth / localSettings.bandwidth;
 
   return (
     <Box>
@@ -118,15 +121,26 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
       <TextField
         fullWidth
         margin="dense"
-        label="Bandwidth (MHz)"
-        name="bandwidth"
+        label="Total Bandwidth (MHz)"
+        name="total_bandwidth"
         type="number"
-        value={localSettings.bandwidth}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
+        value={totalBandwidth}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
+        disabled
+      />
+      <TextField
+        fullWidth
+        margin="dense"
+        label="Sweep Steps"
+        name="sweep_steps"
+        type="number"
+        value={sweepSteps}
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        inputProps={{ step: 1 }}
+        disabled
       />
       <FormControlLabel
         control={
