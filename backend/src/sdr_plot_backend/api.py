@@ -52,7 +52,6 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
     sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
     return sorted_peaks[:number_of_peaks]
-
 def generate_fft_data():
     full_fft = []
     current_freq = vars.sweep_settings['frequency_start']
@@ -108,9 +107,7 @@ def generate_fft_data():
                 fft_data['peaks'] = peaks
                 waterfall_buffer.append(downsample(full_fft).tolist())
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        time.sleep(max(0, vars.sleeptime - elapsed_time))
+
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
