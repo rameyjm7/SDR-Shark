@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Switch, FormControlLabel, IconButton } from '@mui/material';
-import SaveIcon from '@mui/icons-material/Save';
+import { Box, Typography, TextField, Switch, FormControlLabel } from '@mui/material';
 import axios from 'axios';
 
 const SweepSettings = ({ settings, setSettings, setStatus }) => {
@@ -68,7 +67,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
         ...settings,
         frequency_start: localSettings.frequency_start,
         frequency_stop: localSettings.frequency_stop,
-        bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
+        bandwidth: settings.sdr === 'sidekiq' ? 60 : 20, // Ensure bandwidth is always set based on SDR
         sweeping_enabled: localSettings.sweeping_enabled,
       };
 
@@ -92,56 +91,6 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
   return (
     <Box>
       <Typography variant="h6">Sweep Settings</Typography>
-      <TextField
-        fullWidth
-        margin="dense"
-        label="Start Frequency (MHz)"
-        name="frequency_start"
-        type="number"
-        value={localSettings.frequency_start}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        variant="outlined"
-        InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1 }}
-      />
-      <TextField
-        fullWidth
-        margin="dense"
-        label="Stop Frequency (MHz)"
-        name="frequency_stop"
-        type="number"
-        value={localSettings.frequency_stop}
-        onChange={handleChange}
-        onKeyPress={handleKeyPress}
-        variant="outlined"
-        InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1 }}
-      />
-      <TextField
-        fullWidth
-        margin="dense"
-        label="Total Bandwidth (MHz)"
-        name="total_bandwidth"
-        type="number"
-        value={totalBandwidth}
-        variant="outlined"
-        InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 0.1 }}
-        disabled
-      />
-      <TextField
-        fullWidth
-        margin="dense"
-        label="Sweep Steps"
-        name="sweep_steps"
-        type="number"
-        value={sweepSteps}
-        variant="outlined"
-        InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 1 }}
-        disabled
-      />
       <FormControlLabel
         control={
           <Switch
@@ -153,9 +102,56 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
         }
         label="Enable Sweep"
       />
-      <IconButton onClick={applySettings} sx={{ ml: 2 }}>
-        <SaveIcon />
-      </IconButton>
+      <Box display="flex" justifyContent="space-between">
+        <TextField
+          margin="dense"
+          label="Start Frequency (MHz)"
+          name="frequency_start"
+          type="number"
+          value={localSettings.frequency_start}
+          onChange={handleChange}
+          onKeyPress={handleKeyPress}
+          variant="outlined"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ step: 0.1 }}
+        />
+        <TextField
+          margin="dense"
+          label="Stop Frequency (MHz)"
+          name="frequency_stop"
+          type="number"
+          value={localSettings.frequency_stop}
+          onChange={handleChange}
+          onKeyPress={handleKeyPress}
+          variant="outlined"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ step: 0.1 }}
+        />
+      </Box>
+      <Box display="flex" justifyContent="space-between">
+        <TextField
+          margin="dense"
+          label="Total Bandwidth (MHz)"
+          name="total_bandwidth"
+          type="number"
+          value={totalBandwidth}
+          variant="outlined"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ step: 0.1, readOnly: true }}
+          disabled
+        />
+        <TextField
+          margin="dense"
+          label="Sweep Steps"
+          name="sweep_steps"
+          type="number"
+          value={sweepSteps}
+          variant="outlined"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ step: 1, readOnly: true }}
+          disabled
+        />
+      </Box>
     </Box>
   );
 };
