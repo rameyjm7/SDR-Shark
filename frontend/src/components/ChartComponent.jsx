@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
-const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -16,6 +16,19 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
         setFftData(data.fft);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
+
+        // Log the data for debugging
+        console.log('Data fetched:', data);
+
+        // Update sweep settings from data
+        if (data.settings.sweeping_enabled) {
+          setSweepSettings({
+            frequency_start: data.settings.sweep_settings.frequency_start,
+            frequency_stop: data.settings.sweep_settings.frequency_stop,
+            sweeping_enabled: data.settings.sweeping_enabled,
+            bandwidth: data.settings.sweep_settings.frequency_stop - data.settings.sweep_settings.frequency_start,
+          });
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -23,7 +36,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
 
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
-  }, [updateInterval, waterfallSamples]);
+  }, [updateInterval, waterfallSamples, setSweepSettings]);
 
   useEffect(() => {
     const fetchPeaks = async () => {
@@ -35,7 +48,7 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
       }
     };
 
-    const interval = setInterval(fetchPeaks, 50);
+    const interval = setInterval(fetchPeaks, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -125,11 +138,9 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
   const peakAnnotations = generateAnnotations(peaks);
   const peakTableAnnotation = generatePeakTableAnnotation(peaks);
 
-  const generateTickValsAndLabels = (centerFreq, bandwidth) => {
-    const halfBandwidth = bandwidth / 2;
-    const startFreq = centerFreq - halfBandwidth;
-    const endFreq = centerFreq + halfBandwidth;
-    const step = bandwidth / 4; // 5 ticks total, so 4 intervals
+  const generateTickValsAndLabels = (startFreq, stopFreq) => {
+    const totalBandwidth = stopFreq - startFreq;
+    const step = totalBandwidth / 4; // 5 ticks total, so 4 intervals
 
     const tickVals = [];
     const tickText = [];
@@ -142,14 +153,27 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
     return { tickVals, tickText };
   };
 
-  const { tickVals, tickText } = generateTickValsAndLabels(settings.frequency * 1e6, settings.bandwidth * 1e6);
+  const { tickVals, tickText } = generateTickValsAndLabels(
+    sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6,
+    sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6
+  );
+
+  useEffect(() => {
+    console.log('Sweep Settings:', sweepSettings);
+    console.log('Tick Values:', tickVals);
+    console.log('Tick Text:', tickText);
+  }, [tickVals, tickText, sweepSettings]);
 
   return (
     <div>
       <Plot
         data={[
           {
-            x: Array.isArray(fftData) ? fftData.map((_, index) => ((settings.frequency - settings.sampleRate / 2) + (index * settings.sampleRate / fftData.length)).toFixed(2)) : [],
+            x: Array.isArray(fftData) ? fftData.map((_, index) => {
+              const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
+              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData.length;
+              return (baseFreq + index * freqStep).toFixed(2);
+            }) : [],
             y: Array.isArray(fftData) ? fftData : [],
             type: 'scatter',
             mode: 'lines',
@@ -163,6 +187,8 @@ const ChartComponent = ({ settings, minY, maxY, updateInterval, waterfallSamples
             title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
+            tickvals: tickVals,
+            ticktext: tickText,
           },
           yaxis: {
             title: 'Amplitude (dB)',
