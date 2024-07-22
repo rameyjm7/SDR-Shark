@@ -54,12 +54,8 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
-    sweep_step = vars.sweep_settings['bandwidth'] if vars.sweep_settings else 0
-    sweep_start = vars.sweep_settings['frequency_start']
-    sweep_stop = vars.sweep_settings['frequency_stop']
-    current_freq = vars.sweep_settings['frequency_start']
     full_fft = []
-
+    current_freq = vars.sweep_settings['frequency_start']
     while running:
         start_time = time.time()
         capture_samples()
@@ -96,7 +92,6 @@ def generate_fft_data():
                 
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.hackrf_sdr.set_frequency(current_freq)
-            print(f"Tuning to {current_freq}")
             # time.sleep(0.1)  # Allow time for tuning to the new frequency
         else:
             # Normal operation without sweeping
@@ -112,10 +107,6 @@ def generate_fft_data():
                 fft_data['original_fft'] = full_fft.tolist()
                 fft_data['peaks'] = peaks
                 waterfall_buffer.append(downsample(full_fft).tolist())
-
-        # end_time = time.time()
-        # elapsed_time = end_time - start_time
-        # # time.sleep(max(0, vars.sleeptime - elapsed_time))
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -174,8 +165,12 @@ def get_settings():
         'showWaterfall': vars.show_waterfall,
         'updateInterval': vars.sleeptime * 1000,  # Convert to ms
         'waterfallSamples': vars.waterfall_samples,
+        'frequency_start': vars.sweep_settings['frequency_start'] / 1e6,
+        'frequency_stop': vars.sweep_settings['frequency_stop'] / 1e6,
+        'sweeping_enabled': vars.sweeping_enabled,
     }
     return jsonify(settings)
+
 
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
@@ -199,27 +194,10 @@ def update_settings():
 @api_blueprint.route('/api/start_sweep', methods=['POST'])
 def start_sweep():
     sweep_settings = request.json
-    frequency_start = sweep_settings.get('frequencyStart')
-    frequency_stop = sweep_settings.get('frequencyStop')
-    bandwidth = sweep_settings.get('bandwidth')
+    frequency_start = vars.sweep_settings['frequency_start']
+    frequency_stop = vars.sweep_settings['frequency_stop']
+    bandwidth = vars.sweep_settings['bandwidth']
 
-    if frequency_start is None or frequency_stop is None or bandwidth is None:
-        return jsonify({'error': 'Missing required sweep parameters'}), 400
-
-    try:
-        frequency_start = float(frequency_start) * 1e6  # Convert to Hz
-        frequency_stop = float(frequency_stop) * 1e6  # Convert to Hz
-        bandwidth = float(bandwidth) * 1e6  # Convert to Hz
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-
-    # Store sweep settings in vars
-    vars.sweep_settings = {
-        'frequency_start': frequency_start,
-        'frequency_stop': frequency_stop,
-        'bandwidth': bandwidth,
-    }
-    
     # Recalculate total bandwidth for display purposes
     vars.center_freq = (frequency_start + frequency_stop) / 2
     vars.sample_rate = frequency_stop - frequency_start + bandwidth
