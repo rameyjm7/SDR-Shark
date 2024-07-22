@@ -1,15 +1,15 @@
 import React from 'react';
 import { Box, Typography, Slider, FormControlLabel, Switch } from '@mui/material';
 
-const PlotSettings = ({ localSettings, handleSliderChange, handleSliderChangeCommitted, handleChange }) => {
+const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitted, handleChange }) => {
   return (
     <Box>
       <Typography variant="h6" sx={{ mt: 2 }}>Plot Settings</Typography>
-      <Typography gutterBottom>Averaging Count: {localSettings.averagingCount}</Typography>
+      <Typography gutterBottom>Averaging Count: {settings.averagingCount}</Typography>
       <Slider
         min={1}
         max={100}
-        value={localSettings.averagingCount}
+        value={settings.averagingCount}
         onChange={(e, value) => handleSliderChange(e, value, 'averagingCount')}
         onChangeCommitted={(e, value) => handleSliderChangeCommitted(e, value, 'averagingCount')}
         valueLabelDisplay="auto"
@@ -23,7 +23,7 @@ const PlotSettings = ({ localSettings, handleSliderChange, handleSliderChangeCom
       <FormControlLabel
         control={
           <Switch
-            checked={localSettings.dcSuppress}
+            checked={settings.dcSuppress}
             onChange={handleChange}
             name="dcSuppress"
             color="primary"

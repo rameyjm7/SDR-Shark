@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { Box, Typography, Select, MenuItem, IconButton } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import SDRSettings from './ControlPanel/SDRSettings';
 import PlotSettings from './ControlPanel/PlotSettings';
 import WaterfallSettings from './ControlPanel/WaterfallSettings';
 import SweepSettings from './ControlPanel/SweepSettings';
+import debounce from 'lodash/debounce';
 
 const ControlPanel = ({
   settings,
@@ -14,7 +15,6 @@ const ControlPanel = ({
   minY,
   setMinY,
   maxY,
-  setMaxY,
   updateInterval,
   setUpdateInterval,
   waterfallSamples,
@@ -46,9 +46,11 @@ const ControlPanel = ({
         averagingCount: data.averagingCount,
         dcSuppress: data.dcSuppress,
         showWaterfall: data.showWaterfall,
-        sweepingEnabled: data.sweepingEnabled,
-        frequencyStart: data.frequencyStart,
-        frequencyStop: data.frequencyStop,
+        updateInterval: data.updateInterval,
+        waterfallSamples: data.waterfallSamples,
+        frequency_start: data.frequency_start,
+        frequency_stop: data.frequency_stop,
+        sweeping_enabled: data.sweeping_enabled,
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
@@ -57,6 +59,37 @@ const ControlPanel = ({
     } catch (error) {
       console.error('Error fetching settings:', error);
       setStatus('Error fetching settings');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : parseFloat(value);
+    const newSettings = { ...localSettings, [name]: newValue };
+    setLocalSettings(newSettings);
+  };
+
+  const handleSliderChange = (e, value, name) => {
+    const newSettings = { ...localSettings, [name]: value };
+    setLocalSettings(newSettings);
+    if (name === 'averagingCount') {
+      debouncedApplySettings(newSettings);
+    }
+  };
+
+  const handleSliderChangeCommitted = (e, value, name) => {
+    if (name === 'averagingCount') {
+      applySettings({ ...localSettings, [name]: value });
+    }
+  };
+
+  const debouncedApplySettings = debounce((newSettings) => {
+    applySettings(newSettings);
+  }, 300);
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applySettings(localSettings);
     }
   };
 
@@ -78,20 +111,53 @@ const ControlPanel = ({
       });
   };
 
+  const enforceLimits = (settings) => {
+    const newSettings = { ...settings };
+    const limitKeys = ['frequency', 'gain', 'sampleRate', 'bandwidth'];
+
+    limitKeys.forEach((key) => {
+      const limit = sdrLimits[sdr][key];
+      if (newSettings[key] < limit.min) {
+        newSettings[key] = limit.min;
+      }
+      if (newSettings[key] > limit.max) {
+        newSettings[key] = limit.max;
+      }
+    });
+
+    return newSettings;
+  };
+
   const applySettings = async (newSettings) => {
+    const enforcedSettings = enforceLimits(newSettings);
     setStatus('Updating settings...');
     try {
-      await axios.post('/api/update_settings', newSettings, {
+      await axios.post('/api/update_settings', enforcedSettings, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      setSettings(newSettings);
-      setLocalSettings(newSettings); // Update the local state with enforced settings
+      setSettings(enforcedSettings);
+      setLocalSettings(enforcedSettings); // Update the local state with enforced settings
       setStatus('Settings updated');
     } catch (error) {
       console.error('Error updating settings:', error);
       setStatus('Error updating settings');
+    }
+  };
+
+  const sdrLimits = {
+    hackrf: {
+      frequency: { min: 0, max: 7250 },
+      gain: { min: 0, max: 61 },
+      sampleRate: { min: 0, max: 20 },
+      bandwidth: { min: 0, max: 20 },
+    },
+    sidekiq: {
+      frequency: { min: 46.875, max: 6000 },
+      gain: { min: 0, max: 40 },
+      sampleRate: { min: 0.233, max: 61.233 },
+      bandwidth: { min: 0.233, max: 61.233 },
     }
   };
 
@@ -113,32 +179,15 @@ const ControlPanel = ({
           </Box>
         </Box>
       </Box>
-      <SDRSettings
-        localSettings={localSettings}
-        setLocalSettings={setLocalSettings}
-        handleSdrChange={handleSdrChange}
-        sdr={sdr}
-      />
-      <PlotSettings
-        localSettings={localSettings}
-        setLocalSettings={setLocalSettings}
-      />
-      <WaterfallSettings
-        localSettings={localSettings}
-        setLocalSettings={setLocalSettings}
-        updateInterval={updateInterval}
-        setUpdateInterval={setUpdateInterval}
-        waterfallSamples={waterfallSamples}
-        setWaterfallSamples={setWaterfallSamples}
-        showWaterfall={showWaterfall}
-        setShowWaterfall={setShowWaterfall}
-      />
-      <SweepSettings
-        localSettings={localSettings}
-        setLocalSettings={setLocalSettings}
-        status={status}
-        setStatus={setStatus}
-      />
+      <Typography variant="body1">Select SDR:</Typography>
+      <Select value={sdr} onChange={handleSdrChange} fullWidth>
+        <MenuItem value="hackrf">HackRF</MenuItem>
+        <MenuItem value="sidekiq">Sidekiq</MenuItem>
+      </Select>
+      <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
+      <PlotSettings settings={localSettings} handleSliderChange={handleSliderChange} handleSliderChangeCommitted={handleSliderChangeCommitted} handleChange={handleChange} />
+      <WaterfallSettings settings={localSettings} showWaterfall={showWaterfall} setShowWaterfall={setShowWaterfall} />
+      <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
     </Box>
   );
 };

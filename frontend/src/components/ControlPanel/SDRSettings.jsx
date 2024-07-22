@@ -1,39 +1,17 @@
 import React from 'react';
-import { Box, Typography, TextField, Select, MenuItem, IconButton } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import SaveIcon from '@mui/icons-material/Save';
+import { TextField, Box, Typography, Select, MenuItem } from '@mui/material';
 
-const SDRSettings = ({ sdr, setSdr, localSettings, handleChange, handleKeyPress, handleSdrChange, applySettings, status, fetchSettings }) => {
+const SDRSettings = ({ settings, handleChange, handleKeyPress }) => {
   return (
     <Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box>
-          <Typography variant="h6">SDR Settings</Typography>
-          <Box display="flex" alignItems="center">
-            <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-              Status: {status}
-            </Typography>
-            <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
-              <RefreshIcon />
-            </IconButton>
-            <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
-              <SaveIcon />
-            </IconButton>
-          </Box>
-        </Box>
-      </Box>
-      <Typography variant="body1">Select SDR:</Typography>
-      <Select value={sdr} onChange={handleSdrChange} fullWidth>
-        <MenuItem value="hackrf">HackRF</MenuItem>
-        <MenuItem value="sidekiq">Sidekiq</MenuItem>
-      </Select>
+      <Typography variant="h6">SDR Settings</Typography>
       <TextField
         fullWidth
         margin="dense"
         label="Frequency (MHz)"
         name="frequency"
         type="number"
-        value={localSettings.frequency}
+        value={settings.frequency}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -46,7 +24,7 @@ const SDRSettings = ({ sdr, setSdr, localSettings, handleChange, handleKeyPress,
         label="Gain (dB)"
         name="gain"
         type="number"
-        value={localSettings.gain}
+        value={settings.gain}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -59,7 +37,7 @@ const SDRSettings = ({ sdr, setSdr, localSettings, handleChange, handleKeyPress,
         label="Sample Rate (MHz)"
         name="sampleRate"
         type="number"
-        value={localSettings.sampleRate}
+        value={settings.sampleRate}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
@@ -72,7 +50,7 @@ const SDRSettings = ({ sdr, setSdr, localSettings, handleChange, handleKeyPress,
         label="Bandwidth (MHz)"
         name="bandwidth"
         type="number"
-        value={localSettings.bandwidth}
+        value={settings.bandwidth}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"

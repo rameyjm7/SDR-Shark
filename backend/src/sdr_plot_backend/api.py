@@ -81,24 +81,24 @@ def generate_fft_data():
                 current_freq = vars.sweep_settings['frequency_start']
                 # Complete sweep, deliver the full FFT
                 averaged_fft = np.array(full_fft)
+                downsampled_fft = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
 
-                peaks = detect_peaks(averaged_fft, number_of_peaks=vars.number_of_peaks)
+                peaks = detect_peaks(downsampled_fft, number_of_peaks=vars.number_of_peaks)
                 peaks = [int(p) for p in peaks]
 
                 with data_lock:
-                    fft_data['original_fft'] = averaged_fft.tolist()
+                    fft_data['original_fft'] = downsampled_fft.tolist()
                     fft_data['peaks'] = peaks
-                    waterfall_buffer.append(downsample(averaged_fft).tolist())
+                    waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.hackrf_sdr.set_frequency(current_freq)
-            # time.sleep(0.1)  # Allow time for tuning to the new frequency
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
                 full_fft = current_fft
             else:
-                full_fft = (full_fft * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
+                full_fft = (full_fft[:vars.sample_size] * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
 
             peaks = detect_peaks(full_fft, number_of_peaks=vars.number_of_peaks)
             peaks = [int(p) for p in peaks]
@@ -107,6 +107,10 @@ def generate_fft_data():
                 fft_data['original_fft'] = full_fft.tolist()
                 fft_data['peaks'] = peaks
                 waterfall_buffer.append(downsample(full_fft).tolist())
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        time.sleep(max(0, vars.sleeptime - elapsed_time))
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -180,7 +184,11 @@ def update_settings():
     vars.sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
     vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
     vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
-    vars.number_of_peaks = int(settings.get('numberOfPeaks', 5))
+    vars.number_of_peaks = int(settings.get('numberOf_peaks', 5))
+
+    vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
+    vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
+    vars.sweeping_enabled = settings.get('sweeping_enabled', False)
     
     print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
@@ -193,24 +201,13 @@ def update_settings():
 
 @api_blueprint.route('/api/start_sweep', methods=['POST'])
 def start_sweep():
-    sweep_settings = request.json
-    frequency_start = vars.sweep_settings['frequency_start']
-    frequency_stop = vars.sweep_settings['frequency_stop']
-    bandwidth = vars.sweep_settings['bandwidth']
-
-    # Recalculate total bandwidth for display purposes
-    vars.center_freq = (frequency_start + frequency_stop) / 2
-    vars.sample_rate = frequency_stop - frequency_start + bandwidth
-
-    # Update SDR settings to reflect the sweep configuration
-    vars.hackrf_sdr.set_frequency(vars.center_freq)
-    vars.hackrf_sdr.set_bandwidth(vars.sample_rate)
-    vars.hackrf_sdr.set_gain(vars.gain)
     vars.sweeping_enabled = True
+    return jsonify({'status': 'success', 'sweeping_enabled': vars.sweeping_enabled})
 
-    print(f"Starting sweep: Frequency Start = {frequency_start} Hz, Frequency Stop = {frequency_stop} Hz, Bandwidth = {bandwidth} Hz")
-
-    return jsonify({'status': 'success', 'sweepSettings': sweep_settings})
+@api_blueprint.route('/api/stop_sweep', methods=['POST'])
+def stop_sweep():
+    vars.sweeping_enabled = False
+    return jsonify({'status': 'success', 'sweeping_enabled': vars.sweeping_enabled})
 
 @atexit.register
 def cleanup():

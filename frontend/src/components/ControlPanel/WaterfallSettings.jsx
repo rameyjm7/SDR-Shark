@@ -1,16 +1,16 @@
 import React from 'react';
 import { Box, Typography, Slider, FormControlLabel, Switch } from '@mui/material';
 
-const WaterfallSettings = ({ updateInterval, setUpdateInterval, waterfallSamples, setWaterfallSamples, showWaterfall, setShowWaterfall }) => {
+const WaterfallSettings = ({ settings, showWaterfall, setShowWaterfall }) => {
   return (
     <Box>
       <Typography variant="h6" sx={{ mt: 2 }}>Waterfall Settings</Typography>
-      <Typography gutterBottom>Update Interval (ms): {updateInterval}</Typography>
+      <Typography gutterBottom>Update Interval (ms): {settings.updateInterval}</Typography>
       <Slider
         min={10}
         max={1000}
-        value={updateInterval}
-        onChange={(e, value) => setUpdateInterval(value)}
+        value={settings.updateInterval}
+        onChange={(e, value) => setShowWaterfall({ ...settings, updateInterval: value })}
         valueLabelDisplay="auto"
         step={10}
         marks={[
@@ -19,12 +19,12 @@ const WaterfallSettings = ({ updateInterval, setUpdateInterval, waterfallSamples
           { value: 1000, label: '1000 ms' },
         ]}
       />
-      <Typography gutterBottom>Waterfall Samples: {waterfallSamples}</Typography>
+      <Typography gutterBottom>Waterfall Samples: {settings.waterfallSamples}</Typography>
       <Slider
         min={25}
         max={1000}
-        value={waterfallSamples}
-        onChange={(e, value) => setWaterfallSamples(value)}
+        value={settings.waterfallSamples}
+        onChange={(e, value) => setShowWaterfall({ ...settings, waterfallSamples: value })}
         valueLabelDisplay="auto"
         step={25}
         marks={[
@@ -39,7 +39,7 @@ const WaterfallSettings = ({ updateInterval, setUpdateInterval, waterfallSamples
             checked={showWaterfall}
             onChange={() => {
               setShowWaterfall(!showWaterfall);
-              const newSettings = { showWaterfall: !showWaterfall };
+              const newSettings = { ...settings, showWaterfall: !showWaterfall };
               setShowWaterfall(newSettings);
             }}
             name="showWaterfall"
