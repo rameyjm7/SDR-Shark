@@ -32,6 +32,17 @@ class sdr_scheduler_config:
         self.hackrf_sdr =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
         self.hackrf_sdr.start()
     
+    def get_settings(self):
+        settings = {
+            "center_freq" : self.center_freq,
+            "sample_rate" : self.sample_rate,
+            "bandwidth"   : self.bandwidth,
+            "gain"        : self.gain,
+            "sweep_settings" : self.sweep_settings,
+            "sweeping_enabled" : self.sweeping_enabled
+        }
+        return settings
+    
     def reselect_radio(self, name : str) -> int:
         names = ["sidekiq", "hackrf"]
         for _name in names:

@@ -126,7 +126,8 @@ def get_data():
         'fft': fft_response,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
-        'time': current_time
+        'time': current_time,
+        'settings' : vars.get_settings()
     }
     
     if vars.sweeping_enabled:
