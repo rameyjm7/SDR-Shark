@@ -3,6 +3,7 @@ import { Box, Typography, Slider, FormControlLabel, Switch, TextField, Select, M
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
+import debounce from 'lodash/debounce';
 
 const ControlPanel = ({
   settings,
@@ -21,6 +22,12 @@ const ControlPanel = ({
   const [status, setStatus] = useState('Ready');
   const [localSettings, setLocalSettings] = useState(settings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [sweepSettings, setSweepSettings] = useState({
+    frequencyStart: '',
+    frequencyStop: '',
+    bandwidth: '',
+  });
+  const [sweepingEnabled, setSweepingEnabled] = useState(false);
 
   useEffect(() => {
     if (!settingsLoaded) {
@@ -54,7 +61,7 @@ const ControlPanel = ({
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : parseFloat(value) || '';
+    const newValue = type === 'checkbox' ? checked : parseFloat(value);
     const newSettings = { ...localSettings, [name]: newValue };
     setLocalSettings(newSettings);
   };
@@ -62,6 +69,9 @@ const ControlPanel = ({
   const handleSliderChange = (e, value, name) => {
     const newSettings = { ...localSettings, [name]: value };
     setLocalSettings(newSettings);
+    if (name === 'averagingCount') {
+      debouncedApplySettings(newSettings);
+    }
   };
 
   const handleSliderChangeCommitted = (e, value, name) => {
@@ -69,6 +79,10 @@ const ControlPanel = ({
       applySettings({ ...localSettings, [name]: value });
     }
   };
+
+  const debouncedApplySettings = debounce((newSettings) => {
+    applySettings(newSettings);
+  }, 300);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -129,6 +143,22 @@ const ControlPanel = ({
     }
   };
 
+  const startSweep = async () => {
+    setStatus('Starting sweep...');
+    try {
+      await axios.post('/api/start_sweep', sweepSettings, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      setSweepingEnabled(true);
+      setStatus('Sweep started');
+    } catch (error) {
+      console.error('Error starting sweep:', error);
+      setStatus('Error starting sweep');
+    }
+  };
+
   const sdrLimits = {
     hackrf: {
       frequency: { min: 0, max: 7250 },
@@ -173,12 +203,13 @@ const ControlPanel = ({
         label="Frequency (MHz)"
         name="frequency"
         type="number"
-        value={localSettings.frequency || ''}
+        value={localSettings.frequency}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
+        disabled={sweepingEnabled}
       />
       <TextField
         fullWidth
@@ -186,12 +217,13 @@ const ControlPanel = ({
         label="Gain (dB)"
         name="gain"
         type="number"
-        value={localSettings.gain || ''}
+        value={localSettings.gain}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 1 }}
+        disabled={sweepingEnabled}
       />
       <TextField
         fullWidth
@@ -199,12 +231,13 @@ const ControlPanel = ({
         label="Sample Rate (MHz)"
         name="sampleRate"
         type="number"
-        value={localSettings.sampleRate || ''}
+        value={localSettings.sampleRate}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
+        disabled={sweepingEnabled}
       />
       <TextField
         fullWidth
@@ -212,12 +245,13 @@ const ControlPanel = ({
         label="Bandwidth (MHz)"
         name="bandwidth"
         type="number"
-        value={localSettings.bandwidth || ''}
+        value={localSettings.bandwidth}
         onChange={handleChange}
         onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
+        disabled={sweepingEnabled}
       />
       <Typography variant="h6" sx={{ mt: 2 }}>Plot Settings</Typography>
       <Typography gutterBottom>Averaging Count: {localSettings.averagingCount}</Typography>
@@ -238,7 +272,7 @@ const ControlPanel = ({
       <FormControlLabel
         control={
           <Switch
-            checked={localSettings.dcSuppress || false}
+            checked={localSettings.dcSuppress}
             onChange={handleChange}
             name="dcSuppress"
             color="primary"
@@ -249,7 +283,7 @@ const ControlPanel = ({
       <FormControlLabel
         control={
           <Switch
-            checked={showWaterfall || false}
+            checked={showWaterfall}
             onChange={() => {
               setShowWaterfall(!showWaterfall);
               const newSettings = { ...localSettings, showWaterfall: !showWaterfall };
@@ -291,6 +325,60 @@ const ControlPanel = ({
           { value: 1000, label: '1000' },
         ]}
       />
+      <Typography variant="h6" sx={{ mt: 2 }}>Sweep Settings</Typography>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={sweepingEnabled}
+            onChange={(e) => setSweepingEnabled(e.target.checked)}
+            name="sweepingEnabled"
+            color="primary"
+          />
+        }
+        label="Enable Sweeping"
+      />
+      <TextField
+        fullWidth
+        margin="dense"
+        label="Start Frequency (MHz)"
+        name="frequencyStart"
+        type="number"
+        value={sweepSettings.frequencyStart}
+        onChange={(e) => setSweepSettings({ ...sweepSettings, frequencyStart: e.target.value })}
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        inputProps={{ step: 0.1 }}
+        disabled={!sweepingEnabled}
+      />
+      <TextField
+        fullWidth
+        margin="dense"
+        label="Stop Frequency (MHz)"
+        name="frequencyStop"
+        type="number"
+        value={sweepSettings.frequencyStop}
+        onChange={(e) => setSweepSettings({ ...sweepSettings, frequencyStop: e.target.value })}
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        inputProps={{ step: 0.1 }}
+        disabled={!sweepingEnabled}
+      />
+      <TextField
+        fullWidth
+        margin="dense"
+        label="Bandwidth (MHz)"
+        name="bandwidth"
+        type="number"
+        value={sweepSettings.bandwidth}
+        onChange={(e) => setSweepSettings({ ...sweepSettings, bandwidth: e.target.value })}
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        inputProps={{ step: 0.1 }}
+        disabled={!sweepingEnabled}
+      />
+      <Button variant="contained" color="primary" onClick={startSweep} disabled={!sweepingEnabled}>
+        Start Sweep
+      </Button>
     </Box>
   );
 };

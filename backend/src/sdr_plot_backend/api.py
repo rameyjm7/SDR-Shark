@@ -1,6 +1,6 @@
+import numpy as np
 from flask import Blueprint, jsonify, request
 from datetime import datetime
-import numpy as np
 import threading
 import time
 from collections import deque
@@ -54,35 +54,68 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
-    averaged_fft = None
+    sweep_step = vars.sweep_settings['bandwidth'] if vars.sweep_settings else 0
+    sweep_start = vars.sweep_settings['frequency_start']
+    sweep_stop = vars.sweep_settings['frequency_stop']
+    current_freq = vars.sweep_settings['frequency_start']
+    full_fft = []
 
     while running:
         start_time = time.time()
         capture_samples()
         current_fft = process_fft(sample_buffer)
         
-        if averaged_fft is None:
-            averaged_fft = current_fft
-        else:
-            averaged_fft = (averaged_fft * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
-        
-        averaged_fft = np.where(np.isinf(averaged_fft), -20, averaged_fft)
-        
         if vars.dc_suppress:
-            dc_index = len(averaged_fft) // 2
-            averaged_fft[dc_index] = averaged_fft[dc_index + 1]
-        
-        peaks = detect_peaks(averaged_fft, number_of_peaks=vars.number_of_peaks)
-        peaks = [int(p) for p in peaks]
+            dc_index = len(current_fft) // 2
+            current_fft[dc_index] = current_fft[dc_index + 1]
 
-        with data_lock:
-            fft_data['original_fft'] = averaged_fft.tolist()
-            fft_data['peaks'] = peaks
-            waterfall_buffer.append(downsample(averaged_fft).tolist())
+        # Normalize infinity values
+        current_fft = np.where(np.isinf(current_fft), -20, current_fft)
         
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        time.sleep(max(0, vars.sleeptime - elapsed_time))
+        if vars.sweeping_enabled:
+            # Append the current FFT to the full FFT for the sweep
+            if len(full_fft) == 0:
+                full_fft = current_fft
+            else:
+                full_fft = np.concatenate((full_fft, current_fft))
+
+            # Tune to the next frequency
+            current_freq += vars.sweep_settings['bandwidth']
+            if current_freq > vars.sweep_settings['frequency_stop']:
+                current_freq = vars.sweep_settings['frequency_start']
+                # Complete sweep, deliver the full FFT
+                averaged_fft = np.array(full_fft)
+
+                peaks = detect_peaks(averaged_fft, number_of_peaks=vars.number_of_peaks)
+                peaks = [int(p) for p in peaks]
+
+                with data_lock:
+                    fft_data['original_fft'] = averaged_fft.tolist()
+                    fft_data['peaks'] = peaks
+                    waterfall_buffer.append(downsample(averaged_fft).tolist())
+                
+                full_fft = []  # Clear the full FFT for the next sweep
+            vars.hackrf_sdr.set_frequency(current_freq)
+            print(f"Tuning to {current_freq}")
+            # time.sleep(0.1)  # Allow time for tuning to the new frequency
+        else:
+            # Normal operation without sweeping
+            if len(full_fft) == 0:
+                full_fft = current_fft
+            else:
+                full_fft = (full_fft * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
+
+            peaks = detect_peaks(full_fft, number_of_peaks=vars.number_of_peaks)
+            peaks = [int(p) for p in peaks]
+
+            with data_lock:
+                fft_data['original_fft'] = full_fft.tolist()
+                fft_data['peaks'] = peaks
+                waterfall_buffer.append(downsample(full_fft).tolist())
+
+        # end_time = time.time()
+        # elapsed_time = end_time - start_time
+        # # time.sleep(max(0, vars.sleeptime - elapsed_time))
 
 fft_thread = threading.Thread(target=generate_fft_data)
 fft_thread.start()
@@ -121,8 +154,6 @@ def get_analytics():
             })
 
     return jsonify({'peaks': peaks_data})
-
-
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
@@ -164,6 +195,44 @@ def update_settings():
     vars.hackrf_sdr.set_bandwidth(vars.bandwidth)
 
     return jsonify({'success': True, 'settings': settings})
+
+@api_blueprint.route('/api/start_sweep', methods=['POST'])
+def start_sweep():
+    sweep_settings = request.json
+    frequency_start = sweep_settings.get('frequencyStart')
+    frequency_stop = sweep_settings.get('frequencyStop')
+    bandwidth = sweep_settings.get('bandwidth')
+
+    if frequency_start is None or frequency_stop is None or bandwidth is None:
+        return jsonify({'error': 'Missing required sweep parameters'}), 400
+
+    try:
+        frequency_start = float(frequency_start) * 1e6  # Convert to Hz
+        frequency_stop = float(frequency_stop) * 1e6  # Convert to Hz
+        bandwidth = float(bandwidth) * 1e6  # Convert to Hz
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    # Store sweep settings in vars
+    vars.sweep_settings = {
+        'frequency_start': frequency_start,
+        'frequency_stop': frequency_stop,
+        'bandwidth': bandwidth,
+    }
+    
+    # Recalculate total bandwidth for display purposes
+    vars.center_freq = (frequency_start + frequency_stop) / 2
+    vars.sample_rate = frequency_stop - frequency_start + bandwidth
+
+    # Update SDR settings to reflect the sweep configuration
+    vars.hackrf_sdr.set_frequency(vars.center_freq)
+    vars.hackrf_sdr.set_bandwidth(vars.sample_rate)
+    vars.hackrf_sdr.set_gain(vars.gain)
+    vars.sweeping_enabled = True
+
+    print(f"Starting sweep: Frequency Start = {frequency_start} Hz, Frequency Stop = {frequency_stop} Hz, Bandwidth = {bandwidth} Hz")
+
+    return jsonify({'status': 'success', 'sweepSettings': sweep_settings})
 
 @atexit.register
 def cleanup():
