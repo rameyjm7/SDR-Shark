@@ -10,14 +10,38 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
     sweeping_enabled: settings.sweeping_enabled,
   });
 
+  const fetchSettings = async () => {
+    setStatus('Fetching settings...');
+    try {
+      const response = await axios.get('/api/get_settings');
+      const data = response.data;
+      setLocalSettings({
+        frequency_start: data.frequency_start,
+        frequency_stop: data.frequency_stop,
+        bandwidth: data.sdr === 'sidekiq' ? 60 : 20,
+        sweeping_enabled: data.sweeping_enabled,
+      });
+      setStatus('Settings loaded');
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      setStatus('Error fetching settings');
+    }
+  };
+
+  // Effect to fetch settings when component mounts
   useEffect(() => {
-    setLocalSettings({
-      frequency_start: settings.frequency_start,
-      frequency_stop: settings.frequency_stop,
-      bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
-      sweeping_enabled: settings.sweeping_enabled,
-    });
-  }, [settings]);
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    if (localSettings.sweeping_enabled) {
+      setLocalSettings((prevSettings) => ({
+        ...prevSettings,
+        bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
+        sampleRate: settings.sdr === 'sidekiq' ? 60 : 20,
+      }));
+    }
+  }, [localSettings.sweeping_enabled, settings.sdr]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -44,6 +68,9 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
       const newSettings = {
         ...settings,
         sweeping_enabled: sweepingEnabled,
+        bandwidth: settings.sdr === 'sidekiq' ? 60 : 20,
+        sampleRate: settings.sdr === 'sidekiq' ? 60 : 20,
+        center_freq: (localSettings.frequency_start + localSettings.frequency_stop) / 2,
       };
 
       await axios.post('/api/update_settings', newSettings, {
@@ -68,7 +95,9 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
         frequency_start: localSettings.frequency_start,
         frequency_stop: localSettings.frequency_stop,
         bandwidth: settings.sdr === 'sidekiq' ? 60 : 20, // Ensure bandwidth is always set based on SDR
+        sampleRate: settings.sdr === 'sidekiq' ? 60 : 20, // Ensure sample rate is always set based on SDR
         sweeping_enabled: localSettings.sweeping_enabled,
+        center_freq: (localSettings.frequency_start + localSettings.frequency_stop) / 2,
       };
 
       await axios.post('/api/update_settings', newSettings, {
@@ -86,11 +115,10 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
   };
 
   const totalBandwidth = localSettings.frequency_stop - localSettings.frequency_start;
-  const sweepSteps = totalBandwidth / localSettings.bandwidth;
+  const sweepSteps = Math.ceil(totalBandwidth / localSettings.bandwidth);
 
   return (
     <Box>
-      <Typography variant="h6">Sweep Settings</Typography>
       <FormControlLabel
         control={
           <Switch
@@ -104,6 +132,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
       />
       <Box display="flex" justifyContent="space-between">
         <TextField
+          fullWidth
           margin="dense"
           label="Start Frequency (MHz)"
           name="frequency_start"
@@ -116,6 +145,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
           inputProps={{ step: 0.1 }}
         />
         <TextField
+          fullWidth
           margin="dense"
           label="Stop Frequency (MHz)"
           name="frequency_stop"
@@ -130,6 +160,7 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
       </Box>
       <Box display="flex" justifyContent="space-between">
         <TextField
+          fullWidth
           margin="dense"
           label="Total Bandwidth (MHz)"
           name="total_bandwidth"
@@ -137,10 +168,10 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
           value={totalBandwidth}
           variant="outlined"
           InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 0.1, readOnly: true }}
           disabled
         />
         <TextField
+          fullWidth
           margin="dense"
           label="Sweep Steps"
           name="sweep_steps"
@@ -148,7 +179,6 @@ const SweepSettings = ({ settings, setSettings, setStatus }) => {
           value={sweepSteps}
           variant="outlined"
           InputLabelProps={{ shrink: true }}
-          inputProps={{ step: 1, readOnly: true }}
           disabled
         />
       </Box>

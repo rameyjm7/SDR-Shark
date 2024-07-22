@@ -4,6 +4,8 @@ from sdr_plot_backend.actions import actions_blueprint
 from sdr_plot_backend.file_manager import file_mgr_blueprint
 from flask_cors import CORS
 import logging 
+import faulthandler
+faulthandler.enable()
 
 def create_app():
     app = Flask(__name__)
