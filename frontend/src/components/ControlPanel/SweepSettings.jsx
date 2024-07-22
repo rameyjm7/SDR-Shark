@@ -1,64 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, FormControlLabel, Switch, IconButton } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Box, Typography, TextField, Switch, FormControlLabel, IconButton } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
-import debounce from 'lodash/debounce';
 
-const SweepSettings = ({ settings, setSettings, status, setStatus }) => {
+const SweepSettings = ({ settings, setSettings, setStatus }) => {
   const [localSettings, setLocalSettings] = useState({
-    frequency_start: settings.frequency_start || 0,
-    frequency_stop: settings.frequency_stop || 0,
-    sweeping_enabled: settings.sweeping_enabled || false,
+    frequency_start: settings.frequency_start,
+    frequency_stop: settings.frequency_stop,
+    bandwidth: settings.bandwidth,
+    sweeping_enabled: settings.sweeping_enabled,
   });
 
   useEffect(() => {
     setLocalSettings({
       frequency_start: settings.frequency_start,
       frequency_stop: settings.frequency_stop,
+      bandwidth: settings.bandwidth,
       sweeping_enabled: settings.sweeping_enabled,
     });
   }, [settings]);
 
-  const handleSweepChange = (e) => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : parseFloat(value);
-    const newSettings = { ...localSettings, [name]: newValue };
-    setLocalSettings(newSettings);
-    updateSettings(newSettings);
+    setLocalSettings((prevSettings) => ({
+      ...prevSettings,
+      [name]: newValue,
+    }));
+
+    if (name === 'sweeping_enabled') {
+      updateSweepingEnabled(newValue);
+    }
   };
 
-  const handleSliderChange = (e, value, name) => {
-    const newSettings = { ...localSettings, [name]: value };
-    setLocalSettings(newSettings);
-    updateSettings(newSettings);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      applySettings();
+    }
   };
 
-  const updateSettings = debounce(async (newSettings) => {
+  const updateSweepingEnabled = async (sweepingEnabled) => {
     setStatus('Updating settings...');
     try {
-      await axios.post('/api/update_settings', {
+      const newSettings = {
         ...settings,
-        frequency_start: newSettings.frequency_start,
-        frequency_stop: newSettings.frequency_stop,
-        sweeping_enabled: newSettings.sweeping_enabled,
-      }, {
+        sweeping_enabled: sweepingEnabled,
+      };
+
+      await axios.post('/api/update_settings', newSettings, {
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      setSettings((prevSettings) => ({
-        ...prevSettings,
-        frequency_start: newSettings.frequency_start,
-        frequency_stop: newSettings.frequency_stop,
-        sweeping_enabled: newSettings.sweeping_enabled,
-      }));
+
+      setSettings(newSettings);
       setStatus('Settings updated');
     } catch (error) {
       console.error('Error updating settings:', error);
       setStatus('Error updating settings');
     }
-  }, 300);
+  };
+
+  const applySettings = async () => {
+    setStatus('Updating settings...');
+    try {
+      const newSettings = {
+        ...settings,
+        frequency_start: localSettings.frequency_start,
+        frequency_stop: localSettings.frequency_stop,
+        bandwidth: localSettings.bandwidth,
+        sweeping_enabled: localSettings.sweeping_enabled,
+      };
+
+      await axios.post('/api/update_settings', newSettings, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      setSettings(newSettings);
+      setStatus('Settings updated');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      setStatus('Error updating settings');
+    }
+  };
 
   return (
     <Box>
@@ -66,11 +92,12 @@ const SweepSettings = ({ settings, setSettings, status, setStatus }) => {
       <TextField
         fullWidth
         margin="dense"
-        label="Sweep Start Frequency (MHz)"
+        label="Start Frequency (MHz)"
         name="frequency_start"
         type="number"
         value={localSettings.frequency_start}
-        onChange={handleSweepChange}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
@@ -78,11 +105,25 @@ const SweepSettings = ({ settings, setSettings, status, setStatus }) => {
       <TextField
         fullWidth
         margin="dense"
-        label="Sweep Stop Frequency (MHz)"
+        label="Stop Frequency (MHz)"
         name="frequency_stop"
         type="number"
         value={localSettings.frequency_stop}
-        onChange={handleSweepChange}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
+        variant="outlined"
+        InputLabelProps={{ shrink: true }}
+        inputProps={{ step: 0.1 }}
+      />
+      <TextField
+        fullWidth
+        margin="dense"
+        label="Bandwidth (MHz)"
+        name="bandwidth"
+        type="number"
+        value={localSettings.bandwidth}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
         variant="outlined"
         InputLabelProps={{ shrink: true }}
         inputProps={{ step: 0.1 }}
@@ -91,28 +132,16 @@ const SweepSettings = ({ settings, setSettings, status, setStatus }) => {
         control={
           <Switch
             checked={localSettings.sweeping_enabled}
-            onChange={handleSweepChange}
+            onChange={handleChange}
             name="sweeping_enabled"
             color="primary"
           />
         }
         label="Enable Sweep"
       />
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box>
-          <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-            Status: {status}
-          </Typography>
-        </Box>
-        <Box>
-          <IconButton onClick={() => updateSettings(localSettings)} sx={{ ml: 2 }}>
-            <SaveIcon />
-          </IconButton>
-          <IconButton onClick={() => window.location.reload()} sx={{ ml: 2 }}>
-            <RefreshIcon />
-          </IconButton>
-        </Box>
-      </Box>
+      <IconButton onClick={applySettings} sx={{ ml: 2 }}>
+        <SaveIcon />
+      </IconButton>
     </Box>
   );
 };
