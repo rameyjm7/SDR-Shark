@@ -176,7 +176,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     }
   } else {
     // Log an error message if the tick values are out of range
-    console.info("Tick values out of range:", tickVals);
+    // console.info("Tick values out of range:", tickVals);
   }
 
   return (
@@ -197,7 +197,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           },
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6}MHz)`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
