@@ -9,6 +9,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const [peaks, setPeaks] = useState([]);
   const prevTickValsRef = useRef([]);
   const prevTickTextRef = useRef([]);
+  const [currentFrequency, setCurrentFrequency] = useState(0);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,8 +20,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         setFftData(data.fft);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
-
-        // Update sweep settings from data
+    
         if (data.settings.sweeping_enabled) {
           setSweepSettings({
             frequency_start: data.settings.sweep_settings.frequency_start,
@@ -27,12 +28,17 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             sweeping_enabled: data.settings.sweeping_enabled,
             bandwidth: data.settings.sweep_settings.frequency_stop - data.settings.sweep_settings.frequency_start,
           });
+    
+          const currentFreq = data.settings.center_freq;
+          setCurrentFrequency(currentFreq);
+        } else {
+          setCurrentFrequency(settings.frequency * 1e6);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-
+    
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples, setSweepSettings]);
@@ -190,7 +196,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           },
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time})`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency/1e6})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
@@ -203,6 +209,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             range: [minY, maxY],
             color: 'white',
             gridcolor: '#444',
+            zeroline: false // Remove the white line across the 0 mark
           },
           margin: {
             l: 50,
@@ -238,6 +245,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
               title: 'Frequency (MHz)',
               color: 'white',
               gridcolor: '#444',
+              zeroline: false, // Remove the white line across the 0 mark
               tickvals: prevTickValsRef.current,
               ticktext: prevTickTextRef.current,
             },

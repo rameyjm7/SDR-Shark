@@ -46,6 +46,28 @@ def process_fft(samples):
     fft_magnitude = 20 * np.log10(np.abs(fft_result))
     return fft_magnitude
 
+
+def find_peaks_with_bandwidth(fft_data, freq_data, threshold=-3):
+    peaks = []
+    for i in range(1, len(fft_data) - 1):
+        if fft_data[i] > fft_data[i-1] and fft_data[i] > fft_data[i+1]:
+            peak = {
+                'frequency': freq_data[i],
+                'power': fft_data[i]
+            }
+            # Find -3 dB points
+            left_idx = i
+            while left_idx > 0 and fft_data[left_idx] > fft_data[i] + threshold:
+                left_idx -= 1
+            right_idx = i
+            while right_idx < len(fft_data) and fft_data[right_idx] > fft_data[i] + threshold:
+                right_idx += 1
+            
+            bandwidth = freq_data[right_idx] - freq_data[left_idx]
+            peak['bandwidth'] = bandwidth
+            peaks.append(peak)
+    return peaks
+
 def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
     sample_rate = 16e6  # Example sample rate in Hz
     distance_in_samples = int(min_distance * len(fft_magnitude) / sample_rate)
@@ -92,7 +114,8 @@ def generate_fft_data():
                     waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
-            vars.hackrf_sdr.set_frequency(current_freq)
+            vars.center_freq = current_freq
+            vars.hackrf_sdr.set_frequency(vars.center_freq)
             time.sleep(0.05)
         else:
             # Normal operation without sweeping
