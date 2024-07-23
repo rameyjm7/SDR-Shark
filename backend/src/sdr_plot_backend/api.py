@@ -52,6 +52,7 @@ def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_pea
     peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
     sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
     return sorted_peaks[:number_of_peaks]
+
 def generate_fft_data():
     full_fft = []
     current_freq = vars.sweep_settings['frequency_start']
@@ -134,6 +135,8 @@ def get_data():
         response['frequency_start'] = vars.sweep_settings['frequency_start']
         response['frequency_stop'] = vars.sweep_settings['frequency_stop']
         response['bandwidth'] = vars.sweep_settings['bandwidth']
+        if float(response['frequency_start']) < 1e6:
+            print("error")
     
     return jsonify(response)
 
@@ -196,6 +199,12 @@ def update_settings():
     vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
     vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
     vars.sweeping_enabled = settings.get('sweeping_enabled', False)
+    if vars.sweeping_enabled:
+        if vars.radio_name == "sidekiq":
+            vars.sweep_settings['bandwidth'] = 60e6
+        if vars.radio_name == "hackrf":
+            vars.sweep_settings['bandwidth'] = 20e6
+        
     
     print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 

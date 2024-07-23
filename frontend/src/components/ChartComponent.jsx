@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
 
@@ -7,6 +7,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
   const [peaks, setPeaks] = useState([]);
+  const prevTickValsRef = useRef([]);
+  const prevTickTextRef = useRef([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -16,9 +18,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         setFftData(data.fft);
         setWaterfallData(data.waterfall.slice(-waterfallSamples));
         setTime(data.time);
-
-        // Log the data for debugging
-        console.log('Data fetched:', data);
 
         // Update sweep settings from data
         if (data.settings.sweeping_enabled) {
@@ -158,11 +157,20 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6
   );
 
-  useEffect(() => {
-    console.log('Sweep Settings:', sweepSettings);
-    console.log('Tick Values:', tickVals);
-    console.log('Tick Text:', tickText);
-  }, [tickVals, tickText, sweepSettings]);
+  const isValidTickVals = tickVals.every(val => val >= 1e6); // Ensure values are in the correct magnitude
+
+  if (isValidTickVals) {
+    if (
+      JSON.stringify(tickVals) !== JSON.stringify(prevTickValsRef.current) ||
+      JSON.stringify(tickText) !== JSON.stringify(prevTickTextRef.current)
+    ) {
+      prevTickValsRef.current = tickVals;
+      prevTickTextRef.current = tickText;
+    }
+  } else {
+    // Log an error message if the tick values are out of range
+    console.error("Tick values out of range:", tickVals);
+  }
 
   return (
     <div>
@@ -187,8 +195,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             title: 'Frequency (MHz)',
             color: 'white',
             gridcolor: '#444',
-            tickvals: tickVals,
-            ticktext: tickText,
+            tickvals: prevTickValsRef.current,
+            ticktext: prevTickTextRef.current,
           },
           yaxis: {
             title: 'Amplitude (dB)',
@@ -230,8 +238,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
               title: 'Frequency (MHz)',
               color: 'white',
               gridcolor: '#444',
-              tickvals: tickVals,
-              ticktext: tickText,
+              tickvals: prevTickValsRef.current,
+              ticktext: prevTickTextRef.current,
             },
             yaxis: {
               title: 'Samples',
