@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Slider, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Slider, FormControlLabel, Switch, TextField } from '@mui/material';
 
 const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitted, handleChange }) => {
   return (
@@ -30,6 +30,21 @@ const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitte
           />
         }
         label="Suppress DC Spike"
+      />
+      <Typography gutterBottom>Number of X-Axis Ticks: {settings.numTicks}</Typography>
+      <Slider
+        min={2}
+        max={20}
+        value={settings.numTicks}
+        onChange={(e, value) => handleSliderChange(e, value, 'numTicks')}
+        onChangeCommitted={(e, value) => handleSliderChangeCommitted(e, value, 'numTicks')}
+        valueLabelDisplay="auto"
+        step={1}
+        marks={[
+          { value: 2, label: '2' },
+          { value: 10, label: '10' },
+          { value: 20, label: '20' },
+        ]}
       />
     </Box>
   );

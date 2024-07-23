@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Grid } from '@mui/material';
+import { Box } from '@mui/material';
 import axios from 'axios';
 import ChartComponent from './ChartComponent';
 import ControlPanel from './ControlPanel';
@@ -16,6 +16,7 @@ const Plots = () => {
     peakDetection: false,
     minPeakDistance: 0.25,
     numberOfPeaks: 5,
+    numTicks: 5, // Initialize numTicks
     peaks: []
   });
   const [minY, setMinY] = useState(-60);
@@ -42,7 +43,10 @@ const Plots = () => {
     try {
       const response = await axios.get('/api/get_settings');
       const data = response.data;
-      setSettings(data);
+      setSettings({
+        ...data,
+        numTicks: data.numTicks || 5, // Ensure numTicks is included
+      });
       setSweepSettings({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
@@ -71,6 +75,7 @@ const Plots = () => {
 
   const updateSettings = async (newSettings) => {
     setSettings(newSettings);
+    console.log(newSettings);
     try {
       await axios.post('/api/update_settings', newSettings);
     } catch (error) {

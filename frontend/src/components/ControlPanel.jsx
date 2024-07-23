@@ -36,6 +36,10 @@ const ControlPanel = ({
     }
   }, [settingsLoaded]);
 
+  useEffect(() => {
+    updateSettings(localSettings);
+  }, [localSettings]);
+
   const fetchSettings = async () => {
     try {
       const response = await axios.get('/api/get_settings');
@@ -54,6 +58,7 @@ const ControlPanel = ({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
         sweeping_enabled: data.sweeping_enabled,
+        numTicks: data.numTicks || 5, // Add numTicks to settings
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
@@ -62,6 +67,21 @@ const ControlPanel = ({
     } catch (error) {
       console.error('Error fetching settings:', error);
       setStatus('Error fetching settings');
+    }
+  };
+
+  const updateSettings = async (newSettings) => {
+    try {
+      await axios.post('/api/update_settings', newSettings, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      setSettings(newSettings);
+      setStatus('Settings updated');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      setStatus('Error updating settings');
     }
   };
 

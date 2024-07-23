@@ -11,7 +11,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const prevTickTextRef = useRef([]);
   const [currentFrequency, setCurrentFrequency] = useState(0);
 
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,7 +40,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
-  }, [updateInterval, waterfallSamples, setSweepSettings]);
+  }, [updateInterval, waterfallSamples, setSweepSettings, settings.frequency, settings.sampleRate]);
 
   useEffect(() => {
     const fetchPeaks = async () => {
@@ -144,12 +143,13 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const peakTableAnnotation = generatePeakTableAnnotation(peaks);
 
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
+    const numTicks = settings.numTicks || 5; // Default to 5 if not set
     const totalBandwidth = stopFreq - startFreq;
-    const step = totalBandwidth / 4; // 5 ticks total, so 4 intervals
+    const step = totalBandwidth / (numTicks); // Adjust step calculation for numTicks
 
     const tickVals = [];
     const tickText = [];
-    for (let i = 0; i <= 4; i++) {
+    for (let i = 0; i < numTicks; i++) {
       const freq = startFreq + i * step;
       tickVals.push(freq);
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
@@ -163,7 +163,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6
   );
 
-  const isValidTickVals = tickVals.every(val => val >= 1e6); // Ensure values are in the correct magnitude
+  // Ensure tick values are within a valid range
+  const isValidTickVals = tickVals.every(val => val >= 1e6 && val <= 1e10); // Adjust range as necessary
 
   if (isValidTickVals) {
     if (
@@ -175,7 +176,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     }
   } else {
     // Log an error message if the tick values are out of range
-    console.error("Tick values out of range:", tickVals);
+    console.info("Tick values out of range:", tickVals);
   }
 
   return (
@@ -196,7 +197,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           },
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency/1e6})`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
