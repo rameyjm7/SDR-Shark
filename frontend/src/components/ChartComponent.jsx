@@ -145,7 +145,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
     const numTicks = settings.numTicks || 5; // Default to 5 if not set
     const totalBandwidth = stopFreq - startFreq;
-    const step = totalBandwidth / (numTicks); // Adjust step calculation for numTicks
+    const step = totalBandwidth / (numTicks - 1); // Adjust step calculation for numTicks
 
     const tickVals = [];
     const tickText = [];
@@ -154,6 +154,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       tickVals.push(freq);
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
     }
+    tickVals.push(stopFreq*0.999);
+    tickText.push((stopFreq / 1e6).toFixed(2)); // Convert to MHz
 
     return { tickVals, tickText };
   };
@@ -176,7 +178,18 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     }
   } else {
     // Log an error message if the tick values are out of range
-    // console.info("Tick values out of range:", tickVals);
+    console.error("Tick values out of range:", tickVals);
+  }
+
+  // Add an extra point at the end of the range
+  const extendedFftData = [...fftData];
+  if (extendedFftData.length > 0) {
+    const lastFrequency = sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6;
+    extendedFftData.push(extendedFftData[extendedFftData.length - 1]);
+    extendedFftData[extendedFftData.length - 1] = {
+      ...extendedFftData[extendedFftData.length - 1],
+      x: lastFrequency
+    };
   }
 
   return (
@@ -184,12 +197,12 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       <Plot
         data={[
           {
-            x: Array.isArray(fftData) ? fftData.map((_, index) => {
+            x: Array.isArray(extendedFftData) ? extendedFftData.map((_, index) => {
               const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
-              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData.length;
+              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / extendedFftData.length;
               return (baseFreq + index * freqStep).toFixed(2);
             }) : [],
-            y: Array.isArray(fftData) ? fftData : [],
+            y: Array.isArray(extendedFftData) ? extendedFftData : [],
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'orange' },
@@ -197,7 +210,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           },
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6}MHz)`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',

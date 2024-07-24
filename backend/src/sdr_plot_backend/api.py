@@ -116,7 +116,7 @@ def generate_fft_data():
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.center_freq = current_freq
             vars.hackrf_sdr.set_frequency(vars.center_freq)
-            time.sleep(0.05)
+            time.sleep(0.01)
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
