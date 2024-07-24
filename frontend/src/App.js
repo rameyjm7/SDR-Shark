@@ -7,6 +7,7 @@ import Analysis from './components/Analysis';
 import Actions from './components/Actions';
 import FileBrowser from './components/sdr_scheduler/FileBrowser';
 import Analyzer from './components/sdr_scheduler/Analyzer';
+import SigDex from './components/SigDex'; // Import the new SigDex component
 import axios from 'axios';
 import './App.css';
 
@@ -79,25 +80,23 @@ const App = () => {
   };
 
   const handleAnalyze = (file) => {
-    const relativePath = currentPath +  file.name;
+    const relativePath = currentPath + file.name;
     console.log(`Analyzing file: ${relativePath}`);
 
-      axios.get(`${config.base_url}/file_manager/files/metadata`, {
-        params: {
-          path: file.name,
-          current_dir: currentPath,
-        }
-      })
+    axios.get(`${config.base_url}/file_manager/files/metadata`, {
+      params: {
+        path: file.name,
+        current_dir: currentPath,
+      }
+    })
       .then(response => {
         setMetadata(response.data.metadata);
         setFftData(response.data.fft_data);
-        setTabValue(5);  // Switch to Data Analyzer tab
+        setTabValue(4);  // Switch to Data Analyzer tab
       })
       .catch(error => {
         console.error('Error analyzing file:', error);
       });
-
-        
   };
 
   return (
@@ -111,6 +110,7 @@ const App = () => {
           <Tab label="Actions" />
           <Tab label="File Manager" />
           <Tab label="Data Analyzer" />
+          <Tab label="SigDex" /> {/* Add the new SigDex tab */}
         </Tabs>
         <TabPanel value={tabValue} index={0}>
           <Plots
@@ -133,6 +133,9 @@ const App = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={4}>
           <Analyzer fftData={fftData} metadata={metadata} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={5}>
+          <SigDex /> {/* Render the SigDex component */}
         </TabPanel>
       </Container>
     </ThemeProvider>

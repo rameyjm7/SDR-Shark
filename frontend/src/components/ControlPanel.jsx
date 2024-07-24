@@ -8,7 +8,7 @@ import PlotSettings from './ControlPanel/PlotSettings';
 import WaterfallSettings from './ControlPanel/WaterfallSettings';
 import SweepSettings from './ControlPanel/SweepSettings';
 import debounce from 'lodash/debounce';
-import './ControlPanel.css';
+import '../App.css';
 import Analysis from './Analysis';
 
 const ControlPanel = ({
@@ -205,8 +205,7 @@ const ControlPanel = ({
   };
 
   return (
-    <Box className="tab-container">
-      <Box className="control-panel">
+<Box className="control-panel">
         <Tabs value={tabIndex} onChange={handleTabChange}>
           <Tab label="SDR" />
           <Tab label="Plot" />
@@ -247,7 +246,6 @@ const ControlPanel = ({
           )}
         </Box>
       </Box>
-    </Box>
   );
 };
 

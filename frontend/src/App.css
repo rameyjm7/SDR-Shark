@@ -1,42 +1,54 @@
-.container {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 75vw;
-  overflow: hidden;
-}
-
-.plots_container {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 70%;
-  overflow: hidden;
-}
-
-.control-panel {
-  width: 30vw;
-  padding: 10px;
-  background-color: #1a1a1a;
+/* App.css */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
 
+.plots_container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
 .plots {
-  width: 70vw;
-  padding: 10px;
-  background-color: #000;
+  flex: 1;
+  overflow: hidden;
+}
+
+
+.tab-container {
+  display: flex;
+  width: 150px;
+  flex-direction: column;
+  flex: 1;
 }
 
 .tab-content {
-  flex-grow: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
-.tab-container {
+@media (min-width: 600px) {
+  .plots_container {
+    flex-direction: row;
+  }
+  .plots, .control-panel {
+    flex: 1;
+  }
+}
+
+.control-panel {
   height: 100%;
+  width: 30vw;
+  padding: 10px;
+  background-color: #1a1a1a;
 }
 
-#tabpanel-0{
-  width: 100vw;
-}
+
