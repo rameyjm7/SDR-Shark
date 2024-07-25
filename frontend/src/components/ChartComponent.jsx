@@ -79,7 +79,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const generateAnnotations = (peaks) => {
     if (!settings.peakDetection || !Array.isArray(peaks)) return [];
     return peaks.map((peak) => {
-      const freq = peak.frequency.toFixed(2);
+      const freq = peak.frequency.toFixed(2) * 1e6;
       const power = peak.power.toFixed(2);
       const powerColor = generateColor(power);
       return {
@@ -87,7 +87,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         y: parseFloat(power),
         xref: 'x',
         yref: 'y',
-        text: `${freq} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
+        text: `${freq/1e6} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
         showarrow: true,
         arrowhead: 2,
         ax: 0,
