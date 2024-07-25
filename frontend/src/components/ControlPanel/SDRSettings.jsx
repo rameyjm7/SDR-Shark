@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, TextField, FormControlLabel, Switch } from '@mui/material';
 
 const SDRSettings = ({ settings, handleChange, handleKeyPress }) => {
   const totalBandwidth = settings.frequency_stop - settings.frequency_start;
   const centerFrequency = (settings.frequency_start + settings.frequency_stop) / 2;
+
+  useEffect(() => {
+    if (settings.lockBandwidthSampleRate) {
+      handleChange({
+        target: {
+          name: 'bandwidth',
+          value: settings.sampleRate,
+        },
+      });
+    }
+  }, [settings.sampleRate, settings.lockBandwidthSampleRate, handleChange]);
 
   return (
     <Box>
@@ -62,10 +73,21 @@ const SDRSettings = ({ settings, handleChange, handleKeyPress }) => {
           variant="outlined"
           InputLabelProps={{ shrink: true }}
           inputProps={{ step: 0.1 }}
-          disabled={settings.sweeping_enabled}
+          disabled={settings.sweeping_enabled || settings.lockBandwidthSampleRate}
           style={{ flex: 1, marginLeft: 8 }}
         />
       </Box>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={settings.lockBandwidthSampleRate}
+            onChange={handleChange}
+            name="lockBandwidthSampleRate"
+            color="primary"
+          />
+        }
+        label="Lock Bandwidth to Sample Rate"
+      />
       <FormControlLabel
         control={
           <Switch

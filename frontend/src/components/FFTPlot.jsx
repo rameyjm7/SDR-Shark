@@ -89,7 +89,6 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
   };
 
   const generateTickValsAndLabels = (centerFreq, bandwidth) => {
-    console.log("Generating tick values and labels with centerFreq:", centerFreq, "and bandwidth:", bandwidth);
     const halfBandwidth = bandwidth / 2;
     const startFreq = centerFreq - halfBandwidth;
     const endFreq = centerFreq + halfBandwidth;
@@ -102,9 +101,6 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
       tickVals.push(freq);
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
     }
-
-    console.log("Generated tick values:", tickVals);
-    console.log("Generated tick labels:", tickText);
 
     return { tickVals, tickText };
   };
@@ -127,10 +123,6 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
     }
   }, [settings.sweeping_enabled, settings.frequency_start, settings.frequency_stop, settings.sdr]);
 
-  console.log("Plot settings:", settings);
-  console.log("Tick values:", tickVals);
-  console.log("Tick labels:", tickText);
-
   const peakAnnotations = generateAnnotations(peaks, fftData);
   const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
 
@@ -142,8 +134,9 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
           y: Array.isArray(fftData) ? fftData : [],
           type: 'scatter',
           mode: 'lines',
-          marker: { color: 'orange' },
-          line: { shape: 'spline', width: 1 }, // Thinner trace lines
+          fill: 'tozeroy',
+          fillcolor: 'rgba(255, 255, 255, 0.3)', // Under trace color white with some transparency
+          line: { color: 'white', shape: 'spline', width: 1 }, // White trace line
         },
       ]}
       layout={{
@@ -154,12 +147,14 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
           gridcolor: '#444',
           tickvals: tickVals,
           ticktext: tickText,
+          zeroline: false, // Remove the white line across the 0 mark
         },
         yaxis: {
           title: 'Amplitude (dB)',
           range: [minY, maxY],
           color: 'white',
           gridcolor: '#444',
+          zeroline: false, // Remove the white line across the 0 mark
         },
         margin: {
           l: 50,
@@ -174,6 +169,10 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
           color: 'white',
         },
         annotations: [...peakAnnotations, peakTableAnnotation].filter(Boolean),
+        showlegend: false, // Hide legend
+      }}
+      config={{
+        displayModeBar: false, // Hide the mode bar
       }}
       style={{ width: '100%', height: '40vh' }}
     />

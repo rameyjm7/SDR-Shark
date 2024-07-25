@@ -1,29 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
-import { Box, Dialog, DialogContent } from '@mui/material';
+import { Box, Dialog, DialogContent, FormControlLabel, Switch } from '@mui/material';
 
 const SigDex = () => {
   const [rows, setRows] = useState([]);
+  const [filteredRows, setFilteredRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [filterUS, setFilterUS] = useState(false);
+  const [filterWorldwide, setFilterWorldwide] = useState(false);
 
   useEffect(() => {
-    axios.get('/sigid/data')
-      .then(response => {
-        const signalsData = response.data.signals_database;
-        const formattedRows = Object.entries(signalsData).map(([key, value], index) => ({
-          id: index, // Ensure unique id for each row
-          ...value
-        }));
-        setRows(formattedRows);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        setLoading(false);
-      });
-  }, []);
+    if (rows.length === 0) {
+      axios.get('/sigid/data')
+        .then(response => {
+          const signalsData = response.data.signals_database;
+          const formattedRows = Object.entries(signalsData).map(([key, value], index) => ({
+            id: index, // Ensure unique id for each row
+            ...value
+          }));
+          setRows(formattedRows);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Error fetching data:', error);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [rows]);
+
+  useEffect(() => {
+    if (filterUS && filterWorldwide) {
+      setFilteredRows(rows.filter(row => row.Location === 'Worldwide' || row.Location === 'United States'));
+    } else if (filterUS) {
+      setFilteredRows(rows.filter(row => row.Location === 'United States'));
+    } else if (filterWorldwide) {
+      setFilteredRows(rows.filter(row => row.Location === 'Worldwide'));
+    } else {
+      setFilteredRows(rows);
+    }
+  }, [filterUS, filterWorldwide, rows]);
+
+  const handleUSToggleChange = (event) => {
+    setFilterUS(event.target.checked);
+  };
+
+  const handleWorldwideToggleChange = (event) => {
+    setFilterWorldwide(event.target.checked);
+  };
 
   const columns = [
     { field: 'Signal type', headerName: 'Signal Type', width: 200 },
@@ -34,6 +61,8 @@ const SigDex = () => {
     { field: 'Bandwidth', headerName: 'Bandwidth', width: 150 },
     { field: 'Location', headerName: 'Location', width: 150 },
     { field: 'Audio', headerName: 'Audio', width: 200 },
+    { field: 'Peaks', headerName: 'Peaks', width: 150 },
+    { field: 'Bandwidths', headerName: 'Bandwidths', width: 150 },
     {
       field: 'Image',
       headerName: 'Image',
@@ -46,9 +75,17 @@ const SigDex = () => {
   ];
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 700, width: '100%' }}>
+      <FormControlLabel
+        control={<Switch checked={filterUS} onChange={handleUSToggleChange} />}
+        label="Show US Locations Only"
+      />
+      <FormControlLabel
+        control={<Switch checked={filterWorldwide} onChange={handleWorldwideToggleChange} />}
+        label="Show Worldwide Locations Only"
+      />
       <DataGrid
-        rows={rows}
+        rows={filteredRows}
         columns={columns}
         pageSize={10}
         loading={loading}

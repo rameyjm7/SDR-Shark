@@ -34,6 +34,7 @@ const Analysis = ({ settings, setSettings }) => {
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
     { field: 'power', headerName: 'Power (dB)', width: 140 },
     { field: 'classification', headerName: 'Classification', width: 150 },
+    { field: 'bandwidth', headerName: 'Bandwidth (kHz)', width: 180 },
   ];
 
   const rows = peaks.map((peak, index) => ({
@@ -41,6 +42,7 @@ const Analysis = ({ settings, setSettings }) => {
     frequency: peak.frequency,
     power: peak.power,
     classification: peak.classification,
+    bandwidth: peak.bandwidth,
   }));
 
   useEffect(() => {

@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 import pickle
 import base64
+import numpy as np
+from scipy.signal import find_peaks
 from PIL import Image
 from io import BytesIO
 from sdr_plot_backend.utils import vars
@@ -12,6 +14,11 @@ def pil_image_to_base64(image):
     image.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
+def calculate_bandwidths(data):
+    peaks, properties = find_peaks(data, height=0)
+    bandwidths = np.diff(peaks) if len(peaks) > 1 else [0]
+    return peaks, bandwidths
+
 @sigid_plugin_blueprint.route('/sigid/data')
 def get_data():
     # Load the dictionary from the pickle file
@@ -22,6 +29,11 @@ def get_data():
     for key, value in signals_database.items():
         if 'Image' in value:
             value['Image'] = pil_image_to_base64(value['Image'])
+        if 'fft_data' in value:  # Assuming fft_data is part of the signal data
+            fft_data = value['fft_data']
+            peaks, bandwidths = calculate_bandwidths(fft_data)
+            value['Peaks'] = peaks.tolist()
+            value['Bandwidths'] = bandwidths.tolist()
 
     response = {
         'signals_database': signals_database
