@@ -17,14 +17,12 @@ body, html, #root {
 }
 
 .plots {
-  flex: 1;
+  flex: 2;  /* Increase the flex value for larger plots */
   overflow: hidden;
 }
 
-
 .tab-container {
   display: flex;
-  width: 150px;
   flex-direction: column;
   flex: 1;
 }
@@ -39,16 +37,17 @@ body, html, #root {
   .plots_container {
     flex-direction: row;
   }
-  .plots, .control-panel {
-    flex: 1;
+  .plots {
+    flex: 3;  /* Increase the flex value for larger plots */
+  }
+  .control-panel {
+    flex: 0.5;  /* Decrease the flex value for a smaller control panel */
   }
 }
 
 .control-panel {
   height: 100%;
-  width: 30vw;
+  width: 15vw;  /* Adjusted width for smaller control panel */
   padding: 10px;
   background-color: #1a1a1a;
 }
-
-

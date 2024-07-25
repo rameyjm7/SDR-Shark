@@ -5,8 +5,9 @@ const SDRSettings = ({ settings, handleChange, handleKeyPress }) => {
   const totalBandwidth = settings.frequency_stop - settings.frequency_start;
   const centerFrequency = (settings.frequency_start + settings.frequency_stop) / 2;
 
+  // Effect to handle bandwidth update when sample rate changes
   useEffect(() => {
-    if (settings.lockBandwidthSampleRate) {
+    if (settings.lockBandwidthSampleRate && settings.bandwidth !== settings.sampleRate) {
       handleChange({
         target: {
           name: 'bandwidth',
