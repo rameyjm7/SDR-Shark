@@ -27,11 +27,7 @@ body, html, #root {
   flex: 1;
 }
 
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
+
 
 @media (min-width: 600px) {
   .plots_container {
@@ -47,7 +43,16 @@ body, html, #root {
 
 .control-panel {
   height: 100%;
-  width: 15vw;  /* Adjusted width for smaller control panel */
+  width: 20vw;  /* Adjusted width for smaller control panel */
   padding: 10px;
   background-color: #1a1a1a;
+}
+
+.control-panel-tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  width: 20vw;  /* Adjusted width for smaller control panel */
+  padding: 20px;
 }

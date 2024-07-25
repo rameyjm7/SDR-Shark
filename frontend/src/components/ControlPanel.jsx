@@ -211,7 +211,7 @@ const ControlPanel = ({
           <Tab label="Plot" />
           <Tab label="Analysis" />
         </Tabs>
-        <Box className="tab-content">
+        <Box className="control-panel-tab-content">
           {tabIndex === 0 && (
             <>
               <Typography variant="h6">SDR Settings</Typography>
