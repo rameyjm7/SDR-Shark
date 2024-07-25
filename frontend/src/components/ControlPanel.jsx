@@ -59,6 +59,7 @@ const ControlPanel = ({
         frequency_stop: data.frequency_stop,
         sweeping_enabled: data.sweeping_enabled,
         numTicks: data.numTicks || 5, // Add numTicks to settings
+        peakThreshold: data.peakThreshold || -25
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);

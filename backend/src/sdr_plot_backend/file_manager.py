@@ -1,9 +1,11 @@
-from flask import Blueprint, jsonify, request
-from sdr_plot_backend.utils import vars
-import pickle
 import os
+import pickle
 import shutil
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+
+from sdr_plot_backend.utils import vars
 
 file_mgr_blueprint = Blueprint('file_mgr', __name__)
 
@@ -46,13 +48,13 @@ def create_directory():
     path = data.get('path')
     name = data.get('name')
     new_directory_path = os.path.join(vars.recordings_dir, path.strip('/'), name)
-    
+
     if not os.path.exists(new_directory_path):
         os.makedirs(new_directory_path)
         return jsonify({'status': 'success', 'message': 'Directory created successfully'}), 201
     else:
         return jsonify({'status': 'error', 'message': 'Directory already exists'}), 400
-    
+
 @file_mgr_blueprint.route('/file_manager/files/move', methods=['POST'])
 def move_file():
     data = request.json
@@ -63,7 +65,7 @@ def move_file():
     try:
         if not os.path.exists(src_path):
             return jsonify({'error': 'Source file not found'}), 404
-        
+
         shutil.move(src_path, os.path.join(dest_path, ""))
         return jsonify({'success': True})
     except Exception as e:
@@ -74,7 +76,7 @@ def rename_file():
     data = request.json
     old_path = os.path.join(vars.recordings_dir, data.get('old_path').strip('/'))
     new_path = os.path.join(vars.recordings_dir, data.get('new_path').strip('/'))
-    
+
     try:
         if not os.path.exists(old_path):
             return jsonify({'error': 'File not found'}), 404
@@ -90,7 +92,7 @@ def rename_file():
 def delete_file():
     data = request.json
     file_path = os.path.join(vars.recordings_dir, data.get('path').strip('/'))
-    
+
     try:
         if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
@@ -107,7 +109,7 @@ def delete_file():
 def get_file_metadata():
     file_path = request.args.get('path')
     if file_path is None:
-        return jsonify({'error': str("File path is None")}), 500
+        return jsonify({'error': "File path is None"}), 500
     current_dir = request.args.get('current_dir', '')
     current_dir_abs = os.path.join(vars.recordings_dir, current_dir.strip('/'))
     full_path = os.path.join(current_dir_abs, file_path)

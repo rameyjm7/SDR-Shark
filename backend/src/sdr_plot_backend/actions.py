@@ -1,11 +1,13 @@
-from flask import Blueprint, jsonify, request, Response
-from sdr_plot_backend.utils import vars
-import pickle
-from datetime import datetime
 import json
-import time
-import numpy as np
 import os
+import pickle
+import time
+from datetime import datetime
+
+import numpy as np
+from flask import Blueprint, Response, jsonify, request
+
+from sdr_plot_backend.utils import vars
 
 actions_blueprint = Blueprint('actions', __name__)
 
@@ -25,7 +27,7 @@ def add_task():
     return jsonify(task), 201
 
 
-    
+
 @actions_blueprint.route('/actions/tasks/execute', methods=['POST'])
 def execute_tasks():
     def task_event_stream():
@@ -38,7 +40,7 @@ def execute_tasks():
                         vars.hackrf_sdr.set_frequency(vars.center_freq)
                         yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.center_freq / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
-                        yield f"data: {json.dumps({'status': f'Failed to tune: {str(e)}', 'taskIndex': i})}\n\n"
+                        yield f"data: {json.dumps({'status': f'Failed to tune: {e!s}', 'taskIndex': i})}\n\n"
                     time.sleep(0.25)
                 elif task['type'] == 'record':
                     duration = task['duration']
@@ -71,7 +73,7 @@ def execute_tasks():
                             pickle.dump(data, f)
                         yield f"data: {json.dumps({'status': f'Successfully recorded {label}', 'taskIndex': i})}\n\n"
                     except Exception as e:
-                        yield f"data: {json.dumps({'status': f'Failed to record: {str(e)}', 'taskIndex': i})}\n\n"
+                        yield f"data: {json.dumps({'status': f'Failed to record: {e!s}', 'taskIndex': i})}\n\n"
                 elif task['type'] == 'gain':
                     gain = task['value']
                     yield f"data: {json.dumps({'status': f'Setting gain to {gain}...', 'taskIndex': i})}\n\n"
@@ -79,7 +81,7 @@ def execute_tasks():
                         vars.hackrf_sdr.set_gain(gain)
                         yield f"data: {json.dumps({'status': f'Successfully set gain to {gain}', 'taskIndex': i})}\n\n"
                     except Exception as e:
-                        yield f"data: {json.dumps({'status': f'Failed to set gain: {str(e)}', 'taskIndex': i})}\n\n"
+                        yield f"data: {json.dumps({'status': f'Failed to set gain: {e!s}', 'taskIndex': i})}\n\n"
                     time.sleep(0.25)
                 elif task['type'] == 'bandwidth':
                     bandwidth = task['value']
@@ -88,7 +90,7 @@ def execute_tasks():
                         vars.hackrf_sdr.set_bandwidth(bandwidth)
                         yield f"data: {json.dumps({'status': f'Successfully set bandwidth to {bandwidth / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
-                        yield f"data: {json.dumps({'status': f'Failed to set bandwidth: {str(e)}', 'taskIndex': i})}\n\n"
+                        yield f"data: {json.dumps({'status': f'Failed to set bandwidth: {e!s}', 'taskIndex': i})}\n\n"
                     time.sleep(0.25)
                 elif task['type'] == 'sweep':
                     dwell_time = task['dwellTime']
@@ -108,7 +110,7 @@ def execute_tasks():
                             current_freq += bandwidth
                         yield f"data: {json.dumps({'status': 'Sweep completed', 'taskIndex': i})}\n\n"
                     except Exception as e:
-                        yield f"data: {json.dumps({'status': f'Failed to sweep: {str(e)}', 'taskIndex': i})}\n\n"
+                        yield f"data: {json.dumps({'status': f'Failed to sweep: {e!s}', 'taskIndex': i})}\n\n"
             yield f"data: {json.dumps({'status': 'Finished executing tasks'})}\n\n"
-    
+
     return Response(task_event_stream(), content_type='text/event-stream')

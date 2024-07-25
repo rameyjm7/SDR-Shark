@@ -1,12 +1,14 @@
-import numpy as np
-from flask import Blueprint, jsonify, request
-from datetime import datetime
+import atexit
 import threading
 import time
 from collections import deque
+from datetime import datetime
+
+import numpy as np
+from flask import Blueprint, jsonify, request
 from numba import jit
-import atexit
 from scipy.signal import find_peaks
+
 from sdr_plot_backend.utils import vars
 
 api_blueprint = Blueprint('api', __name__)
@@ -47,26 +49,45 @@ def process_fft(samples):
     return fft_magnitude
 
 
-def find_peaks_with_bandwidth(fft_data, freq_data, threshold=-3):
-    peaks = []
-    for i in range(1, len(fft_data) - 1):
-        if fft_data[i] > fft_data[i-1] and fft_data[i] > fft_data[i+1]:
-            peak = {
-                'frequency': freq_data[i],
-                'power': fft_data[i]
-            }
-            # Find -3 dB points
-            left_idx = i
-            while left_idx > 0 and fft_data[left_idx] > fft_data[i] + threshold:
-                left_idx -= 1
-            right_idx = i
-            while right_idx < len(fft_data) and fft_data[right_idx] > fft_data[i] + threshold:
-                right_idx += 1
-            
-            bandwidth = freq_data[right_idx] - freq_data[left_idx]
-            peak['bandwidth'] = bandwidth
-            peaks.append(peak)
-    return peaks
+def find_peaks_with_bandwidth(fft_data, freq_data, threshold=-3, min_distance=250e3, number_of_peaks=5):
+    # Calculate the noise floor as the mean of the lower part of the spectrum
+    noise_floor = np.mean(fft_data[:len(fft_data)//10])
+    
+    # Detect peaks that are above the noise floor
+    peaks, _ = find_peaks(fft_data, distance=int(min_distance / (freq_data[1] - freq_data[0])), height=noise_floor + threshold)
+    peak_list = []
+    
+    for i in peaks:
+        peak_power = fft_data[i]
+        threshold_power = peak_power + threshold
+        
+        left_idx = i
+        while left_idx > 0 and fft_data[left_idx] > threshold_power:
+            left_idx -= 1
+        
+        right_idx = i
+        while right_idx < len(fft_data) - 1 and fft_data[right_idx] > threshold_power:
+            right_idx += 1
+
+        if right_idx >= len(fft_data):
+            right_idx = len(fft_data) - 1
+        
+        if left_idx < 0:
+            left_idx = 0
+        
+        bandwidth = freq_data[right_idx] - freq_data[left_idx]
+        
+        peak = {
+            'index': int(i),  # Convert numpy int to Python int
+            'frequency': float(freq_data[i]),  # Convert numpy float to Python float
+            'power': float(fft_data[i]),  # Convert numpy float to Python float
+            'bandwidth': float(bandwidth)  # Convert numpy float to Python float
+        }
+        
+        peak_list.append(peak)
+    
+    peak_list = sorted(peak_list, key=lambda x: x['power'], reverse=True)[:number_of_peaks]
+    return peak_list
 
 def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
     sample_rate = 16e6  # Example sample rate in Hz
@@ -105,9 +126,11 @@ def generate_fft_data():
                 averaged_fft = np.array(full_fft)
                 downsampled_fft = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
 
-                peaks = detect_peaks(downsampled_fft, number_of_peaks=vars.number_of_peaks)
-                peaks = [int(p) for p in peaks]
-
+                peaks = find_peaks_with_bandwidth(downsampled_fft, 
+                            np.linspace(vars.center_freq - vars.sample_rate / 2, vars.center_freq + vars.sample_rate / 2, len(downsampled_fft)),
+                            vars.peak_threshold_minimum_dB
+                            )
+                
                 with data_lock:
                     fft_data['original_fft'] = downsampled_fft.tolist()
                     fft_data['peaks'] = peaks
@@ -124,14 +147,14 @@ def generate_fft_data():
             else:
                 full_fft = (full_fft[:vars.sample_size] * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
 
-            peaks = detect_peaks(full_fft, number_of_peaks=vars.number_of_peaks)
-            peaks = [int(p) for p in peaks]
+            peaks = find_peaks_with_bandwidth(full_fft,
+                                              np.linspace(vars.center_freq - vars.sample_rate / 2, vars.center_freq + vars.sample_rate / 2, len(full_fft)),
+                                              vars.peak_threshold_minimum_dB)
 
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
                 fft_data['peaks'] = peaks
                 waterfall_buffer.append(downsample(full_fft).tolist())
-
 
 
 fft_thread = threading.Thread(target=generate_fft_data)
@@ -143,9 +166,9 @@ def get_data():
         fft_response = fft_data['original_fft'].copy()
         peaks_response = fft_data['peaks'].copy()
         waterfall_response = list(waterfall_buffer)
-    
+
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    
+
     response = {
         'fft': fft_response,
         'peaks': peaks_response,
@@ -153,14 +176,14 @@ def get_data():
         'time': current_time,
         'settings' : vars.get_settings()
     }
-    
+
     if vars.sweeping_enabled:
         response['frequency_start'] = vars.sweep_settings['frequency_start']
         response['frequency_stop'] = vars.sweep_settings['frequency_stop']
         response['bandwidth'] = vars.sweep_settings['bandwidth']
         if float(response['frequency_start']) < 1e6:
             print("error")
-    
+
     return jsonify(response)
 
 
@@ -171,17 +194,20 @@ def get_analytics():
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
         for peak in peaks_response:
-            freq = ((vars.center_freq - vars.sample_rate / 2) + (peak * vars.sample_rate / len(fft_response))) / 1e6  # Convert to MHz
-            power = fft_response[peak]
+            freq = ((vars.center_freq - vars.sample_rate / 2) + (peak['index'] * vars.sample_rate / len(fft_response))) / 1e6  # Convert to MHz
+            power = peak['power']
+            bandwidth = peak['bandwidth']
             classification = "???"  # Placeholder for classification
             peaks_data.append({
-                'peak': f'Peak {peak + 1}',
+                'peak': f'Peak {peak["index"] + 1}',
                 'frequency': freq,
                 'power': power,
+                'bandwidth': bandwidth,
                 'classification': classification
             })
 
     return jsonify({'peaks': peaks_data})
+
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
@@ -205,6 +231,7 @@ def get_settings():
         'frequency_start': vars.sweep_settings['frequency_start'] / 1e6,
         'frequency_stop': vars.sweep_settings['frequency_stop'] / 1e6,
         'sweeping_enabled': vars.sweeping_enabled,
+        'peakThreshold' : vars.peak_threshold_minimum_dB
     }
     return jsonify(settings)
 
@@ -218,6 +245,7 @@ def update_settings():
     vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
     vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
     vars.number_of_peaks = int(settings.get('numberOf_peaks', 5))
+    vars.peak_threshold_minimum_dB = int(settings.get('peakThreshold', 5))
 
     vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
     vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
@@ -227,8 +255,8 @@ def update_settings():
             vars.sweep_settings['bandwidth'] = 60e6
         if vars.radio_name == "hackrf":
             vars.sweep_settings['bandwidth'] = 20e6
-        
-    
+
+
     print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
     vars.hackrf_sdr.set_frequency(vars.center_freq)

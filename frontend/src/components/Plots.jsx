@@ -15,6 +15,7 @@ const Plots = () => {
     dcSuppress: true,
     peakDetection: false,
     minPeakDistance: 0.25,
+    minPeakThreshold: -25,
     numberOfPeaks: 5,
     numTicks: 5, // Initialize numTicks
     peaks: []

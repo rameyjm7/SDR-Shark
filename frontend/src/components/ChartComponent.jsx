@@ -45,7 +45,12 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/analytics');
+        const response = await axios.get('http://10.139.1.185:5000/api/analytics', {
+          params: {
+            min_peak_distance: settings.minPeakDistance * 1e3, // Convert to Hz
+            number_of_peaks: settings.numberOfPeaks,
+          }
+        });
         setPeaks(response.data.peaks);
       } catch (error) {
         console.error('Error fetching peaks:', error);
@@ -54,7 +59,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
 
     const interval = setInterval(fetchPeaks, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [settings.minPeakDistance, settings.numberOfPeaks]);
 
   const generateColor = (value) => {
     if (value >= 0) {
@@ -87,7 +92,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         y: parseFloat(power),
         xref: 'x',
         yref: 'y',
-        text: `${freq/1e6} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
+        text: `${freq / 1e6} MHz<br><span style="color:${powerColor}">${power} dB<br>Bandwidth: ${peak.bandwidth/1.0e6} MHz</span>`,
         showarrow: true,
         arrowhead: 2,
         ax: 0,
@@ -107,7 +112,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     const rows = peaks.map((peak, index) => {
       const freq = peak.frequency.toFixed(2);
       const power = peak.power.toFixed(2);
-      return `Peak ${index + 1} | ${freq} MHz | ${power} dB<br>`;
+      return `Peak ${index + 1} | ${freq} MHz | ${power} dB | Bandwidth: ${peak.bandwidth/1.0e6} MHz<br>`;
     }).join('');
 
     const tableText = rows;
@@ -154,7 +159,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       tickVals.push(freq);
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
     }
-    tickVals.push(stopFreq*0.999);
+    tickVals.push(stopFreq * 0.999);
     tickText.push((stopFreq / 1e6).toFixed(2)); // Convert to MHz
 
     return { tickVals, tickText };

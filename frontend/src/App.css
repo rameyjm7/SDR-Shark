@@ -42,8 +42,8 @@ body, html, #root {
 }
 
 .control-panel {
-  height: 100%;
-  width: 20vw;  /* Adjusted width for smaller control panel */
+  height: 80vh;
+  width: 25vw;  /* Adjusted width for smaller control panel */
   padding: 10px;
   background-color: #1a1a1a;
 }
@@ -53,6 +53,6 @@ body, html, #root {
   flex-direction: column;
   flex: 1;
   height: 100%;
-  width: 20vw;  /* Adjusted width for smaller control panel */
+  width: 25vw;  /* Adjusted width for smaller control panel */
   padding: 20px;
 }
