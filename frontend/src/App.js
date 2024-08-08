@@ -7,7 +7,7 @@ import Analysis from './components/Analysis';
 import Actions from './components/Actions';
 import FileBrowser from './components/sdr_scheduler/FileBrowser';
 import Analyzer from './components/sdr_scheduler/Analyzer';
-import SigDex from './components/SigDex'; // Import the new SigDex component
+import SigDex from './components/SigDex';
 import axios from 'axios';
 import './App.css';
 
@@ -102,15 +102,15 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container>
+      <Box sx={{ padding: 0, margin: 0, width: '100%', height: '100%' }}>
         <Typography variant="h4" gutterBottom>SDR Plot Application</Typography>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
           <Tab label="Plots" />
           <Tab label="Analysis" />
           <Tab label="Actions" />
           <Tab label="File Manager" />
           <Tab label="Data Analyzer" />
-          <Tab label="SigDex" /> {/* Add the new SigDex tab */}
+          <Tab label="SigDex" />
         </Tabs>
         <TabPanel value={tabValue} index={0}>
           <Plots
@@ -135,9 +135,9 @@ const App = () => {
           <Analyzer fftData={fftData} metadata={metadata} />
         </TabPanel>
         <TabPanel value={tabValue} index={5}>
-          <SigDex /> {/* Render the SigDex component */}
+          <SigDex />
         </TabPanel>
-      </Container>
+      </Box>
     </ThemeProvider>
   );
 };

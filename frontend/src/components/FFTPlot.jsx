@@ -50,44 +50,6 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
     });
   };
 
-  const generatePeakTableAnnotation = (peaks, fftData) => {
-    if (!settings.peakDetection || peaks.length === 0) return null;
-
-    const rows = peaks.map((peak, index) => {
-      const freq = ((settings.frequency - settings.sampleRate / 2) + (peak * settings.sampleRate / fftData.length)).toFixed(2);
-      const power = fftData[peak]?.toFixed(2);
-      return `Peak ${index + 1} | ${(freq / 1e6).toFixed(2)} MHz | ${power} dB<br>`;
-    }).join('');
-
-    const tableText = rows;
-
-    return {
-      x: 1,
-      y: 1,
-      xref: 'paper',
-      yref: 'paper',
-      text: tableText,
-      showarrow: false,
-      font: {
-        size: 12,
-        family: 'monospace',
-        color: 'white',
-      },
-      align: 'left',
-      bgcolor: 'rgba(0, 0, 0, 0.7)',
-      bordercolor: 'white',
-      borderwidth: 1,
-      xanchor: 'right',
-      yanchor: 'top',
-      pad: {
-        t: 10,
-        r: 10,
-        b: 10,
-        l: 10,
-      },
-    };
-  };
-
   const generateTickValsAndLabels = (centerFreq, bandwidth) => {
     console.log("Generating tick values and labels with centerFreq:", centerFreq, "and bandwidth:", bandwidth);
     const halfBandwidth = bandwidth / 2;
@@ -132,7 +94,6 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
   console.log("Tick labels:", tickText);
 
   const peakAnnotations = generateAnnotations(peaks, fftData);
-  const peakTableAnnotation = generatePeakTableAnnotation(peaks, fftData);
 
   return (
     <Plot
@@ -173,7 +134,7 @@ const FFTPlot = ({ fftData, settings, minY, maxY, peaks }) => {
         font: {
           color: 'white',
         },
-        annotations: [...peakAnnotations, peakTableAnnotation].filter(Boolean),
+        annotations: [...peakAnnotations].filter(Boolean),
       }}
       style={{ width: '100%', height: '40vh' }}
     />

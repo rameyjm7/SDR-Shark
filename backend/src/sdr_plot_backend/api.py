@@ -50,40 +50,35 @@ def process_fft(samples):
 
 
 def find_peaks_with_bandwidth(fft_data, freq_data, threshold=-3, min_distance=250e3, number_of_peaks=5):
-    # Calculate the noise floor as the mean of the lower part of the spectrum
+    # Calculate the noise floor
     noise_floor = np.mean(fft_data[:len(fft_data)//10])
     
-    # Detect peaks that are above the noise floor
     peaks, _ = find_peaks(fft_data, distance=int(min_distance / (freq_data[1] - freq_data[0])), height=noise_floor + threshold)
     peak_list = []
-    
     for i in peaks:
-        peak_power = fft_data[i]
-        threshold_power = peak_power + threshold
-        
-        left_idx = i
-        while left_idx > 0 and fft_data[left_idx] > threshold_power:
-            left_idx -= 1
-        
-        right_idx = i
-        while right_idx < len(fft_data) - 1 and fft_data[right_idx] > threshold_power:
-            right_idx += 1
-
-        if right_idx >= len(fft_data):
-            right_idx = len(fft_data) - 1
-        
-        if left_idx < 0:
-            left_idx = 0
-        
-        bandwidth = freq_data[right_idx] - freq_data[left_idx]
-        
         peak = {
             'index': int(i),  # Convert numpy int to Python int
             'frequency': float(freq_data[i]),  # Convert numpy float to Python float
-            'power': float(fft_data[i]),  # Convert numpy float to Python float
-            'bandwidth': float(bandwidth)  # Convert numpy float to Python float
+            'power': float(fft_data[i])  # Convert numpy float to Python float
         }
-        
+        # Find -3 dB points relative to peak power
+        peak_power = fft_data[i]
+        threshold_power = peak_power + threshold
+
+        # Find left -3dB point
+        left_idx = i
+        while left_idx > 0 and fft_data[left_idx] > threshold_power:
+            left_idx -= 1
+        # Find right -3dB point
+        right_idx = i
+        while right_idx < len(fft_data) and fft_data[right_idx] > threshold_power:
+            right_idx += 1
+
+        # Adjust right_idx to avoid index out of bounds
+        right_idx = min(right_idx, len(fft_data) - 1)
+
+        bandwidth = float(freq_data[right_idx] - freq_data[left_idx])
+        peak['bandwidth'] = bandwidth
         peak_list.append(peak)
     
     peak_list = sorted(peak_list, key=lambda x: x['power'], reverse=True)[:number_of_peaks]

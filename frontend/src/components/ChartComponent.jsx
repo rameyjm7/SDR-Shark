@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
+import '../App.css';
 
 const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
   const [fftData, setFftData] = useState([]);
@@ -92,7 +93,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         y: parseFloat(power),
         xref: 'x',
         yref: 'y',
-        text: `${freq / 1e6} MHz<br><span style="color:${powerColor}">${power} dB<br>Bandwidth: ${peak.bandwidth/1.0e6} MHz</span>`,
+        text: `${freq / 1e6} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
         showarrow: true,
         arrowhead: 2,
         ax: 0,
@@ -106,46 +107,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     });
   };
 
-  const generatePeakTableAnnotation = (peaks) => {
-    if (!settings.peakDetection || !Array.isArray(peaks) || peaks.length === 0) return null;
-
-    const rows = peaks.map((peak, index) => {
-      const freq = peak.frequency.toFixed(2);
-      const power = peak.power.toFixed(2);
-      return `Peak ${index + 1} | ${freq} MHz | ${power} dB | Bandwidth: ${peak.bandwidth/1.0e6} MHz<br>`;
-    }).join('');
-
-    const tableText = rows;
-
-    return {
-      x: 1,
-      y: 1,
-      xref: 'paper',
-      yref: 'paper',
-      text: tableText,
-      showarrow: false,
-      font: {
-        size: 12,
-        family: 'monospace',
-        color: 'white',
-      },
-      align: 'left',
-      bgcolor: 'rgba(0, 0, 0, 0.7)',
-      bordercolor: 'white',
-      borderwidth: 1,
-      xanchor: 'right',
-      yanchor: 'top',
-      pad: {
-        t: 10,
-        r: 10,
-        b: 10,
-        l: 10,
-      },
-    };
-  };
-
   const peakAnnotations = generateAnnotations(peaks);
-  const peakTableAnnotation = generatePeakTableAnnotation(peaks);
 
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
     const numTicks = settings.numTicks || 5; // Default to 5 if not set
@@ -242,7 +204,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           font: {
             color: 'white',
           },
-          annotations: [...peakAnnotations, peakTableAnnotation].filter(Boolean),
+          annotations: [...peakAnnotations].filter(Boolean),
         }}
         style={{ width: '100%', height: '40vh' }}
       />
