@@ -24,3 +24,6 @@ yarn-error.log*
 *.pyc
 docker/code.zip
 .vscode/launch.json
+backend/sdr_plot_backend.egg-info*
+backend/src/sdr_plot_backend.egg-info/
+backend/dist/
