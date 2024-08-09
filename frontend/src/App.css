@@ -7,20 +7,12 @@ body, html, #root {
   flex-direction: column;
 }
 
-.plots_container {
-  display: flex;
-  flex-direction: row;
-  height: calc(100% - 60px); /* Account for header and padding */
-  width: calc(100% - 20px); /* Add padding to the overall container */
-  margin: 10px; /* Adding some margin for the padding effect */
-}
 
 .plots {
-  flex: 2.5; /* Slightly more space for the plots */
+  flex: 2; /* Slightly more space for the plots */
   display: flex;
   flex-direction: column;
   padding: 0;
-  width: 100%;
 }
 
 .control-panel {

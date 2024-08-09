@@ -75,6 +75,7 @@ const App = () => {
   const [currentPath, setCurrentPath] = useState('/');
   const [metadata, setMetadata] = useState(null);
   const [fftData, setFftData] = useState([]);
+  const [plotWidth, setPlotWidth] = useState(60); // Initial plot width in percentage
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -101,18 +102,38 @@ const App = () => {
   };
 
   useEffect(() => {
-    Split(['#leftPanel', '#rightPanel'], {
+    const adjustPlotWidth = () => {
+      const leftPanelWidth = document.getElementById('leftPanel').clientWidth;
+      const totalWidth = document.getElementById('plotsContainer').clientWidth;
+      const newPlotWidth = (leftPanelWidth / totalWidth) * 100;
+
+      setPlotWidth(newPlotWidth);
+      console.log(`Plot Width: ${newPlotWidth}%`);
+      console.log(`Control Panel Width: ${100 - newPlotWidth}%`);
+    };
+
+    const splitInstance = Split(['#leftPanel', '#rightPanel'], {
       sizes: [60, 40], // Adjust initial sizes for more flexibility
       minSize: 100,    // Allow more shrinking of panels
       gutterSize: 10,  // Size of the gutter (resize handle)
       cursor: 'col-resize',
+      onDrag: adjustPlotWidth,
     });
+
+    adjustPlotWidth(); // Adjust the width on initial load
+
+    window.addEventListener('resize', adjustPlotWidth);
+
+    return () => {
+      splitInstance.destroy();
+      window.removeEventListener('resize', adjustPlotWidth);
+    };
   }, []);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ padding: 0, margin: 0, width: '100%', height: '100%' }}>
+      <Box id="plotsContainer" sx={{ padding: 0, margin: 0, width: '100%', height: '100%' }}>
         <Typography variant="h4" gutterBottom>SDR Plot Application</Typography>
         <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
           <Tab label="Plots" />
@@ -132,6 +153,7 @@ const App = () => {
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
                 showWaterfall={showWaterfall}
+                plotWidth={plotWidth} // Pass the calculated plot width as a prop
               />
             </TabPanel>
           </Box>

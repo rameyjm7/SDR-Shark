@@ -3,7 +3,7 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -11,25 +11,42 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const prevTickValsRef = useRef([]);
   const prevTickTextRef = useRef([]);
   const [currentFrequency, setCurrentFrequency] = useState(0);
+  const [plotHeight, setPlotHeight] = useState(35); // Start with a default value
+
+  useEffect(() => {
+    const adjustPlotHeight = () => {
+      const containerHeight = window.innerHeight;
+      const availableHeight = containerHeight - 100; // Adjust based on the height of other elements (like the control panel)
+      const calculatedHeight = (availableHeight * 0.4) / containerHeight * 100; // Set to 40% of the available height
+      setPlotHeight(calculatedHeight);
+    };
+
+    adjustPlotHeight();
+    window.addEventListener('resize', adjustPlotHeight);
+
+    return () => {
+      window.removeEventListener('resize', adjustPlotHeight);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
-        
+
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
         setFftData(sanitizedFftData);
-        
+
         // Replace NaN values in Waterfall data
         const sanitizedWaterfallData = data.waterfall.map(row =>
           row.map(value => isNaN(value) ? -255 : value)
         );
         setWaterfallData(sanitizedWaterfallData.slice(-waterfallSamples));
-  
+
         setTime(data.time);
-      
+
         if (data.settings.sweeping_enabled) {
           setSweepSettings({
             frequency_start: data.settings.sweep_settings.frequency_start,
@@ -37,7 +54,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             sweeping_enabled: data.settings.sweeping_enabled,
             bandwidth: data.settings.sweep_settings.frequency_stop - data.settings.sweep_settings.frequency_start,
           });
-    
+
           const currentFreq = data.settings.center_freq;
           setCurrentFrequency(currentFreq);
         } else {
@@ -47,11 +64,11 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         console.error('Error fetching data:', error);
       }
     };
-  
+
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples, setSweepSettings, settings.frequency, settings.sampleRate]);
-  
+
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
@@ -123,7 +140,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     const totalBandwidth = stopFreq - startFreq;
     const step = totalBandwidth / (numTicks - 1); // Adjust step calculation for numTicks
 
-    
     const tickVals = [];
     const tickText = [];
     for (let i = 0; i < numTicks; i++) {
@@ -208,6 +224,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             t: 50,
             pad: 4
           },
+          autosize: true,  // Let Plotly auto size
           paper_bgcolor: '#000',
           plot_bgcolor: '#000',
           font: {
@@ -215,7 +232,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           },
           annotations: [...peakAnnotations].filter(Boolean),
         }}
-        style={{ width: '100%', height: '40vh' }}
+        style={{ width: `${plotWidth}vw` }}
       />
       {showWaterfall && (
         <Plot
@@ -251,6 +268,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
               t: 0,
               pad: 4
             },
+            autosize: true,  // Let Plotly auto size
             paper_bgcolor: '#000',
             plot_bgcolor: '#000',
             font: {
@@ -260,7 +278,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           config={{
             displayModeBar: false, // Hide the mode bar
           }}
-          style={{ width: '100%', height: '40vh' }}
+          style={{ width: `${plotWidth}vw` }}
         />
       )}
     </div>
