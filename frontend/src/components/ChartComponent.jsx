@@ -109,7 +109,11 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   };
 
   const generateAnnotations = (peaks) => {
-    if (!settings.peakDetection || !Array.isArray(peaks)) return [];
+    return [];
+    // Disable annotations by returning an empty array when peak detection is enabled
+    if (settings.peakDetection) return [];
+    
+    // Original logic for generating annotations if needed in the future
     return peaks.map((peak) => {
       const freq = peak.frequency.toFixed(2) * 1e6;
       const power = peak.power.toFixed(2);
@@ -131,7 +135,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         align: 'center',
       };
     });
-  };
+};
+
 
   const peakAnnotations = generateAnnotations(peaks);
 

@@ -37,7 +37,7 @@ def execute_tasks():
                     vars.center_freq = task['frequency']
                     yield f"data: {json.dumps({'status': f'Tuning to {vars.center_freq / 1e6} MHz...', 'taskIndex': i})}\n\n"
                     try:
-                        vars.hackrf_sdr.set_frequency(vars.center_freq)
+                        vars.sdr0.set_frequency(vars.center_freq)
                         yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.center_freq / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to tune: {e!s}', 'taskIndex': i})}\n\n"
@@ -48,7 +48,7 @@ def execute_tasks():
                     yield f"data: {json.dumps({'status': f'Recording for {duration} seconds with label {label}...', 'taskIndex': i})}\n\n"
                     try:
                         num_samples = int(vars.sample_rate * duration)
-                        samples = vars.hackrf_sdr.get_latest_samples()
+                        samples = vars.sdr0.get_latest_samples()
                         fft_data = np.fft.fftshift(np.fft.fft(samples))
                         fft_magnitude = 20 * np.log10(np.abs(fft_data))
                         fft_magnitude = np.where(np.isinf(fft_magnitude), -20, fft_magnitude)
@@ -78,7 +78,7 @@ def execute_tasks():
                     gain = task['value']
                     yield f"data: {json.dumps({'status': f'Setting gain to {gain}...', 'taskIndex': i})}\n\n"
                     try:
-                        vars.hackrf_sdr.set_gain(gain)
+                        vars.sdr0.set_gain(gain)
                         yield f"data: {json.dumps({'status': f'Successfully set gain to {gain}', 'taskIndex': i})}\n\n"
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to set gain: {e!s}', 'taskIndex': i})}\n\n"
@@ -87,7 +87,7 @@ def execute_tasks():
                     bandwidth = task['value']
                     yield f"data: {json.dumps({'status': f'Setting bandwidth to {bandwidth / 1e6} MHz...', 'taskIndex': i})}\n\n"
                     try:
-                        vars.hackrf_sdr.set_bandwidth(bandwidth)
+                        vars.sdr0.set_bandwidth(bandwidth)
                         yield f"data: {json.dumps({'status': f'Successfully set bandwidth to {bandwidth / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to set bandwidth: {e!s}', 'taskIndex': i})}\n\n"
@@ -97,14 +97,14 @@ def execute_tasks():
                     yield f"data: {json.dumps({'status': 'Starting sweep...', 'taskIndex': i})}\n\n"
                     try:
                         if task['sweepType'] == 'full':
-                            start_freq = vars.hackrf_sdr.min_frequency
-                            end_freq = vars.hackrf_sdr.max_frequency
+                            start_freq = vars.sdr0.min_frequency
+                            end_freq = vars.sdr0.max_frequency
                         else:
                             start_freq = task['startFreq']
                             end_freq = task['endFreq']
                         current_freq = start_freq
                         while current_freq <= end_freq:
-                            vars.hackrf_sdr.set_frequency(current_freq)
+                            vars.sdr0.set_frequency(current_freq)
                             yield f"data: {json.dumps({'status': f'Sweeping at {current_freq / 1e6} MHz...', 'taskIndex': i})}\n\n"
                             time.sleep(dwell_time)
                             current_freq += bandwidth

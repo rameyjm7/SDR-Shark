@@ -39,9 +39,9 @@ const Analysis = ({ settings, setSettings }) => {
 
   const rows = peaks.map((peak, index) => ({
     id: index,
-    frequency: peak.frequency,
-    power: peak.power,
-    bandwidth: peak.bandwidth,
+    frequency: (peak.frequency / 1e6).toFixed(2), // Convert to MHz
+    power: peak.power.toFixed(2), // Format power to 2 decimal places
+    bandwidth: (peak.bandwidth / 1e6).toFixed(2), // Convert to MHz
     classification: peak.classification,
   }));
 

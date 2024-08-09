@@ -7,14 +7,13 @@ from datetime import datetime
 import numpy as np
 from flask import Blueprint, jsonify, request
 from numba import jit
-from scipy.signal import find_peaks
 
+from sdr_plot_backend.signal_utils import perform_and_refine_scan, detect_signal_peaks  # Import the new utility
 from sdr_plot_backend.utils import vars
 
 api_blueprint = Blueprint('api', __name__)
 
 sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
-
 data_buffer = deque(maxlen=vars.fft_averaging)
 waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 
@@ -39,57 +38,14 @@ def downsample(data, target_length=256):
 
 def capture_samples():
     global sample_buffer
-    while vars.hackrf_sdr is None:
+    while vars.sdr0 is None:
         time.sleep(0.1)
-    sample_buffer = vars.hackrf_sdr.get_latest_samples()
+    sample_buffer = vars.sdr0.get_latest_samples()
 
 def process_fft(samples):
     fft_result = np.fft.fftshift(np.fft.fft(samples))
     fft_magnitude = 20 * np.log10(np.abs(fft_result))
     return fft_magnitude
-
-
-def find_peaks_with_bandwidth(fft_data, freq_data, threshold=-3, min_distance=250e3, number_of_peaks=5):
-    # Calculate the noise floor
-    noise_floor = np.mean(fft_data[:len(fft_data)//10])
-    
-    peaks, _ = find_peaks(fft_data, distance=int(min_distance / (freq_data[1] - freq_data[0])), height=noise_floor + threshold)
-    peak_list = []
-    for i in peaks:
-        peak = {
-            'index': int(i),  # Convert numpy int to Python int
-            'frequency': float(freq_data[i]),  # Convert numpy float to Python float
-            'power': float(fft_data[i])  # Convert numpy float to Python float
-        }
-        # Find -3 dB points relative to peak power
-        peak_power = fft_data[i]
-        threshold_power = peak_power + threshold
-
-        # Find left -3dB point
-        left_idx = i
-        while left_idx > 0 and fft_data[left_idx] > threshold_power:
-            left_idx -= 1
-        # Find right -3dB point
-        right_idx = i
-        while right_idx < len(fft_data) and fft_data[right_idx] > threshold_power:
-            right_idx += 1
-
-        # Adjust right_idx to avoid index out of bounds
-        right_idx = min(right_idx, len(fft_data) - 1)
-
-        bandwidth = float(freq_data[right_idx] - freq_data[left_idx])
-        peak['bandwidth'] = bandwidth
-        peak_list.append(peak)
-    
-    peak_list = sorted(peak_list, key=lambda x: x['power'], reverse=True)[:number_of_peaks]
-    return peak_list
-
-def detect_peaks(fft_magnitude, threshold=-50, min_distance=250e3, number_of_peaks=5):
-    sample_rate = 16e6  # Example sample rate in Hz
-    distance_in_samples = int(min_distance * len(fft_magnitude) / sample_rate)
-    peaks, _ = find_peaks(fft_magnitude, height=threshold, distance=distance_in_samples)
-    sorted_peaks = sorted(peaks, key=lambda x: fft_magnitude[x], reverse=True)
-    return sorted_peaks[:number_of_peaks]
 
 def generate_fft_data():
     full_fft = []
@@ -121,19 +77,13 @@ def generate_fft_data():
                 averaged_fft = np.array(full_fft)
                 downsampled_fft = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
 
-                peaks = find_peaks_with_bandwidth(downsampled_fft, 
-                            np.linspace(vars.center_freq - vars.sample_rate / 2, vars.center_freq + vars.sample_rate / 2, len(downsampled_fft)),
-                            vars.peak_threshold_minimum_dB
-                            )
-                
                 with data_lock:
                     fft_data['original_fft'] = downsampled_fft.tolist()
-                    fft_data['peaks'] = peaks
                     waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.center_freq = current_freq
-            vars.hackrf_sdr.set_frequency(vars.center_freq)
+            vars.sdr0.set_frequency(vars.center_freq)
             time.sleep(0.01)
         else:
             # Normal operation without sweeping
@@ -142,25 +92,64 @@ def generate_fft_data():
             else:
                 full_fft = (full_fft[:vars.sample_size] * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
 
-            peaks = find_peaks_with_bandwidth(full_fft,
-                                              np.linspace(vars.center_freq - vars.sample_rate / 2, vars.center_freq + vars.sample_rate / 2, len(full_fft)),
-                                              vars.peak_threshold_minimum_dB)
-
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
-                fft_data['peaks'] = peaks
                 waterfall_buffer.append(downsample(full_fft).tolist())
 
+def radio_scanner():
+    while running:
+        # Capture and average the FFTs for peak detection
+        fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
+        for _ in range(vars.fft_averaging):
+            iq_data = vars.sdr1.get_latest_samples()
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
+            fft_magnitude = np.abs(fft_result)
+            fft_magnitude_sum += fft_magnitude
+
+        fft_magnitude_avg = fft_magnitude_sum / vars.fft_averaging
+        fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+
+        sample_rate = 20e6
+        # Detect peaks using the detect_signal_peaks function
+        signal_peaks, signal_bandwidths = detect_signal_peaks(
+            fft_magnitude_db,
+            vars.center_freq,
+            sample_rate,
+            1024 * 8,  # wide_fft_size
+            min_peak_distance=10 * 8,
+            threshold_offset=5
+        )
+
+        # Create refined peaks list
+        refined_peaks = []
+        for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
+            refined_peaks.append({
+                'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.center_freq + sample_rate / 2) * 1024 * 8 / sample_rate)],
+                'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+            })
+
+        with data_lock:
+            fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
+        
+        time.sleep(1)  # Add some delay to prevent the loop from running too fast
 
 fft_thread = threading.Thread(target=generate_fft_data)
+scanner_thread = threading.Thread(target=radio_scanner)
 fft_thread.start()
+scanner_thread.start()
 
 @api_blueprint.route('/api/data')
 def get_data():
     with data_lock:
-        fft_response = fft_data['original_fft'].copy()
-        peaks_response = fft_data['peaks'].copy()
-        waterfall_response = list(waterfall_buffer)
+        fft_response = [float(x) for x in fft_data['original_fft']]
+        peaks_response = [{
+            'index': int(peak['index']),
+            'frequency': float(peak['frequency']),
+            'power': float(peak['power']),
+            'bandwidth': float(peak['bandwidth'])
+        } for peak in fft_data['peaks']]
+        waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
 
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
@@ -169,18 +158,25 @@ def get_data():
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time,
-        'settings' : vars.get_settings()
+        'settings': vars.get_settings()
     }
 
+    # Convert all settings values to native Python types
+    settings = response['settings']
+    settings['center_freq'] = float(settings['center_freq'])
+    settings['sample_rate'] = float(settings['sample_rate'])
+    settings['bandwidth'] = float(settings['bandwidth'])
+    settings['gain'] = float(settings['gain'])
+    settings['sweep_settings'] = {k: float(v) for k, v in settings['sweep_settings'].items()}
+
     if vars.sweeping_enabled:
-        response['frequency_start'] = vars.sweep_settings['frequency_start']
-        response['frequency_stop'] = vars.sweep_settings['frequency_stop']
-        response['bandwidth'] = vars.sweep_settings['bandwidth']
-        if float(response['frequency_start']) < 1e6:
+        response['frequency_start'] = float(vars.sweep_settings['frequency_start'])
+        response['frequency_stop'] = float(vars.sweep_settings['frequency_stop'])
+        response['bandwidth'] = float(vars.sweep_settings['bandwidth'])
+        if response['frequency_start'] < 1e6:
             print("error")
 
     return jsonify(response)
-
 
 @api_blueprint.route('/api/analytics')
 def get_analytics():
@@ -189,9 +185,9 @@ def get_analytics():
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
         for peak in peaks_response:
-            freq = ((vars.center_freq - vars.sample_rate / 2) + (peak['index'] * vars.sample_rate / len(fft_response))) / 1e6  # Convert to MHz
-            power = peak['power']
-            bandwidth = peak['bandwidth']
+            freq = float(peak['frequency'])
+            power = float(peak['power'])
+            bandwidth = float(peak['bandwidth'])
             classification = "???"  # Placeholder for classification
             peaks_data.append({
                 'peak': f'Peak {peak["index"] + 1}',
@@ -202,7 +198,6 @@ def get_analytics():
             })
 
     return jsonify({'peaks': peaks_data})
-
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
@@ -230,7 +225,6 @@ def get_settings():
     }
     return jsonify(settings)
 
-
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
     try:
@@ -252,13 +246,16 @@ def update_settings():
             if vars.radio_name == "hackrf":
                 vars.sweep_settings['bandwidth'] = 20e6
 
-
         print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
-        vars.hackrf_sdr.set_frequency(vars.center_freq)
-        vars.hackrf_sdr.set_gain(vars.gain)
-        vars.hackrf_sdr.set_sample_rate(vars.sample_rate)
-        vars.hackrf_sdr.set_bandwidth(vars.bandwidth)
+        vars.sdr0.set_frequency(vars.center_freq)
+        vars.sdr0.set_gain(vars.gain)
+        vars.sdr0.set_sample_rate(vars.sample_rate)
+        vars.sdr0.set_bandwidth(vars.bandwidth)
+        
+        vars.sdr1.set_frequency(vars.center_freq)
+        vars.sdr1.set_sample_rate(20e6)
+        vars.sdr1.set_bandwidth(20e6)
 
         return jsonify({'success': True, 'settings': settings})
     except Exception as e:
@@ -279,5 +276,6 @@ def stop_sweep():
 def cleanup():
     global running
     running = False
-    vars.hackrf_sdr.stop()
+    vars.sdr0.stop()
     fft_thread.join()
+    scanner_thread.join()

@@ -1,6 +1,6 @@
-# src/sdr_plot_backend/signal_utils.py
-
+from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
+import time
 
 def detect_signal_peaks(fft_magnitude_db, center_freq, sample_rate, fft_size, min_peak_distance=10, threshold_offset=1):
     # Calculate the noise floor and adaptive threshold
@@ -152,3 +152,81 @@ def refine_peak_bandwidth(sdr, peak_freq, narrow_sample_rate=1e6, fft_size=1024,
     frequencies = np.linspace(peak_freq - narrow_sample_rate/2, peak_freq + narrow_sample_rate/2, fft_size)
 
     return refined_bandwidth, fft_magnitude_db, frequencies
+
+
+def perform_and_refine_scan(sdr: SDRGeneric, wide_sample_rate: float, wide_fft_size: int, num_captures: int, narrow_sample_rate: float = 1e6, narrow_fft_size: int = 1024, min_peak_distance: int = 80, threshold_offset: int = 5):
+    """
+    Perform a wideband FFT scan to detect peaks and then refine each peak's bandwidth.
+
+    Args:
+        sdr (SDRGeneric): Instance of the SDR to use for scanning.
+        wide_sample_rate (float): Sample rate for the wideband scan.
+        wide_fft_size (int): FFT size for the wideband scan.
+        num_captures (int): Number of captures to average.
+        narrow_sample_rate (float): Sample rate for the narrowband refinement. Default is 1 MHz.
+        narrow_fft_size (int): FFT size for the narrowband refinement. Default is 1024.
+        min_peak_distance (int): Minimum distance between peaks to consider them separate signals.
+        threshold_offset (int): Offset above the noise floor to detect peaks.
+
+    Returns:
+        List of tuples containing the center frequency (MHz), power (dB), and refined bandwidth (MHz) of each detected signal.
+    """
+
+    # Capture and average the FFTs for the wideband scan
+    fft_magnitude_sum = np.zeros(wide_fft_size)
+    for _ in range(num_captures):
+        iq_data = sdr.get_latest_samples()
+        fft_result = np.fft.fftshift(np.fft.fft(iq_data, wide_fft_size))
+        fft_magnitude = np.abs(fft_result)
+        fft_magnitude_sum += fft_magnitude
+
+    fft_magnitude_avg = fft_magnitude_sum / num_captures
+
+    # Convert magnitude to dB
+    fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+
+    # Detect peaks and bandwidths using the function from signal_utils
+    signal_peaks, signal_bandwidths = detect_signal_peaks(
+        fft_magnitude_db, sdr.center_freq, wide_sample_rate, wide_fft_size, min_peak_distance, threshold_offset
+    )
+
+    refined_signals = []
+
+    # Refine each detected peak
+    for peak_freq, _ in zip(signal_peaks, signal_bandwidths):
+        # Set the SDR to the narrowband settings
+        sdr.set_frequency(peak_freq * 1e6)
+        sdr.set_sample_rate(narrow_sample_rate)
+        sdr.set_bandwidth(narrow_sample_rate)
+        time.sleep(0.1)
+
+        # Capture and average the FFTs for the refined settings
+        fft_captures = []
+        for _ in range(num_captures):
+            iq_data = sdr.get_latest_samples()
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, narrow_fft_size))
+            fft_magnitude = np.abs(fft_result)
+            fft_captures.append(fft_magnitude)
+
+        refined_fft_magnitude_avg = np.mean(fft_captures, axis=0)
+
+        # Convert magnitude to dB for refined FFT
+        refined_fft_magnitude_db = 20 * np.log10(refined_fft_magnitude_avg)
+
+        # Detect the refined bandwidth
+        noise_floor = np.median(refined_fft_magnitude_db)
+        adaptive_threshold = noise_floor + threshold_offset
+
+        above_threshold = np.where(refined_fft_magnitude_db > adaptive_threshold)[0]
+        if len(above_threshold) > 0:
+            left_idx = above_threshold[0]
+            right_idx = above_threshold[-1]
+            refined_bandwidth_mhz = (right_idx - left_idx) * (narrow_sample_rate / narrow_fft_size) / 1e6
+        else:
+            refined_bandwidth_mhz = 0.0  # No signal detected in the narrowband scan
+
+        max_power = np.max(refined_fft_magnitude_db)
+
+        refined_signals.append((peak_freq, max_power, refined_bandwidth_mhz))
+
+    return refined_signals

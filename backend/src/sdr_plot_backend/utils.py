@@ -32,8 +32,10 @@ class sdr_scheduler_config:
         self.recordings_dir = "/root/workspace/data/recordings"
 
         self.radio_name = "sidekiq"
-        self.hackrf_sdr =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
-        self.hackrf_sdr.start()
+        self.sdr0 =  SDRGeneric("sidekiq", center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
+        self.sdr0.start()
+        self.sdr1 =  SDRGeneric("hackrf", center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
+        self.sdr1.start()
 
     def get_settings(self):
         settings = {
@@ -51,12 +53,12 @@ class sdr_scheduler_config:
         names = ["sidekiq", "hackrf"]
         for _name in names:
             if _name in name:
-                self.hackrf_sdr.stop()
-                self.hackrf_sdr.close()
-                self.hackrf_sdr = None
+                self.sdr0.stop()
+                self.sdr0.close()
+                self.sdr0 = None
                 self.radio_name = name
-                self.hackrf_sdr =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
-                self.hackrf_sdr.start()
+                self.sdr0 =  SDRGeneric(self.radio_name, center_freq=self.center_freq, sample_rate=self.sample_rate, bandwidth=self.sample_rate, gain=self.gain, size=self.sample_size)
+                self.sdr0.start()
                 return 0
         return 1
 
