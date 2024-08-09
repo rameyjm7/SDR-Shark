@@ -17,10 +17,19 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
-        setFftData(data.fft);
-        setWaterfallData(data.waterfall.slice(-waterfallSamples));
+        
+        // Replace NaN values in FFT data
+        const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
+        setFftData(sanitizedFftData);
+        
+        // Replace NaN values in Waterfall data
+        const sanitizedWaterfallData = data.waterfall.map(row =>
+          row.map(value => isNaN(value) ? -255 : value)
+        );
+        setWaterfallData(sanitizedWaterfallData.slice(-waterfallSamples));
+  
         setTime(data.time);
-    
+      
         if (data.settings.sweeping_enabled) {
           setSweepSettings({
             frequency_start: data.settings.sweep_settings.frequency_start,
@@ -38,11 +47,11 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         console.error('Error fetching data:', error);
       }
     };
-    
+  
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples, setSweepSettings, settings.frequency, settings.sampleRate]);
-
+  
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
@@ -114,6 +123,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     const totalBandwidth = stopFreq - startFreq;
     const step = totalBandwidth / (numTicks - 1); // Adjust step calculation for numTicks
 
+    
     const tickVals = [];
     const tickText = [];
     for (let i = 0; i < numTicks; i++) {
@@ -123,7 +133,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     }
     tickVals.push(stopFreq * 0.999);
     tickText.push((stopFreq / 1e6).toFixed(2)); // Convert to MHz
-
     return { tickVals, tickText };
   };
 

@@ -20,6 +20,7 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   padding: 0;
+  width: 100%;
 }
 
 .control-panel {
@@ -59,4 +60,10 @@ body, html, #root {
 .control-panel-content {
   flex: 1; /* Make it take the remaining space */
   overflow-y: auto; /* Allow scrolling inside the control panel */
+}
+
+.resize-handle {
+  width: 10px;
+  cursor: ew-resize;
+  background-color: #444;
 }

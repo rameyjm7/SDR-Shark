@@ -233,33 +233,37 @@ def get_settings():
 
 @api_blueprint.route('/api/update_settings', methods=['POST'])
 def update_settings():
-    settings = request.json
-    vars.center_freq = float(settings.get('frequency')) * 1e6  # Convert to Hz
-    vars.gain = float(settings.get('gain'))
-    vars.sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
-    vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-    vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
-    vars.number_of_peaks = int(settings.get('numberOf_peaks', 5))
-    vars.peak_threshold_minimum_dB = int(settings.get('peakThreshold', 5))
+    try:
+        settings = request.json
+        vars.center_freq = float(settings.get('frequency')) * 1e6  # Convert to Hz
+        vars.gain = float(settings.get('gain'))
+        vars.sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
+        vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
+        vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
+        vars.number_of_peaks = int(settings.get('numberOf_peaks', 5))
+        vars.peak_threshold_minimum_dB = int(settings.get('peakThreshold', 5))
 
-    vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
-    vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
-    vars.sweeping_enabled = settings.get('sweeping_enabled', False)
-    if vars.sweeping_enabled:
-        if vars.radio_name == "sidekiq":
-            vars.sweep_settings['bandwidth'] = 60e6
-        if vars.radio_name == "hackrf":
-            vars.sweep_settings['bandwidth'] = 20e6
+        vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
+        vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
+        vars.sweeping_enabled = settings.get('sweeping_enabled', False)
+        if vars.sweeping_enabled:
+            if vars.radio_name == "sidekiq":
+                vars.sweep_settings['bandwidth'] = 60e6
+            if vars.radio_name == "hackrf":
+                vars.sweep_settings['bandwidth'] = 20e6
 
 
-    print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
+        print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
 
-    vars.hackrf_sdr.set_frequency(vars.center_freq)
-    vars.hackrf_sdr.set_gain(vars.gain)
-    vars.hackrf_sdr.set_sample_rate(vars.sample_rate)
-    vars.hackrf_sdr.set_bandwidth(vars.bandwidth)
+        vars.hackrf_sdr.set_frequency(vars.center_freq)
+        vars.hackrf_sdr.set_gain(vars.gain)
+        vars.hackrf_sdr.set_sample_rate(vars.sample_rate)
+        vars.hackrf_sdr.set_bandwidth(vars.bandwidth)
 
-    return jsonify({'success': True, 'settings': settings})
+        return jsonify({'success': True, 'settings': settings})
+    except Exception as e:
+        print(e)
+        return jsonify({'success': False, 'settings': settings})
 
 @api_blueprint.route('/api/start_sweep', methods=['POST'])
 def start_sweep():

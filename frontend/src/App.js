@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Container, Typography, CssBaseline, Tabs, Tab, Box } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Typography, CssBaseline, Tabs, Tab, Box } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Split from 'split.js';
 import ControlPanel from './components/ControlPanel';
 import Plots from './components/Plots';
 import Analysis from './components/Analysis';
@@ -83,7 +84,7 @@ const App = () => {
     const relativePath = currentPath + file.name;
     console.log(`Analyzing file: ${relativePath}`);
 
-    axios.get(`${config.base_url}/file_manager/files/metadata`, {
+    axios.get(`/api/file_manager/files/metadata`, {
       params: {
         path: file.name,
         current_dir: currentPath,
@@ -99,6 +100,15 @@ const App = () => {
       });
   };
 
+  useEffect(() => {
+    Split(['#leftPanel', '#rightPanel'], {
+      sizes: [60, 40], // Adjust initial sizes for more flexibility
+      minSize: 100,    // Allow more shrinking of panels
+      gutterSize: 10,  // Size of the gutter (resize handle)
+      cursor: 'col-resize',
+    });
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -112,16 +122,36 @@ const App = () => {
           <Tab label="Data Analyzer" />
           <Tab label="SigDex" />
         </Tabs>
-        <TabPanel value={tabValue} index={0}>
-          <Plots
-            settings={settings}
-            minY={minY}
-            maxY={maxY}
-            updateInterval={updateInterval}
-            waterfallSamples={waterfallSamples}
-            showWaterfall={showWaterfall}
-          />
-        </TabPanel>
+        <Box sx={{ display: 'flex', height: 'calc(100% - 100px)' }}>
+          <Box id="leftPanel" sx={{ paddingRight: '10px', borderRight: '2px solid #444', height: '100%', flex: '0 1 auto' }}>
+            <TabPanel value={tabValue} index={0}>
+              <Plots
+                settings={settings}
+                minY={minY}
+                maxY={maxY}
+                updateInterval={updateInterval}
+                waterfallSamples={waterfallSamples}
+                showWaterfall={showWaterfall}
+              />
+            </TabPanel>
+          </Box>
+          <Box id="rightPanel" sx={{ paddingLeft: '10px', height: '100%', flex: '0 1 auto' }}>
+            <ControlPanel
+              settings={settings}
+              setSettings={setSettings}
+              minY={minY}
+              setMinY={setMinY}
+              maxY={maxY}
+              setMaxY={setMaxY}
+              updateInterval={updateInterval}
+              setUpdateInterval={setUpdateInterval}
+              waterfallSamples={waterfallSamples}
+              setWaterfallSamples={setWaterfallSamples}
+              showWaterfall={showWaterfall}
+              setShowWaterfall={setShowWaterfall}
+            />
+          </Box>
+        </Box>
         <TabPanel value={tabValue} index={1}>
           <Analysis settings={settings} setSettings={setSettings} />
         </TabPanel>
