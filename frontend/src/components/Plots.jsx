@@ -5,7 +5,7 @@ import ChartComponent from './ChartComponent';
 import PlotSettings from './ControlPanel/PlotSettings';
 import '../App.css';
 
-const Plots = ({ settings, updateInterval, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
+const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
   const [sweepSettings, setSweepSettings] = useState({
     frequency_start: 100,
     frequency_stop: 200,
@@ -74,6 +74,7 @@ const Plots = ({ settings, updateInterval, waterfallSamples, showWaterfall, minY
           updateInterval={updateInterval}
           waterfallSamples={waterfallSamples}
           showWaterfall={showWaterfall}
+          showSecondTrace={showSecondTrace}
         />
       </Box>
     </div>

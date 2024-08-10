@@ -3,8 +3,9 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, showSecondTrace }) => {
   const [fftData, setFftData] = useState([]);
+  const [fftData2, setFftData2] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
   const [peaks, setPeaks] = useState([]);
@@ -41,7 +42,9 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
 
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
+        const sanitizedFftData2 = data.fft2.map(value => isNaN(value) ? -255 : value);
         setFftData(sanitizedFftData);
+        setFftData2(sanitizedFftData2);
 
         // Replace NaN values in Waterfall data
         const sanitizedWaterfallData = data.waterfall.map(row =>
@@ -192,7 +195,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     };
   }
 
-  
   return (
     <div>
       <Plot
@@ -209,7 +211,19 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             marker: { color: 'orange' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
           },
-        ]}
+          showSecondTrace && {
+            x: Array.isArray(fftData2) ? fftData2.map((_, index) => {
+              const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
+              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData2.length;
+              return (baseFreq + index * freqStep).toFixed(2);
+            }) : [],
+            y: Array.isArray(fftData2) ? fftData2 : [],
+            type: 'scatter',
+            mode: 'lines',
+            marker: { color: 'blue' },
+            line: { shape: 'spline', width: 1 }, // Thinner trace lines
+          },
+        ].filter(Boolean)}
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
           xaxis: {

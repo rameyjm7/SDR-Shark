@@ -30,6 +30,8 @@ class sdr_scheduler_config:
         self.show_waterfall = True
         self.waterfall_samples = 100
         self.number_of_peaks = 5
+        self.showFirstTrace = True
+        self.showSecondTrace = False
         self.recordings_dir = "/root/workspace/data/recordings"
         self.lockBandwidthSampleRate = False  # Default setting for lock
         self.radio_name = "sidekiq"
@@ -37,7 +39,7 @@ class sdr_scheduler_config:
         # Initialize SDRs
         self.sdr0 = SDRGeneric("sidekiq", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
         self.sdr0.start()
-        self.sdr1 = SDRGeneric("hackrf", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
+        self.sdr1 = SDRGeneric("hackrf", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=40, size=self.sample_size)
         self.sdr1.start()
         
         # Load settings from file
@@ -114,7 +116,9 @@ class sdr_scheduler_config:
             "number_of_peaks": self.number_of_peaks,
             "recordings_dir": self.recordings_dir,
             "lockBandwidthSampleRate": self.lockBandwidthSampleRate,
-            "radio_name": self.radio_name
+            "radio_name": self.radio_name,
+            "showFirstTrace": self.showFirstTrace,
+            "showSecondTrace": self.showSecondTrace
         }
         return settings
 
@@ -134,17 +138,18 @@ class sdr_scheduler_config:
         self.number_of_peaks = settings.get("number_of_peaks", self.number_of_peaks)
         self.recordings_dir = settings.get("recordings_dir", self.recordings_dir)
         self.lockBandwidthSampleRate = settings.get("lockBandwidthSampleRate", self.lockBandwidthSampleRate)
+        self.showFirstTrace = settings.get("showFirstTrace", self.showFirstTrace)
+        self.showSecondTrace = settings.get("showSecondTrace", self.showSecondTrace)
         self.radio_name = settings.get("radio_name", self.radio_name)
 
         # Validate the settings after applying them
         self.validate_settings()
-        
-        self.sdr0.set_bandwidth(self.bandwidth)
-        self.sdr0.set_sample_rate(self.sample_rate)
         self.sdr0.set_frequency(self.frequency)
+        self.sdr0.set_sample_rate(self.sample_rate)
+        self.sdr0.set_bandwidth(self.sample_rate)
         self.sdr0.set_gain(self.gain)
-        
         self.sdr1.set_frequency(self.frequency)
+        self.sdr1.set_gain(self.gain)
 
     def reselect_radio(self, name: str) -> int:
         """Temporarily disabled due to the use of both radios."""
@@ -171,7 +176,9 @@ class sdr_scheduler_config:
     "number_of_peaks": 5,
     "recordings_dir": "/root/workspace/data/recordings",
     "lockBandwidthSampleRate": true,
-    "radio_name": "sidekiq"
+    "radio_name": "sidekiq",
+    "showFirstTrace": true,
+    "showSecondTrace": true
         }"""
 
 # Instantiate the configuration

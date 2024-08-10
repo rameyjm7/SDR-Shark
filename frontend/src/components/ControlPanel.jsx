@@ -62,7 +62,9 @@ const ControlPanel = ({
         sweeping_enabled: data.sweeping_enabled,
         lockBandwidthSampleRate: data.lockBandwidthSampleRate,
         numTicks: data.numTicks || 5, 
-        peakThreshold: data.peakThreshold || -25
+        peakThreshold: data.peakThreshold || -25,
+        showFirstTrace: data.showFirstTrace || true,
+        showSecondTrace: data.showSecondTrace || true
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
@@ -211,7 +213,7 @@ const ControlPanel = ({
   };
 
   return (
-    <Box className="control-panel" sx={{ p: 2 }}> {/* Add 10px padding */}
+    <Box className="control-panel" sx={{ p: 2 }}>
       <Tabs value={tabIndex} onChange={handleTabChange}>
         <Tab label="SDR" />
         <Tab label="Plot" />
@@ -245,6 +247,7 @@ const ControlPanel = ({
           <>
             <PlotSettings
               settings={localSettings}
+              setSettings={setLocalSettings}
               handleSliderChange={handleSliderChange}
               handleSliderChangeCommitted={handleSliderChangeCommitted}
               handleChange={handleChange}

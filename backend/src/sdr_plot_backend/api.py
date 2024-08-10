@@ -8,7 +8,7 @@ import numpy as np
 from flask import Blueprint, jsonify, request
 from numba import jit
 
-from sdr_plot_backend.signal_utils import perform_and_refine_scan, detect_signal_peaks  # Import the new utility
+from sdr_plot_backend.signal_utils import perform_and_refine_scan, PeakDetector  # Import the new utility
 from sdr_plot_backend.utils import vars
 
 api_blueprint = Blueprint('api', __name__)
@@ -20,6 +20,7 @@ waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 data_lock = threading.Lock()
 fft_data = {
     'original_fft': [],
+    'original_fft2': [],
     'peaks': [],
 }
 running = True
@@ -97,44 +98,25 @@ def generate_fft_data():
                 waterfall_buffer.append(downsample(full_fft).tolist())
 
 def radio_scanner():
-    
+    detector = PeakDetector(sdr=vars.sdr1)
+    detector.start_receiving_data()
+
     while running:
-        # Capture and average the FFTs for peak detection
-        fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
-        for _ in range(vars.averagingCount):
-            iq_data = vars.sdr1.get_latest_samples()
-            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
-            fft_magnitude = np.abs(fft_result)
-            fft_magnitude_sum += fft_magnitude
-
-        fft_magnitude_avg = fft_magnitude_sum / vars.averagingCount
-        fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
-
-        sample_rate = 20e6
-        # Detect peaks using the detect_signal_peaks function
-        signal_peaks, signal_bandwidths = detect_signal_peaks(
-            fft_magnitude_db,
+        detector.averaging_count = vars.averagingCount
+        detected_peaks = detector.detect_signal_peaks(
             vars.frequency,
-            sample_rate,
-            1024 * 8,  # wide_fft_size
-            min_peak_distance=10 * 8,
+            sample_rate=20e6,
+            fft_size=1024 * 8,  # wide_fft_size
+            min_peak_distance=80,
             threshold_offset=5
         )
+        if detected_peaks:
+            with data_lock:
+                fft_data['original_fft2'] = detector.get_latest_data()
+                fft_data['peaks'] = detected_peaks
 
-        # Create refined peaks list
-        refined_peaks = []
-        for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
-            refined_peaks.append({
-                'frequency': peak_freq * 1e6,  # Convert MHz to Hz
-                'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.frequency + sample_rate / 2) * 1024 * 8 / sample_rate)],
-                'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
-            })
-
-        with data_lock:
-            fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
-        
-        time.sleep(1)  # Add some delay to prevent the loop from running too fast
-
+    detector.stop_receiving_data()
+         
 fft_thread = threading.Thread(target=generate_fft_data)
 scanner_thread = threading.Thread(target=radio_scanner)
 fft_thread.start()
@@ -144,18 +126,23 @@ scanner_thread.start()
 def get_data():
     with data_lock:
         fft_response = [float(x) for x in fft_data['original_fft']]
+        fft_response2 = [float(x) for x in fft_data['original_fft2']]
+        
+        # Dynamically add an index or remove if not needed
         peaks_response = [{
-            'index': int(peak['index']),
+            'index': idx,  # Dynamically generate index
             'frequency': float(peak['frequency']),
             'power': float(peak['power']),
-            'bandwidth': float(peak['bandwidth'])
-        } for peak in fft_data['peaks']]
+            'bandwidth': float(peak.get('bandwidth', 0.0))  # Handle missing 'bandwidth' key
+        } for idx, peak in enumerate(fft_data['peaks'])]
+
         waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
 
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
     response = {
         'fft': fft_response,
+        'fft2': fft_response2,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time,
@@ -179,19 +166,22 @@ def get_data():
 
     return jsonify(response)
 
+
 @api_blueprint.route('/api/analytics')
 def get_analytics():
     with data_lock:
         peaks_response = fft_data['peaks'].copy()
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
+
         for peak in peaks_response:
-            freq = float(peak['frequency'])
+            freq = round(float(peak['frequency']), 2)  # Convert to MHz and round to 0.01 MHz
             power = float(peak['power'])
-            bandwidth = float(peak['bandwidth'])
+            bandwidth = round(float(peak.get('bandwidth', 0.0)), 2)  # Convert to MHz and round to 0.01 MHz
             classification = "???"  # Placeholder for classification
+
             peaks_data.append({
-                'peak': f'Peak {peak["index"] + 1}',
+                'peak': f'Peak {peaks_response.index(peak) + 1}',  # Generate peak index based on position
                 'frequency': freq,
                 'power': power,
                 'bandwidth': bandwidth,
@@ -199,6 +189,7 @@ def get_analytics():
             })
 
     return jsonify({'peaks': peaks_data})
+
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
@@ -222,7 +213,10 @@ def get_settings():
         'frequency_start': vars.sweep_settings['frequency_start'] / 1e6,
         'frequency_stop': vars.sweep_settings['frequency_stop'] / 1e6,
         'sweeping_enabled': vars.sweeping_enabled,
-        'peakThreshold' : vars.peak_threshold_minimum_dB
+        'peakThreshold' : vars.peak_threshold_minimum_dB,
+        'showFirstTrace': vars.showFirstTrace,
+        'showSecondTrace': vars.showSecondTrace,
+        'lockBandwidthSampleRate': vars.lockBandwidthSampleRate
     }
     return jsonify(settings)
 

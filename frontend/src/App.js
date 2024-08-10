@@ -64,6 +64,7 @@ const App = () => {
     numberOfPeaks: 5,
     showWaterfall: true,
   });
+  const [showSecondTrace, setShowSecondTrace] = useState(false);
   const [minY, setMinY] = useState(-120);
   const [maxY, setMaxY] = useState(0);
   const [updateInterval, setUpdateInterval] = useState(500);
@@ -153,6 +154,7 @@ const App = () => {
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
                 showWaterfall={showWaterfall}
+                showSecondTrace={showSecondTrace}
                 plotWidth={plotWidth} // Pass the calculated plot width as a prop
               />
             </TabPanel>
@@ -161,6 +163,7 @@ const App = () => {
           <ControlPanel
             settings={settings}
             setSettings={setSettings}
+            setShowSecondTrace={setShowSecondTrace}
             minY={minY}
             setMinY={(value) => { setMinY(value); }}
             maxY={maxY}

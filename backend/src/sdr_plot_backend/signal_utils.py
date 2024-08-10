@@ -2,52 +2,112 @@ from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import time
 from sdr_plot_backend.utils import vars
+from sdrfly.sdr.sdr_generic import SDRGeneric
+import numpy as np
+import threading
+class PeakDetector:
+    def __init__(self, sdr: SDRGeneric, averaging_count=30):
+        self.sdr = sdr
+        self.averaging_count = averaging_count
+        self.fft_results = []
+        self.fft_lock = threading.Lock()
+        self.running = False
+        self.thread = None
 
-def detect_signal_peaks(fft_magnitude_db, center_freq, sample_rate, fft_size, min_peak_distance=10, threshold_offset=1):
-    center_freq = vars.frequency
-    # Calculate the noise floor and adaptive threshold
-    noise_floor = np.median(fft_magnitude_db)
-    adaptive_threshold = noise_floor + threshold_offset  # Adjust to make the threshold more sensitive
+    def start_receiving_data(self):
+        self.running = True
+        self.thread = threading.Thread(target=self.receive_data)
+        self.thread.start()
 
-    # Detect peaks and their bandwidths
-    above_threshold = np.where(fft_magnitude_db > adaptive_threshold)[0]
+    def stop_receiving_data(self):
+        self.running = False
+        if self.thread:
+            self.thread.join()
+    
+    def get_latest_data(self):
+        with self.fft_lock:
+            if not self.fft_results:
+                return []
+            # Average the FFT results
+            fft_magnitude_avg = np.mean(self.fft_results, axis=0)
+            fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+        return fft_magnitude_db.tolist()
 
-    signal_peaks = []
-    signal_bandwidths = []
+    def receive_data(self, once=False):
+        while self.running or once:
+            iq_data = self.sdr.get_latest_samples()
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Assuming wide_fft_size is 1024 * 8
+            fft_magnitude = np.abs(fft_result)
 
-    if len(above_threshold) > 0:
-        left_idx = None
-        for i in range(1, len(above_threshold)):
-            if left_idx is None:
-                left_idx = above_threshold[i-1]
+            with self.fft_lock:
+                self.fft_results.append(fft_magnitude)
+                if len(self.fft_results) > self.averaging_count:
+                    self.fft_results.pop(0)
+            if once:
+                break
 
-            if above_threshold[i] - above_threshold[i-1] > min_peak_distance:  # Merge close peaks
-                right_idx = above_threshold[i-1]
-                peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
-                peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
-                signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
-                signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
-                bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
+    def detect_signal_peaks(self, center_freq, sample_rate, fft_size, min_peak_distance=80, threshold_offset=3):
+        try:
+            with self.fft_lock:
+                if not self.fft_results:
+                    return []
 
-                signal_peaks.append(peak_freq / 1e6)
-                signal_bandwidths.append(bandwidth_mhz)
+                # Average the FFT results
+                fft_magnitude_avg = np.mean(self.fft_results, axis=0)
+                fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+    
+            # Calculate the noise floor and adaptive threshold
+            noise_floor = np.median(fft_magnitude_db)
+            adaptive_threshold = noise_floor + threshold_offset  # Adjust to make the threshold more sensitive
 
-                left_idx = above_threshold[i]
+            # Detect peaks and their bandwidths
+            above_threshold = np.where(fft_magnitude_db > adaptive_threshold)[0]
 
-        # For the last segment
-        if left_idx is not None:
-            right_idx = above_threshold[-1]
-            peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
-            peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
-            signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
-            signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
-            bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
+            detected_peaks = []
+            if len(above_threshold) > 0:
+                left_idx = None
+                for i in range(1, len(above_threshold)):
+                    if left_idx is None:
+                        left_idx = above_threshold[i-1]
 
-            signal_peaks.append(peak_freq / 1e6)
-            signal_bandwidths.append(bandwidth_mhz)
+                    if above_threshold[i] - above_threshold[i-1] > min_peak_distance:  # Merge close peaks
+                        right_idx = above_threshold[i-1]
+                        peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
+                        peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
+                        signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
+                        signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
+                        bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
 
-    return signal_peaks, signal_bandwidths
+                        # Add detected peak information
+                        detected_peaks.append({
+                            'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                            'power': fft_magnitude_db[peak_idx],  # Use the power directly
+                            'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+                        })
 
+                        left_idx = above_threshold[i]
+
+                # For the last segment
+                if left_idx is not None:
+                    right_idx = above_threshold[-1]
+                    peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
+                    peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
+                    signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
+                    signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
+                    bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
+
+                    # Add detected peak information
+                    detected_peaks.append({
+                        'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                        'power': fft_magnitude_db[peak_idx],  # Use the power directly
+                        'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+                    })
+
+            return detected_peaks
+
+        except Exception as e:
+            print(f"Error in peak detection: {e}")
+            return []
 
 def detect_signal_peaks_freq_power(fft_magnitude_db, center_freq, sample_rate, fft_size, min_peak_distance=10, threshold_offset=1):
     """
