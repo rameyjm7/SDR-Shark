@@ -3,7 +3,7 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, showSecondTrace }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
   const [fftData, setFftData] = useState([]);
   const [fftData2, setFftData2] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
@@ -184,46 +184,26 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.error("Tick values out of range:", tickVals);
   }
 
-  // Add an extra point at the end of the range
-  const extendedFftData = [...fftData];
-  if (extendedFftData.length > 0) {
-    const lastFrequency = sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6;
-    extendedFftData.push(extendedFftData[extendedFftData.length - 1]);
-    extendedFftData[extendedFftData.length - 1] = {
-      ...extendedFftData[extendedFftData.length - 1],
-      x: lastFrequency
-    };
-  }
+  // Select the appropriate trace data based on the showSecondTrace setting
+  const selectedFftData = settings.showSecondTrace ? fftData2 : fftData;
 
   return (
     <div>
       <Plot
         data={[
           {
-            x: Array.isArray(extendedFftData) ? extendedFftData.map((_, index) => {
+            x: Array.isArray(selectedFftData) ? selectedFftData.map((_, index) => {
               const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
-              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / extendedFftData.length;
+              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / selectedFftData.length;
               return (baseFreq + index * freqStep).toFixed(2);
             }) : [],
-            y: Array.isArray(extendedFftData) ? extendedFftData : [],
+            y: Array.isArray(selectedFftData) ? selectedFftData : [],
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'orange' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
-          },
-          showSecondTrace && {
-            x: Array.isArray(fftData2) ? fftData2.map((_, index) => {
-              const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
-              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData2.length;
-              return (baseFreq + index * freqStep).toFixed(2);
-            }) : [],
-            y: Array.isArray(fftData2) ? fftData2 : [],
-            type: 'scatter',
-            mode: 'lines',
-            marker: { color: 'blue' },
-            line: { shape: 'spline', width: 1 }, // Thinner trace lines
-          },
-        ].filter(Boolean)}
+          }
+        ]}
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
           xaxis: {

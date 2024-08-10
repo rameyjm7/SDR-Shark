@@ -16,7 +16,7 @@ const PlotSettings = ({
   const averagingCount = settings.averagingCount || 10;
   const numTicks = settings.numTicks || 5;
   const dcSuppress = settings.dcSuppress || false;
-  const showSecondTrace = settings.showSecondTrace !== undefined ? settings.showSecondTrace : true;
+  const showSecondTrace = settings.showSecondTrace !== undefined ? settings.showSecondTrace : false;
 
   const handleSecondTraceToggle = (e) => {
     setSettings({ ...settings, showSecondTrace: e.target.checked });
@@ -111,7 +111,7 @@ const PlotSettings = ({
             color="primary"
           />
         }
-        label="Show Second Trace"
+        label="Show Second Trace Instead of First"
       />
     </Box>
   );
