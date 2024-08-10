@@ -70,7 +70,7 @@ def generate_fft_data():
                 full_fft = np.concatenate((full_fft, current_fft))
 
             # Tune to the next frequency
-            current_freq += vars.sweep_settings['bandwidth']
+            current_freq += 60e6
             if current_freq > vars.sweep_settings['frequency_stop']:
                 current_freq = vars.sweep_settings['frequency_start']
                 # Complete sweep, deliver the full FFT
@@ -84,7 +84,7 @@ def generate_fft_data():
                 full_fft = []  # Clear the full FFT for the next sweep
             vars.frequency = current_freq
             vars.sdr0.set_frequency(vars.frequency)
-            time.sleep(0.01)
+            time.sleep(0.05)
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
@@ -230,8 +230,9 @@ def get_settings():
 def update_settings():
     try:
         settings = request.json
-        
-        new_settings = settings
+        if settings['frequency'] == 0:
+            return jsonify({'success': True, 'settings': settings})
+        new_settings = settings.copy()
         # Update vars with the new settings and save them
         new_settings['frequency'] = settings['frequency'] * 1e6
         new_settings['sampleRate'] = settings['sampleRate'] * 1e6

@@ -53,7 +53,7 @@ function TabPanel(props) {
 
 const App = () => {
   const [settings, setSettings] = useState({
-    frequency: 100.1,
+    frequency: 0,
     gain: 10,
     sampleRate: 1,
     bandwidth: 1,

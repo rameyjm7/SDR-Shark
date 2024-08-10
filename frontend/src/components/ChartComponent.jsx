@@ -141,7 +141,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const peakAnnotations = generateAnnotations(peaks);
 
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
-    console.log(settings);
     const numTicks = settings.numTicks || 5; // Default to 5 if not set
     const totalBandwidth = stopFreq - startFreq;
     const step = totalBandwidth / (numTicks - 1); // Adjust step calculation for numTicks

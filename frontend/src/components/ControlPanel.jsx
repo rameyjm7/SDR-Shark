@@ -45,6 +45,7 @@ const ControlPanel = ({
       const response = await axios.get('/api/get_settings');
       const data = response.data;
       setSdr(data.sdr);
+      console.log(data);
       setLocalSettings({
         frequency: data.frequency,
         gain: data.gain,
