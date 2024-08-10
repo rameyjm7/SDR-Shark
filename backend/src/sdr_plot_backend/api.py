@@ -98,15 +98,16 @@ def generate_fft_data():
                 waterfall_buffer.append(downsample(full_fft).tolist())
 
 def radio_scanner():
-    detector = PeakDetector(sdr=vars.sdr1)
+    nfft = 8*1024
+    detector = PeakDetector(sdr=vars.sdr1,averaging_count=30,nfft=nfft)
     detector.start_receiving_data()
 
     while running:
-        detector.averaging_count = vars.averagingCount
+        detector.set_averaging(vars.averagingCount)
         detected_peaks = detector.detect_signal_peaks(
             vars.frequency,
             sample_rate=20e6,
-            fft_size=1024 * 8,  # wide_fft_size
+            fft_size=nfft,  # wide_fft_size
             min_peak_distance=80,
             threshold_offset=5
         )
@@ -224,11 +225,13 @@ def get_settings():
 def update_settings():
     try:
         settings = request.json
-        if settings['frequency'] == 0:
+        if settings['frequency'] == 0 or  settings['frequency'] is None or  settings['sampleRate'] is None or settings['bandwidth'] is None:
             return jsonify({'success': True, 'settings': settings})
         new_settings = settings.copy()
         # Update vars with the new settings and save them
         new_settings['frequency'] = settings['frequency'] * 1e6
+        new_settings['frequency_stop'] = settings['frequency_stop'] * 1e6
+        new_settings['frequency_start'] = settings['frequency_start'] * 1e6
         new_settings['sampleRate'] = settings['sampleRate'] * 1e6
         new_settings['bandwidth'] = settings['bandwidth'] * 1e6
         vars.apply_settings(new_settings)
@@ -259,5 +262,6 @@ def cleanup():
     global running
     running = False
     vars.sdr0.stop()
+    vars.sdr1.stop()
     fft_thread.join()
     scanner_thread.join()

@@ -89,7 +89,7 @@ const PlotSettings = ({
       <Typography gutterBottom>Max Y-Axis Range: {maxY} dB</Typography>
       <Slider
         min={-20}
-        max={20}
+        max={60}
         value={maxY}
         onChange={(e, value) => {
           setMaxY(value);
@@ -98,7 +98,7 @@ const PlotSettings = ({
         step={1}
         marks={[
           { value: -20, label: '-20 dB' },
-          { value: 20, label: '20 dB' },
+          { value: 60, label: '60 dB' },
         ]}
       />
 

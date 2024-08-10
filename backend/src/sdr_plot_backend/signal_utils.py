@@ -6,11 +6,12 @@ from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import threading
 class PeakDetector:
-    def __init__(self, sdr: SDRGeneric, averaging_count=30):
+    def __init__(self, sdr: SDRGeneric, averaging_count=30, nfft=8*1024):
         self.sdr = sdr
         self.averaging_count = averaging_count
         self.fft_results = []
         self.fft_lock = threading.Lock()
+        self.n_fft = nfft
         self.running = False
         self.thread = None
 
@@ -36,7 +37,7 @@ class PeakDetector:
     def receive_data(self, once=False):
         while self.running or once:
             iq_data = self.sdr.get_latest_samples()
-            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Assuming wide_fft_size is 1024 * 8
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, self.n_fft))  # Assuming wide_fft_size is 1024 * 8
             fft_magnitude = np.abs(fft_result)
 
             with self.fft_lock:
@@ -45,6 +46,11 @@ class PeakDetector:
                     self.fft_results.pop(0)
             if once:
                 break
+
+    def set_averaging(self, avgCount):
+        if avgCount != self.averaging_count:
+            self.fft_results = self.fft_results[(avgCount):]
+            self.averaging_count = avgCount
 
     def detect_signal_peaks(self, center_freq, sample_rate, fft_size, min_peak_distance=80, threshold_offset=3):
         try:
@@ -55,7 +61,7 @@ class PeakDetector:
                 # Average the FFT results
                 fft_magnitude_avg = np.mean(self.fft_results, axis=0)
                 fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
-    
+
             # Calculate the noise floor and adaptive threshold
             noise_floor = np.median(fft_magnitude_db)
             adaptive_threshold = noise_floor + threshold_offset  # Adjust to make the threshold more sensitive

@@ -17,6 +17,61 @@ const SDRSettings = ({ settings, handleChange, handleKeyPress }) => {
     }
   }, [settings.sampleRate, settings.lockBandwidthSampleRate, handleChange]);
 
+  const sdrDefaults = {
+    hackrf: {
+      frequency: 700,
+      gain: 40,
+      sampleRate: 20,
+      bandwidth: 20,
+    },
+    sidekiq: {
+      frequency: 2400,
+      gain: 60,
+      sampleRate: 60,
+      bandwidth: 60,
+    },
+  };
+
+  const handleSdrChange = (e) => {
+    const newSdr = e.target.value;
+    const defaults = sdrDefaults[newSdr];
+
+    handleChange({
+      target: {
+        name: 'sdr',
+        value: newSdr,
+      },
+    });
+
+    handleChange({
+      target: {
+        name: 'frequency',
+        value: defaults.frequency,
+      },
+    });
+
+    handleChange({
+      target: {
+        name: 'gain',
+        value: defaults.gain,
+      },
+    });
+
+    handleChange({
+      target: {
+        name: 'sampleRate',
+        value: defaults.sampleRate,
+      },
+    });
+
+    handleChange({
+      target: {
+        name: 'bandwidth',
+        value: defaults.bandwidth,
+      },
+    });
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between">

@@ -39,7 +39,8 @@ class sdr_scheduler_config:
         # Initialize SDRs
         self.sdr0 = SDRGeneric("sidekiq", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
         self.sdr0.start()
-        self.sdr1 = SDRGeneric("hackrf", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=40, size=self.sample_size)
+        self.sdr1 = SDRGeneric("hackrf", center_freq=102.1e6, sample_rate=20e6, bandwidth=20e6,
+                               gain=self.gain, size=self.sample_size)
         self.sdr1.start()
         
         # Load settings from file
@@ -129,6 +130,8 @@ class sdr_scheduler_config:
         self.bandwidth = settings.get("bandwidth", self.bandwidth)
         self.gain = settings.get("gain", self.gain)
         self.sweep_settings = settings.get("sweep_settings", self.sweep_settings)
+        self.sweep_settings['frequency_start'] = settings.get("frequency_start", self.sweep_settings['frequency_start'])
+        self.sweep_settings['frequency_stop'] = settings.get("frequency_stop", self.sweep_settings['frequency_stop'])
         self.sweeping_enabled = settings.get("sweeping_enabled", self.sweeping_enabled)
         self.peak_threshold_minimum_dB = settings.get("peak_threshold_minimum_dB", self.peak_threshold_minimum_dB)
         self.averagingCount = settings.get("averagingCount", self.averagingCount)
@@ -144,12 +147,19 @@ class sdr_scheduler_config:
 
         # Validate the settings after applying them
         self.validate_settings()
-        self.sdr0.set_frequency(self.frequency)
-        self.sdr0.set_sample_rate(self.sample_rate)
-        self.sdr0.set_bandwidth(self.sample_rate)
-        self.sdr0.set_gain(self.gain)
-        self.sdr1.set_frequency(self.frequency)
-        self.sdr1.set_gain(self.gain)
+
+        self.sdr_name = settings.get("sdr", self.radio_name)
+
+        if self.sdr_name in 'hackrf':
+            self.sdr1.set_frequency(self.frequency)
+            self.sdr1.set_sample_rate(20e6 if self.sample_rate > 20e6 else self.sample_rate)
+            self.sdr1.set_bandwidth(20e6 if self.sample_rate > 20e6 else self.sample_rate)
+            self.sdr1.set_gain(self.gain)
+        else:
+            self.sdr0.set_frequency(self.frequency)
+            self.sdr0.set_sample_rate(self.sample_rate)
+            self.sdr0.set_bandwidth(self.sample_rate)
+            self.sdr0.set_gain(self.gain)
 
     def reselect_radio(self, name: str) -> int:
         """Temporarily disabled due to the use of both radios."""
