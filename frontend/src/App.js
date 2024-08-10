@@ -108,8 +108,6 @@ const App = () => {
       const newPlotWidth = (leftPanelWidth / totalWidth) * 100;
 
       setPlotWidth(newPlotWidth);
-      console.log(`Plot Width: ${newPlotWidth}%`);
-      console.log(`Control Panel Width: ${100 - newPlotWidth}%`);
     };
 
     const splitInstance = Split(['#leftPanel', '#rightPanel'], {
@@ -164,9 +162,9 @@ const App = () => {
             settings={settings}
             setSettings={setSettings}
             minY={minY}
-            setMinY={(value) => { console.log(`ControlPanel - Min Y-Axis changed to: ${value} dB`); setMinY(value); }}
+            setMinY={(value) => { setMinY(value); }}
             maxY={maxY}
-            setMaxY={(value) => { console.log(`ControlPanel - Max Y-Axis changed to: ${value} dB`); setMaxY(value); }}
+            setMaxY={(value) => { setMaxY(value); }}
             updateInterval={updateInterval}
             setUpdateInterval={setUpdateInterval}
             waterfallSamples={waterfallSamples}

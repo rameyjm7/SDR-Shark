@@ -61,13 +61,13 @@ const ControlPanel = ({
         frequency_stop: data.frequency_stop,
         sweeping_enabled: data.sweeping_enabled,
         lockBandwidthSampleRate: data.lockBandwidthSampleRate,
-        numTicks: data.numTicks || 5, // Add numTicks to settings
+        numTicks: data.numTicks || 5, 
         peakThreshold: data.peakThreshold || -25
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
-      setMinY(minY);  // Initialize minY from fetched settings
-      setMaxY(maxY);  // Initialize maxY from fetched settings
+      setMinY(minY);  
+      setMaxY(maxY);  
       setStatus('Settings loaded');
       setSettingsLoaded(true);
     } catch (error) {
@@ -115,7 +115,6 @@ const ControlPanel = ({
   };
 
   const handleSliderChange = (e, value, name) => {
-    console.log(`${name} changed to: ${value}`);  // Log the slider changes
     const newSettings = { ...localSettings, [name]: value };
     setLocalSettings(newSettings);
     if (name === 'averagingCount') {
@@ -124,7 +123,6 @@ const ControlPanel = ({
   };
 
   const handleSliderChangeCommitted = (e, value, name) => {
-    console.log(`${name} change committed with value: ${value}`);  // Log the committed changes
     if (name === 'averagingCount') {
       applySettings({ ...localSettings, [name]: value });
     }
@@ -185,7 +183,7 @@ const ControlPanel = ({
         },
       });
       setSettings(enforcedSettings);
-      setLocalSettings(enforcedSettings); // Update the local state with enforced settings
+      setLocalSettings(enforcedSettings); 
       setStatus('Settings updated');
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -213,7 +211,7 @@ const ControlPanel = ({
   };
 
   return (
-    <Box className="control-panel">
+    <Box className="control-panel" sx={{ p: 2 }}> {/* Add 10px padding */}
       <Tabs value={tabIndex} onChange={handleTabChange}>
         <Tab label="SDR" />
         <Tab label="Plot" />
@@ -251,9 +249,9 @@ const ControlPanel = ({
               handleSliderChangeCommitted={handleSliderChangeCommitted}
               handleChange={handleChange}
               minY={minY}
-              setMinY={(value) => { console.log(`Min Y-Axis changed to: ${value} dB`); setMinY(value); }}
+              setMinY={setMinY}
               maxY={maxY}
-              setMaxY={(value) => { console.log(`Max Y-Axis changed to: ${value} dB`); setMaxY(value); }}
+              setMaxY={setMaxY}
             />
             <WaterfallSettings
               settings={localSettings}

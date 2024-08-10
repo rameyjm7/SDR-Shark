@@ -2,25 +2,19 @@ import React from 'react';
 import { Box, Typography, Slider, FormControlLabel, Switch } from '@mui/material';
 
 const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitted, handleChange, minY, maxY, setMinY, setMaxY }) => {
-  
-  const handleMinYChange = (e, value) => {
-    console.log(`Min Y-Axis changed to: ${value} dB`);
-    setMinY(value);
-  };
-
-  const handleMaxYChange = (e, value) => {
-    console.log(`Max Y-Axis changed to: ${value} dB`);
-    setMaxY(value);
-  };
+  // Add default values to avoid undefined state
+  const averagingCount = settings.averagingCount || 10;
+  const numTicks = settings.numTicks || 5;
+  const dcSuppress = settings.dcSuppress || false;
 
   return (
     <Box>
       <Typography variant="h6" sx={{ mt: 2 }}>Plot Settings</Typography>
-      <Typography gutterBottom>Averaging Count: {settings.averagingCount}</Typography>
+      <Typography gutterBottom>Averaging Count: {averagingCount}</Typography>
       <Slider
         min={1}
         max={100}
-        value={settings.averagingCount}
+        value={averagingCount}
         onChange={(e, value) => handleSliderChange(e, value, 'averagingCount')}
         onChangeCommitted={(e, value) => handleSliderChangeCommitted(e, value, 'averagingCount')}
         valueLabelDisplay="auto"
@@ -34,7 +28,7 @@ const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitte
       <FormControlLabel
         control={
           <Switch
-            checked={settings.dcSuppress}
+            checked={dcSuppress}
             onChange={handleChange}
             name="dcSuppress"
             color="primary"
@@ -42,11 +36,11 @@ const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitte
         }
         label="Suppress DC Spike"
       />
-      <Typography gutterBottom>Number of X-Axis Ticks: {settings.numTicks}</Typography>
+      <Typography gutterBottom>Number of X-Axis Ticks: {numTicks}</Typography>
       <Slider
         min={2}
         max={20}
-        value={settings.numTicks}
+        value={numTicks}
         onChange={(e, value) => handleSliderChange(e, value, 'numTicks')}
         onChangeCommitted={(e, value) => handleSliderChangeCommitted(e, value, 'numTicks')}
         valueLabelDisplay="auto"
@@ -59,28 +53,34 @@ const PlotSettings = ({ settings, handleSliderChange, handleSliderChangeCommitte
       />
       <Typography gutterBottom>Min Y-Axis Range: {minY} dB</Typography>
       <Slider
-        min={-80}
+        min={-120}
         max={0}
         value={minY}
-        onChange={handleMinYChange}  // Link to the new handler
+        onChange={(e, value) => {
+          console.log(`Min Y-Axis changed to: ${value} dB`);
+          setMinY(value);
+        }}
         valueLabelDisplay="auto"
         step={1}
         marks={[
-          { value: -80, label: '-80 dB' },
+          { value: -120, label: '-120 dB' },
           { value: 0, label: '0 dB' },
         ]}
       />
       <Typography gutterBottom>Max Y-Axis Range: {maxY} dB</Typography>
       <Slider
-        min={0}
-        max={60}
+        min={-20}
+        max={20}
         value={maxY}
-        onChange={handleMaxYChange}  // Link to the new handler
+        onChange={(e, value) => {
+          console.log(`Max Y-Axis changed to: ${value} dB`);
+          setMaxY(value);
+        }}
         valueLabelDisplay="auto"
         step={1}
         marks={[
-          { value: 0, label: '0 dB' },
-          { value: 60, label: '60 dB' },
+          { value: -20, label: '-20 dB' },
+          { value: 20, label: '20 dB' },
         ]}
       />
     </Box>

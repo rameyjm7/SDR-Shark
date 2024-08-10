@@ -76,15 +76,6 @@ const Plots = ({ settings, updateInterval, waterfallSamples, showWaterfall, minY
           showWaterfall={showWaterfall}
         />
       </Box>
-      <Box className="plot-settings">
-        <PlotSettings
-          settings={settings}
-          minY={minY}
-          maxY={maxY}
-          setMinY={setMinY}  // Ensure this is passed as a prop
-          setMaxY={setMaxY}  // Ensure this is passed as a prop
-        />
-      </Box>
     </div>
   );
 };

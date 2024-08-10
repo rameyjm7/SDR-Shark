@@ -99,39 +99,39 @@ def generate_fft_data():
 def radio_scanner():
     
     while running:
-        # # Capture and average the FFTs for peak detection
-        # fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
-        # for _ in range(vars.fft_averaging):
-        #     iq_data = vars.sdr1.get_latest_samples()
-        #     fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
-        #     fft_magnitude = np.abs(fft_result)
-        #     fft_magnitude_sum += fft_magnitude
+        # Capture and average the FFTs for peak detection
+        fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
+        for _ in range(vars.averagingCount):
+            iq_data = vars.sdr1.get_latest_samples()
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
+            fft_magnitude = np.abs(fft_result)
+            fft_magnitude_sum += fft_magnitude
 
-        # fft_magnitude_avg = fft_magnitude_sum / vars.fft_averaging
-        # fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+        fft_magnitude_avg = fft_magnitude_sum / vars.averagingCount
+        fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
 
-        # sample_rate = 20e6
-        # # Detect peaks using the detect_signal_peaks function
-        # signal_peaks, signal_bandwidths = detect_signal_peaks(
-        #     fft_magnitude_db,
-        #     vars.center_freq,
-        #     sample_rate,
-        #     1024 * 8,  # wide_fft_size
-        #     min_peak_distance=10 * 8,
-        #     threshold_offset=5
-        # )
+        sample_rate = 20e6
+        # Detect peaks using the detect_signal_peaks function
+        signal_peaks, signal_bandwidths = detect_signal_peaks(
+            fft_magnitude_db,
+            vars.frequency,
+            sample_rate,
+            1024 * 8,  # wide_fft_size
+            min_peak_distance=10 * 8,
+            threshold_offset=5
+        )
 
-        # # Create refined peaks list
-        # refined_peaks = []
-        # for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
-        #     refined_peaks.append({
-        #         'frequency': peak_freq * 1e6,  # Convert MHz to Hz
-        #         'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.center_freq + sample_rate / 2) * 1024 * 8 / sample_rate)],
-        #         'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
-        #     })
+        # Create refined peaks list
+        refined_peaks = []
+        for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
+            refined_peaks.append({
+                'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.frequency + sample_rate / 2) * 1024 * 8 / sample_rate)],
+                'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+            })
 
-        # with data_lock:
-        #     fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
+        with data_lock:
+            fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
         
         time.sleep(1)  # Add some delay to prevent the loop from running too fast
 
