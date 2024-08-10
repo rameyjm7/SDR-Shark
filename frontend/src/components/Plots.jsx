@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import axios from 'axios';
 import ChartComponent from './ChartComponent';
+import PlotSettings from './ControlPanel/PlotSettings';
 import '../App.css';
 
-const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
-  const [fftData, setFftData] = useState([]);
-  const [waterfallData, setWaterfallData] = useState([]);
-  const [time, setTime] = useState('');
+const Plots = ({ settings, updateInterval, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
   const [sweepSettings, setSweepSettings] = useState({
     frequency_start: 100,
     frequency_stop: 200,
@@ -41,11 +39,8 @@ const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWat
 
   const fetchSettings = async () => {
     try {
-      console.log("Fetching settings...");
       const response = await axios.get('/api/get_settings');
       const data = response.data;
-      console.log("Settings fetched:", data);
-
       setSweepSettings({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
@@ -79,6 +74,15 @@ const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWat
           updateInterval={updateInterval}
           waterfallSamples={waterfallSamples}
           showWaterfall={showWaterfall}
+        />
+      </Box>
+      <Box className="plot-settings">
+        <PlotSettings
+          settings={settings}
+          minY={minY}
+          maxY={maxY}
+          setMinY={setMinY}  // Ensure this is passed as a prop
+          setMaxY={setMaxY}  // Ensure this is passed as a prop
         />
       </Box>
     </div>

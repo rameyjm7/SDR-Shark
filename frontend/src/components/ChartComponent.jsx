@@ -30,6 +30,10 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   }, []);
 
   useEffect(() => {
+    console.log(`minY: ${minY}, maxY: ${maxY}`);
+  }, [minY, maxY]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
@@ -135,8 +139,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         align: 'center',
       };
     });
-};
-
+  };
 
   const peakAnnotations = generateAnnotations(peaks);
 
@@ -189,6 +192,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     };
   }
 
+  
   return (
     <div>
       <Plot

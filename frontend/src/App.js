@@ -150,6 +150,8 @@ const App = () => {
                 settings={settings}
                 minY={minY}
                 maxY={maxY}
+                setMinY={setMinY}  // Ensure these are passed to Plots
+                setMaxY={setMaxY}
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
                 showWaterfall={showWaterfall}
@@ -158,20 +160,20 @@ const App = () => {
             </TabPanel>
           </Box>
           <Box id="rightPanel" sx={{ paddingLeft: '10px', height: '100%', flex: '0 1 auto' }}>
-            <ControlPanel
-              settings={settings}
-              setSettings={setSettings}
-              minY={minY}
-              setMinY={setMinY}
-              maxY={maxY}
-              setMaxY={setMaxY}
-              updateInterval={updateInterval}
-              setUpdateInterval={setUpdateInterval}
-              waterfallSamples={waterfallSamples}
-              setWaterfallSamples={setWaterfallSamples}
-              showWaterfall={showWaterfall}
-              setShowWaterfall={setShowWaterfall}
-            />
+          <ControlPanel
+            settings={settings}
+            setSettings={setSettings}
+            minY={minY}
+            setMinY={(value) => { console.log(`ControlPanel - Min Y-Axis changed to: ${value} dB`); setMinY(value); }}
+            maxY={maxY}
+            setMaxY={(value) => { console.log(`ControlPanel - Max Y-Axis changed to: ${value} dB`); setMaxY(value); }}
+            updateInterval={updateInterval}
+            setUpdateInterval={setUpdateInterval}
+            waterfallSamples={waterfallSamples}
+            setWaterfallSamples={setWaterfallSamples}
+            showWaterfall={showWaterfall}
+            setShowWaterfall={setShowWaterfall}
+          />
           </Box>
         </Box>
         <TabPanel value={tabValue} index={1}>

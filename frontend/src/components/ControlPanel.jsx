@@ -17,6 +17,7 @@ const ControlPanel = ({
   minY,
   setMinY,
   maxY,
+  setMaxY,
   updateInterval,
   setUpdateInterval,
   waterfallSamples,
@@ -65,6 +66,8 @@ const ControlPanel = ({
       });
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
+      setMinY(minY);  // Initialize minY from fetched settings
+      setMaxY(maxY);  // Initialize maxY from fetched settings
       setStatus('Settings loaded');
       setSettingsLoaded(true);
     } catch (error) {
@@ -112,6 +115,7 @@ const ControlPanel = ({
   };
 
   const handleSliderChange = (e, value, name) => {
+    console.log(`${name} changed to: ${value}`);  // Log the slider changes
     const newSettings = { ...localSettings, [name]: value };
     setLocalSettings(newSettings);
     if (name === 'averagingCount') {
@@ -120,6 +124,7 @@ const ControlPanel = ({
   };
 
   const handleSliderChangeCommitted = (e, value, name) => {
+    console.log(`${name} change committed with value: ${value}`);  // Log the committed changes
     if (name === 'averagingCount') {
       applySettings({ ...localSettings, [name]: value });
     }
@@ -208,47 +213,60 @@ const ControlPanel = ({
   };
 
   return (
-<Box className="control-panel">
-        <Tabs value={tabIndex} onChange={handleTabChange}>
-          <Tab label="SDR" />
-          <Tab label="Plot" />
-          <Tab label="Analysis" />
-        </Tabs>
-        <Box className="control-panel-tab-content">
-          {tabIndex === 0 && (
-            <>
-              <Typography variant="h6">SDR Settings</Typography>
-              <Box display="flex" alignItems="center">
-                <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-                  Status: {status}
-                </Typography>
-                <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
-                  <RefreshIcon />
-                </IconButton>
-                <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
-                  <SaveIcon />
-                </IconButton>
-              </Box>
-              <Typography variant="body1">Select SDR:</Typography>
-              <Select value={sdr} onChange={handleSdrChange} fullWidth>
-                <MenuItem value="hackrf">HackRF</MenuItem>
-                <MenuItem value="sidekiq">Sidekiq</MenuItem>
-              </Select>
-              <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
-              <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
-            </>
-          )}
-          {tabIndex === 1 && (
-            <>
-              <PlotSettings settings={localSettings} handleSliderChange={handleSliderChange} handleSliderChangeCommitted={handleSliderChangeCommitted} handleChange={handleChange} />
-              <WaterfallSettings settings={localSettings} showWaterfall={showWaterfall} setShowWaterfall={setShowWaterfall} />
-            </>
-          )}
-          {tabIndex === 2 && (
-            <Analysis settings={settings} setSettings={setSettings} />
-          )}
-        </Box>
+    <Box className="control-panel">
+      <Tabs value={tabIndex} onChange={handleTabChange}>
+        <Tab label="SDR" />
+        <Tab label="Plot" />
+        <Tab label="Analysis" />
+      </Tabs>
+      <Box className="control-panel-tab-content">
+        {tabIndex === 0 && (
+          <>
+            <Typography variant="h6">SDR Settings</Typography>
+            <Box display="flex" alignItems="center">
+              <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
+                Status: {status}
+              </Typography>
+              <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
+                <RefreshIcon />
+              </IconButton>
+              <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
+                <SaveIcon />
+              </IconButton>
+            </Box>
+            <Typography variant="body1">Select SDR:</Typography>
+            <Select value={sdr} onChange={handleSdrChange} fullWidth>
+              <MenuItem value="hackrf">HackRF</MenuItem>
+              <MenuItem value="sidekiq">Sidekiq</MenuItem>
+            </Select>
+            <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
+            <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
+          </>
+        )}
+        {tabIndex === 1 && (
+          <>
+            <PlotSettings
+              settings={localSettings}
+              handleSliderChange={handleSliderChange}
+              handleSliderChangeCommitted={handleSliderChangeCommitted}
+              handleChange={handleChange}
+              minY={minY}
+              setMinY={(value) => { console.log(`Min Y-Axis changed to: ${value} dB`); setMinY(value); }}
+              maxY={maxY}
+              setMaxY={(value) => { console.log(`Max Y-Axis changed to: ${value} dB`); setMaxY(value); }}
+            />
+            <WaterfallSettings
+              settings={localSettings}
+              showWaterfall={showWaterfall}
+              setShowWaterfall={setShowWaterfall}
+            />
+          </>
+        )}
+        {tabIndex === 2 && (
+          <Analysis settings={settings} setSettings={setSettings} />
+        )}
       </Box>
+    </Box>
   );
 };
 
