@@ -58,6 +58,7 @@ const ControlPanel = ({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
         sweeping_enabled: data.sweeping_enabled,
+        lockBandwidthSampleRate: data.lockBandwidthSampleRate,
         numTicks: data.numTicks || 5, // Add numTicks to settings
         peakThreshold: data.peakThreshold || -25
       });

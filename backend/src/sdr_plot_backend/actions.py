@@ -34,11 +34,11 @@ def execute_tasks():
         with vars.task_lock:
             for i, task in enumerate(vars.tasks):
                 if task['type'] == 'tune':
-                    vars.center_freq = task['frequency']
-                    yield f"data: {json.dumps({'status': f'Tuning to {vars.center_freq / 1e6} MHz...', 'taskIndex': i})}\n\n"
+                    vars.frequency = task['frequency']
+                    yield f"data: {json.dumps({'status': f'Tuning to {vars.frequency / 1e6} MHz...', 'taskIndex': i})}\n\n"
                     try:
-                        vars.sdr0.set_frequency(vars.center_freq)
-                        yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.center_freq / 1e6} MHz', 'taskIndex': i})}\n\n"
+                        vars.sdr0.set_frequency(vars.frequency)
+                        yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.frequency / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to tune: {e!s}', 'taskIndex': i})}\n\n"
                     time.sleep(0.25)
@@ -58,11 +58,11 @@ def execute_tasks():
                         data = {
                             'metadata': {
                                 'label': label,
-                                'center_freq': vars.center_freq,
+                                'frequency': vars.frequency,
                                 'sample_rate': vars.sample_rate,
                                 'gain': vars.gain,
                                 'bandwidth': vars.bandwidth,
-                                'fft_averaging': vars.fft_averaging,
+                                'fft_averaging': vars.averagingCount,
                             },
                             'iq_data': samples.tolist(),
                             'fft_data': fft_magnitude.tolist()

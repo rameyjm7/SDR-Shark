@@ -27,3 +27,7 @@ docker/code.zip
 backend/sdr_plot_backend.egg-info*
 backend/src/sdr_plot_backend.egg-info/
 backend/dist/
+backend/tests/iq_data.pkl
+backend/tests/fft_data.pkl
+backend/tests/scan_data.pkl
+scan_data.pkl

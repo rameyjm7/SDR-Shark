@@ -23,8 +23,11 @@ const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWat
 
   const fetchInitialSettings = async () => {
     try {
+      console.log("Fetching initial settings...");
       const response = await axios.get('/api/get_settings');
       const data = response.data;
+      console.log("Initial settings fetched:", data);
+
       setSweepSettings({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
@@ -32,14 +35,17 @@ const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWat
         bandwidth: data.sweeping_enabled ? data.frequency_stop - data.frequency_start : data.bandwidth,
       });
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Error fetching initial settings:', error);
     }
   };
 
   const fetchSettings = async () => {
     try {
+      console.log("Fetching settings...");
       const response = await axios.get('/api/get_settings');
       const data = response.data;
+      console.log("Settings fetched:", data);
+
       setSweepSettings({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
@@ -53,7 +59,9 @@ const Plots = ({ settings, minY, maxY, updateInterval, waterfallSamples, showWat
 
   const updateSettings = async (newSettings) => {
     try {
+      console.log("Updating settings with:", newSettings);
       await axios.post('/api/update_settings', newSettings);
+      console.log("Settings updated successfully.");
     } catch (error) {
       console.error('Error updating settings:', error);
     }

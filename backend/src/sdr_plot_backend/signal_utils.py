@@ -1,8 +1,10 @@
 from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import time
+from sdr_plot_backend.utils import vars
 
 def detect_signal_peaks(fft_magnitude_db, center_freq, sample_rate, fft_size, min_peak_distance=10, threshold_offset=1):
+    center_freq = vars.frequency
     # Calculate the noise floor and adaptive threshold
     noise_floor = np.median(fft_magnitude_db)
     adaptive_threshold = noise_floor + threshold_offset  # Adjust to make the threshold more sensitive
@@ -187,7 +189,7 @@ def perform_and_refine_scan(sdr: SDRGeneric, wide_sample_rate: float, wide_fft_s
 
     # Detect peaks and bandwidths using the function from signal_utils
     signal_peaks, signal_bandwidths = detect_signal_peaks(
-        fft_magnitude_db, sdr.center_freq, wide_sample_rate, wide_fft_size, min_peak_distance, threshold_offset
+        fft_magnitude_db, sdr.frequency, wide_sample_rate, wide_fft_size, min_peak_distance, threshold_offset
     )
 
     refined_signals = []

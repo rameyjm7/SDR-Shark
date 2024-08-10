@@ -6,18 +6,35 @@ import { DataGrid } from '@mui/x-data-grid';
 const Analysis = ({ settings, setSettings }) => {
   const [peaks, setPeaks] = useState([]);
 
+  const convertToHz = (valueInMHz) => valueInMHz * 1e6;
+  const convertToMHz = (valueInHz) => valueInHz / 1e6;
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let newValue = type === 'checkbox' ? checked : parseFloat(value);
+
+    // Convert MHz to Hz for frequency, sampleRate, and bandwidth
+    if (name === 'frequency' || name === 'sampleRate' || name === 'bandwidth') {
+      newValue = convertToHz(newValue);
+    }
+
     const newSettings = {
       ...settings,
-      [name]: type === 'checkbox' ? checked : parseFloat(value),
+      [name]: newValue,
     };
     setSettings(newSettings);
     updateSettings(newSettings);
   };
 
   const handleSliderChange = (e, value, name) => {
-    const newSettings = { ...settings, [name]: value };
+    let newValue = value;
+
+    // Convert MHz to Hz for frequency, sampleRate, and bandwidth
+    if (name === 'frequency' || name === 'sampleRate' || name === 'bandwidth') {
+      newValue = convertToHz(newValue);
+    }
+
+    const newSettings = { ...settings, [name]: newValue };
     setSettings(newSettings);
     updateSettings(newSettings);
   };
@@ -39,9 +56,9 @@ const Analysis = ({ settings, setSettings }) => {
 
   const rows = peaks.map((peak, index) => ({
     id: index,
-    frequency: (peak.frequency / 1e6).toFixed(2), // Convert to MHz
-    power: peak.power.toFixed(2), // Format power to 2 decimal places
-    bandwidth: (peak.bandwidth / 1e6).toFixed(2), // Convert to MHz
+    frequency: convertToMHz(peak.frequency),
+    power: peak.power,
+    bandwidth: convertToMHz(peak.bandwidth),
     classification: peak.classification,
   }));
 

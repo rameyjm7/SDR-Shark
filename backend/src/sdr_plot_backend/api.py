@@ -14,7 +14,7 @@ from sdr_plot_backend.utils import vars
 api_blueprint = Blueprint('api', __name__)
 
 sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
-data_buffer = deque(maxlen=vars.fft_averaging)
+data_buffer = deque(maxlen=vars.averagingCount)
 waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
 
 data_lock = threading.Lock()
@@ -82,55 +82,56 @@ def generate_fft_data():
                     waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
-            vars.center_freq = current_freq
-            vars.sdr0.set_frequency(vars.center_freq)
+            vars.frequency = current_freq
+            vars.sdr0.set_frequency(vars.frequency)
             time.sleep(0.01)
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
                 full_fft = current_fft
             else:
-                full_fft = (full_fft[:vars.sample_size] * (vars.fft_averaging - 1) + current_fft) / vars.fft_averaging
+                full_fft = (full_fft[:vars.sample_size] * (vars.averagingCount - 1) + current_fft) / vars.averagingCount
 
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
                 waterfall_buffer.append(downsample(full_fft).tolist())
 
 def radio_scanner():
+    
     while running:
-        # Capture and average the FFTs for peak detection
-        fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
-        for _ in range(vars.fft_averaging):
-            iq_data = vars.sdr1.get_latest_samples()
-            fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
-            fft_magnitude = np.abs(fft_result)
-            fft_magnitude_sum += fft_magnitude
+        # # Capture and average the FFTs for peak detection
+        # fft_magnitude_sum = np.zeros(1024 * 8)  # Adjusted to match the wide_fft_size
+        # for _ in range(vars.fft_averaging):
+        #     iq_data = vars.sdr1.get_latest_samples()
+        #     fft_result = np.fft.fftshift(np.fft.fft(iq_data, 1024 * 8))  # Using the wide_fft_size
+        #     fft_magnitude = np.abs(fft_result)
+        #     fft_magnitude_sum += fft_magnitude
 
-        fft_magnitude_avg = fft_magnitude_sum / vars.fft_averaging
-        fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
+        # fft_magnitude_avg = fft_magnitude_sum / vars.fft_averaging
+        # fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
 
-        sample_rate = 20e6
-        # Detect peaks using the detect_signal_peaks function
-        signal_peaks, signal_bandwidths = detect_signal_peaks(
-            fft_magnitude_db,
-            vars.center_freq,
-            sample_rate,
-            1024 * 8,  # wide_fft_size
-            min_peak_distance=10 * 8,
-            threshold_offset=5
-        )
+        # sample_rate = 20e6
+        # # Detect peaks using the detect_signal_peaks function
+        # signal_peaks, signal_bandwidths = detect_signal_peaks(
+        #     fft_magnitude_db,
+        #     vars.center_freq,
+        #     sample_rate,
+        #     1024 * 8,  # wide_fft_size
+        #     min_peak_distance=10 * 8,
+        #     threshold_offset=5
+        # )
 
-        # Create refined peaks list
-        refined_peaks = []
-        for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
-            refined_peaks.append({
-                'frequency': peak_freq * 1e6,  # Convert MHz to Hz
-                'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.center_freq + sample_rate / 2) * 1024 * 8 / sample_rate)],
-                'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
-            })
+        # # Create refined peaks list
+        # refined_peaks = []
+        # for peak_freq, bandwidth_mhz in zip(signal_peaks, signal_bandwidths):
+        #     refined_peaks.append({
+        #         'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+        #         'power': fft_magnitude_db[int((peak_freq * 1e6 - vars.center_freq + sample_rate / 2) * 1024 * 8 / sample_rate)],
+        #         'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+        #     })
 
-        with data_lock:
-            fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
+        # with data_lock:
+        #     fft_data['peaks'] = [{'index': 0, 'frequency': peak['frequency'], 'power': peak['power'], 'bandwidth': peak['bandwidth']} for peak in refined_peaks]
         
         time.sleep(1)  # Add some delay to prevent the loop from running too fast
 
@@ -163,7 +164,7 @@ def get_data():
 
     # Convert all settings values to native Python types
     settings = response['settings']
-    settings['center_freq'] = float(settings['center_freq'])
+    settings['frequency'] = float(settings['frequency'])
     settings['sample_rate'] = float(settings['sample_rate'])
     settings['bandwidth'] = float(settings['bandwidth'])
     settings['gain'] = float(settings['gain'])
@@ -209,11 +210,11 @@ def select_sdr():
 def get_settings():
     settings = {
         'sdr': vars.radio_name,
-        'frequency': vars.center_freq / 1e6,  # Convert to MHz
+        'frequency': vars.frequency / 1e6,  # Convert to MHz
         'gain': vars.gain,
         'sampleRate': vars.sample_rate / 1e6,  # Convert to MHz
         'bandwidth': vars.bandwidth / 1e6,  # Convert to MHz
-        'averagingCount': vars.fft_averaging,
+        'averagingCount': vars.averagingCount,
         'dcSuppress': vars.dc_suppress,
         'showWaterfall': vars.show_waterfall,
         'updateInterval': vars.sleeptime * 1000,  # Convert to ms
@@ -229,38 +230,24 @@ def get_settings():
 def update_settings():
     try:
         settings = request.json
-        vars.center_freq = float(settings.get('frequency')) * 1e6  # Convert to Hz
-        vars.gain = float(settings.get('gain'))
-        vars.sample_rate = float(settings.get('sampleRate')) * 1e6  # Convert to Hz
-        vars.bandwidth = float(settings.get('bandwidth')) * 1e6  # Convert to Hz
-        vars.fft_averaging = int(settings.get('averagingCount', vars.fft_averaging))
-        vars.number_of_peaks = int(settings.get('numberOf_peaks', 5))
-        vars.peak_threshold_minimum_dB = int(settings.get('peakThreshold', 5))
-
-        vars.sweep_settings['frequency_start'] = float(settings.get('frequency_start')) * 1e6  # Convert to Hz
-        vars.sweep_settings['frequency_stop'] = float(settings.get('frequency_stop')) * 1e6  # Convert to Hz
-        vars.sweeping_enabled = settings.get('sweeping_enabled', False)
-        if vars.sweeping_enabled:
-            if vars.radio_name == "sidekiq":
-                vars.sweep_settings['bandwidth'] = 60e6
-            if vars.radio_name == "hackrf":
-                vars.sweep_settings['bandwidth'] = 20e6
-
-        print(f"Updating settings: Frequency = {vars.center_freq} Hz, Gain = {vars.gain}, Sample Rate = {vars.sample_rate} Hz, Bandwidth = {vars.bandwidth} Hz, Averaging Count = {vars.fft_averaging}, Number of Peaks = {vars.number_of_peaks}")
-
-        vars.sdr0.set_frequency(vars.center_freq)
-        vars.sdr0.set_gain(vars.gain)
-        vars.sdr0.set_sample_rate(vars.sample_rate)
-        vars.sdr0.set_bandwidth(vars.bandwidth)
         
-        vars.sdr1.set_frequency(vars.center_freq)
-        vars.sdr1.set_sample_rate(20e6)
-        vars.sdr1.set_bandwidth(20e6)
+        new_settings = settings
+        # Update vars with the new settings and save them
+        new_settings['frequency'] = settings['frequency'] * 1e6
+        new_settings['sampleRate'] = settings['sampleRate'] * 1e6
+        new_settings['bandwidth'] = settings['bandwidth'] * 1e6
+        vars.apply_settings(new_settings)
+        vars.save_settings()
 
         return jsonify({'success': True, 'settings': settings})
     except Exception as e:
         print(e)
-        return jsonify({'success': False, 'settings': settings})
+        return jsonify({'success': False, 'error': str(e)})
+
+# @api_blueprint.route('/api/get_settings', methods=['GET'])
+# def get_settings():
+#     settings = vars.get_settings()
+#     return jsonify(settings)
 
 @api_blueprint.route('/api/start_sweep', methods=['POST'])
 def start_sweep():
