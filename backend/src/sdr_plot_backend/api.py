@@ -207,7 +207,7 @@ def get_settings():
         'sdr': vars.radio_name,
         'frequency': vars.frequency / 1e6,  # Convert to MHz
         'gain': vars.gain,
-        'sampleRate': vars.sample_rate / 1e6,  # Convert to MHz
+        'sampleRate': vars.sampleRate / 1e6,  # Convert to MHz
         'bandwidth': vars.bandwidth / 1e6,  # Convert to MHz
         'averagingCount': vars.averagingCount,
         'dcSuppress': vars.dc_suppress,

@@ -11,7 +11,7 @@ class sdr_scheduler_config:
 
         # Default settings
         self.frequency = 102.1e6  # Center frequency in Hz
-        self.sample_rate = 16e6   # Sample rate in Hz
+        self.sampleRate = 16e6   # Sample rate in Hz
         self.bandwidth = 16e6
         self.gain = 30            # Gain in dB
         self.tasks = []
@@ -37,7 +37,7 @@ class sdr_scheduler_config:
         self.radio_name = "sidekiq"
         
         # Initialize SDRs
-        self.sdr0 = SDRGeneric("sidekiq", center_freq=self.frequency, sample_rate=self.sample_rate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
+        self.sdr0 = SDRGeneric("sidekiq", center_freq=self.frequency, sample_rate=self.sampleRate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
         self.sdr0.start()
         self.sdr1 = SDRGeneric("hackrf", center_freq=102.1e6, sample_rate=20e6, bandwidth=20e6,
                                gain=self.gain, size=self.sample_size)
@@ -92,7 +92,7 @@ class sdr_scheduler_config:
             return value
 
         self.frequency = validate_value(self.frequency, MIN_FREQUENCY, MAX_FREQUENCY)
-        self.sample_rate = validate_value(self.sample_rate, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
+        self.sampleRate = validate_value(self.sampleRate, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
         self.bandwidth = validate_value(self.bandwidth, MIN_BANDWIDTH, MAX_BANDWIDTH)
         self.gain = validate_value(self.gain, MIN_GAIN, MAX_GAIN)
 
@@ -104,7 +104,7 @@ class sdr_scheduler_config:
         """Get current settings as a dictionary."""
         settings = {
             "frequency": self.frequency,
-            "sample_rate": self.sample_rate,
+            "sample_rate": self.sampleRate,
             "bandwidth": self.bandwidth,
             "gain": self.gain,
             "sweep_settings": self.sweep_settings,
@@ -126,7 +126,7 @@ class sdr_scheduler_config:
     def apply_settings(self, settings):
         """Apply settings from a dictionary with validation."""
         self.frequency = settings.get("frequency", self.frequency)
-        self.sample_rate = settings.get("sample_rate", self.sample_rate)
+        self.sampleRate = settings.get("sampleRate", self.sampleRate)
         self.bandwidth = settings.get("bandwidth", self.bandwidth)
         self.gain = settings.get("gain", self.gain)
         self.sweep_settings = settings.get("sweep_settings", self.sweep_settings)
@@ -152,13 +152,13 @@ class sdr_scheduler_config:
 
         if self.sdr_name in 'hackrf':
             self.sdr1.set_frequency(self.frequency)
-            self.sdr1.set_sample_rate(20e6 if self.sample_rate > 20e6 else self.sample_rate)
-            self.sdr1.set_bandwidth(20e6 if self.sample_rate > 20e6 else self.sample_rate)
+            self.sdr1.set_sample_rate(20e6 if self.sampleRate > 20e6 else self.sampleRate)
+            self.sdr1.set_bandwidth(20e6 if self.sampleRate > 20e6 else self.sampleRate)
             self.sdr1.set_gain(self.gain)
         else:
             self.sdr0.set_frequency(self.frequency)
-            self.sdr0.set_sample_rate(self.sample_rate)
-            self.sdr0.set_bandwidth(self.sample_rate)
+            self.sdr0.set_sample_rate(self.sampleRate)
+            self.sdr0.set_bandwidth(self.sampleRate)
             self.sdr0.set_gain(self.gain)
 
     def reselect_radio(self, name: str) -> int:

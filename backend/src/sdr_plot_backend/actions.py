@@ -47,7 +47,7 @@ def execute_tasks():
                     label = task['label']
                     yield f"data: {json.dumps({'status': f'Recording for {duration} seconds with label {label}...', 'taskIndex': i})}\n\n"
                     try:
-                        num_samples = int(vars.sample_rate * duration)
+                        num_samples = int(vars.sampleRate * duration)
                         samples = vars.sdr0.get_latest_samples()
                         fft_data = np.fft.fftshift(np.fft.fft(samples))
                         fft_magnitude = 20 * np.log10(np.abs(fft_data))
@@ -59,7 +59,7 @@ def execute_tasks():
                             'metadata': {
                                 'label': label,
                                 'frequency': vars.frequency,
-                                'sample_rate': vars.sample_rate,
+                                'sample_rate': vars.sampleRate,
                                 'gain': vars.gain,
                                 'bandwidth': vars.bandwidth,
                                 'fft_averaging': vars.averagingCount,
