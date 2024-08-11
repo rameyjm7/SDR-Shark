@@ -7,22 +7,20 @@ body, html, #root {
   flex-direction: column;
 }
 
-
 .plots {
-  flex: 2; /* Slightly more space for the plots */
+  flex: 1; /* Slightly more space for the plots */
   display: flex;
   flex-direction: column;
   padding: 0;
 }
 
 .control-panel {
-  flex: 0.7; /* Reduce the width of the control panel */
+  flex: 0.3; /* Reduce the width of the control panel */
   display: flex;
   flex-direction: column;
   padding: 10px;
   background-color: #1c1c1c;
   color: white;
-  overflow: hidden; /* Remove the scroll bar */
 }
 
 .tab-container {
@@ -37,12 +35,8 @@ body, html, #root {
   flex-direction: column;
 }
 
-.react-plotly {
-  width: 100% !important;
-  height: 100% !important;
-}
 
-.plot-container {
+.plots_container {
   flex: 1;
   display: flex;
   flex-direction: column;

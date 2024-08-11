@@ -226,7 +226,6 @@ const ControlPanel = ({
                 handleKeyPress={handleKeyPress} 
                 setSettings={setSettings}
               />
-            <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
           </>
         )}
         {tabIndex === 1 && (
