@@ -112,37 +112,40 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       return 'rgb(255, 0, 0)';
     }
   };
-
-  const generateAnnotations = (peaks) => {
-    return [];
-    // Disable annotations by returning an empty array when peak detection is enabled
-    if (settings.peakDetection) return [];
-    
-    // Original logic for generating annotations if needed in the future
-    return peaks.map((peak) => {
-      const freq = peak.frequency.toFixed(2) * 1e6;
-      const power = peak.power.toFixed(2);
-      const powerColor = generateColor(power);
-      return {
-        x: parseFloat(freq),
-        y: parseFloat(power),
-        xref: 'x',
-        yref: 'y',
-        text: `${freq / 1e6} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
-        showarrow: true,
-        arrowhead: 2,
-        ax: 0,
-        ay: -40,
-        font: {
-          size: 12,
-          color: 'white',
-        },
-        align: 'center',
-      };
-    });
+  const generateAnnotations = (peaks, baseFreq, freqStep) => {
+    const startFreq = baseFreq;
+    const endFreq = baseFreq + freqStep * (fftData.length - 1);
+    if (!settings.peakDetection) return [];
+  
+    return peaks
+      .filter((peak) => peak.frequency >= startFreq && peak.frequency <= endFreq)
+      .map((peak) => {
+        // Correct the frequency calculation here
+        const freq = startFreq + ((peak.frequency - startFreq) / freqStep) * freqStep;
+        const power = peak.power.toFixed(2);
+        const powerColor = generateColor(power);
+        return {
+          x: freq.toFixed(2),
+          y: parseFloat(power),
+          xref: 'x',
+          yref: 'y',
+          text: `${(freq / 1e6).toFixed(2)} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
+          showarrow: true,
+          arrowhead: 2,
+          ax: 0,
+          ay: -40,
+          font: {
+            size: 12,
+            color: 'white',
+          },
+          align: 'center',
+        };
+      });
   };
-
-  const peakAnnotations = generateAnnotations(peaks);
+  
+  const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
+  const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData.length;
+  const peakAnnotations = generateAnnotations(peaks, baseFreq, freqStep);
 
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
     const numTicks = settings.numTicks || 5; // Default to 5 if not set
@@ -182,20 +185,15 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.error("Tick values out of range:", tickVals);
   }
 
-  // Select the appropriate trace data based on the showSecondTrace setting
-  const selectedFftData = fftData;
-
   return (
     <div>
       <Plot
         data={[
           {
-            x: Array.isArray(selectedFftData) ? selectedFftData.map((_, index) => {
-              const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
-              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / selectedFftData.length;
+            x: Array.isArray(fftData) ? fftData.map((_, index) => {
               return (baseFreq + index * freqStep).toFixed(2);
             }) : [],
-            y: Array.isArray(selectedFftData) ? selectedFftData : [],
+            y: Array.isArray(fftData) ? fftData : [],
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'orange' },
@@ -203,7 +201,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           }
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',

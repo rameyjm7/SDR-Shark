@@ -77,21 +77,29 @@ const Analysis = ({ settings, setSettings }) => {
     return () => clearInterval(interval);
   }, [setSettings]);
 
+  // Ensure peak detection is enabled by default
+  useEffect(() => {
+    if (settings.peakDetection === undefined) {
+      const newSettings = { ...settings, peakDetection: true };
+      setSettings(newSettings);
+      updateSettings(newSettings);
+    }
+  }, [settings, setSettings]);
+
   return (
     <Box>
       <Box display="flex" flexDirection="column" alignItems="center">
         <FormControlLabel
           control={
             <Switch
-              checked={settings.peakDetection}
+              checked={settings.peakDetection} // Enable by default if undefined
               onChange={handleChange}
               name="peakDetection"
               color="primary"
             />
           }
-          label="Enable Peak Detection"
+          label="Annotate Peaks"
         />
-        {settings.peakDetection && (
           <>
             <Box display="flex" justifyContent="space-between" width="100%">
               <Box flex={1} mx={1}>
@@ -146,9 +154,7 @@ const Analysis = ({ settings, setSettings }) => {
               </Box>
             </Box>
           </>
-        )}
       </Box>
-      {settings.peakDetection && (
         <Box sx={{ height: 400, width: '100%', mt: 2 }}>
           <DataGrid
             rows={rows}
@@ -156,7 +162,6 @@ const Analysis = ({ settings, setSettings }) => {
             pageSize={5}
           />
         </Box>
-      )}
     </Box>
   );
 };
