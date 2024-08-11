@@ -92,6 +92,8 @@ def generate_fft_data():
                 full_fft = current_fft
             else:
                 full_fft = (full_fft[:vars.sample_size] * (vars.averagingCount - 1) + current_fft) / vars.averagingCount
+                # dc_index = int(len(full_fft)/2)-1
+                # full_fft[dc_index] = full_fft[dc_index+1]
 
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
@@ -103,7 +105,7 @@ def radio_scanner():
     detector.start_receiving_data()
 
     while running:
-        detector.set_averaging(vars.averagingCount)
+        detector.set_averaging(50)
         detected_peaks = detector.detect_signal_peaks(
             vars.frequency,
             sample_rate=20e6,

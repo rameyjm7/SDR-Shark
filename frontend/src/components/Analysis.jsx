@@ -58,7 +58,7 @@ const Analysis = ({ settings, setSettings }) => {
     id: index,
     frequency: convertToMHz(peak.frequency),
     power: peak.power,
-    bandwidth: convertToMHz(peak.bandwidth),
+    bandwidth: peak.bandwidth,
     classification: peak.classification,
   }));
 

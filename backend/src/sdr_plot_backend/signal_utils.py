@@ -5,6 +5,7 @@ from sdr_plot_backend.utils import vars
 from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import threading
+
 class PeakDetector:
     def __init__(self, sdr: SDRGeneric, averaging_count=30, nfft=8*1024):
         self.sdr = sdr
@@ -86,9 +87,9 @@ class PeakDetector:
 
                         # Add detected peak information
                         detected_peaks.append({
-                            'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                            'frequency': peak_freq,  # Convert MHz to Hz
                             'power': fft_magnitude_db[peak_idx],  # Use the power directly
-                            'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+                            'bandwidth': bandwidth_mhz  # Convert MHz to Hz
                         })
 
                         left_idx = above_threshold[i]
