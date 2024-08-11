@@ -126,8 +126,12 @@ scanner_thread.start()
 @api_blueprint.route('/api/data')
 def get_data():
     with data_lock:
-        fft_response = [float(x) for x in fft_data['original_fft']]
-        fft_response2 = [float(x) for x in fft_data['original_fft2']]
+        if vars.sdr_name == "hackrf":
+            fft_response = [float(x) for x in fft_data['original_fft2']]
+        else:
+            fft_response = [float(x) for x in fft_data['original_fft']]
+            
+        # fft_response = [float(x) for x in fft_data['original_fft']]
         
         # Dynamically add an index or remove if not needed
         peaks_response = [{
@@ -143,7 +147,6 @@ def get_data():
 
     response = {
         'fft': fft_response,
-        'fft2': fft_response2,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time,
