@@ -46,26 +46,15 @@ const ControlPanel = ({
       const response = await axios.get('/api/get_settings');
       const data = response.data;
       setSdr(data.sdr);
-      console.log(data);
-      setLocalSettings({
-        frequency: data.frequency,
-        gain: data.gain,
-        sampleRate: data.sampleRate,
-        bandwidth: data.bandwidth,
-        averagingCount: data.averagingCount,
-        dcSuppress: data.dcSuppress,
-        showWaterfall: data.showWaterfall,
-        updateInterval: data.updateInterval,
-        waterfallSamples: data.waterfallSamples,
-        frequency_start: data.frequency_start,
-        frequency_stop: data.frequency_stop,
-        sweeping_enabled: data.sweeping_enabled,
-        lockBandwidthSampleRate: data.lockBandwidthSampleRate,
-        numTicks: data.numTicks || 5, 
-        peakThreshold: data.peakThreshold || -25,
-        showFirstTrace: data.showFirstTrace || true,
-        showSecondTrace: data.showSecondTrace || true
-      });
+
+      // Set the correct trace based on the SDR
+      setSettings((prevSettings) => ({
+        ...prevSettings,
+        showSecondTrace: data.sdr === 'hackrf',
+        ...data, // include all settings from the response
+      }));
+
+      setLocalSettings(data);
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
       setMinY(minY);  
@@ -92,22 +81,6 @@ const ControlPanel = ({
       setStatus('Error updating settings');
     }
   };
-
-  useEffect(() => {
-    if (settings.sdr === 'sidekiq') {
-      setLocalSettings((prevSettings) => ({
-        ...prevSettings,
-        bandwidth: 60,
-        sampleRate: 60,
-      }));
-    } else {
-      setLocalSettings((prevSettings) => ({
-        ...prevSettings,
-        bandwidth: 20,
-        sampleRate: 20,
-      }));
-    }
-  }, [settings.sdr]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -144,12 +117,20 @@ const ControlPanel = ({
     const newSdr = e.target.value;
     setSdr(newSdr);
     setStatus(`Changing SDR to ${newSdr}...`);
+
+    // Update the second trace toggle based on selected SDR
+    const updatedSettings = {
+      ...localSettings,
+      sdr: newSdr,
+      showSecondTrace: newSdr === 'hackrf',
+    };
+    setSettings(updatedSettings);
+    setLocalSettings(updatedSettings);
+
     axios.post('/api/select_sdr', { sdr_name: newSdr })
       .then(response => {
         console.log('SDR changed:', response.data);
-        const newSettings = { ...localSettings, sdr: newSdr };
-        setLocalSettings(newSettings);
-        applySettings(newSettings);
+        applySettings(updatedSettings);
         setStatus(`SDR changed to ${newSdr}`);
       })
       .catch(error => {
@@ -239,7 +220,12 @@ const ControlPanel = ({
               <MenuItem value="hackrf">HackRF</MenuItem>
               <MenuItem value="sidekiq">Sidekiq</MenuItem>
             </Select>
-            <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
+            <SDRSettings 
+                settings={localSettings} 
+                handleChange={handleChange} 
+                handleKeyPress={handleKeyPress} 
+                setSettings={setSettings}
+              />
             <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
           </>
         )}

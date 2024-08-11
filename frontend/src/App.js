@@ -163,7 +163,6 @@ const App = () => {
           <ControlPanel
             settings={settings}
             setSettings={setSettings}
-            setShowSecondTrace={setShowSecondTrace}
             minY={minY}
             setMinY={(value) => { setMinY(value); }}
             maxY={maxY}

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import axios from 'axios';
 import ChartComponent from './ChartComponent';
-import PlotSettings from './ControlPanel/PlotSettings';
 import '../App.css';
 
 const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
@@ -74,7 +73,7 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
           updateInterval={updateInterval}
           waterfallSamples={waterfallSamples}
           showWaterfall={showWaterfall}
-          showSecondTrace={showSecondTrace}
+          showSecondTrace={showSecondTrace} // Pass the showSecondTrace prop to ChartComponent
         />
       </Box>
     </div>

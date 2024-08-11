@@ -16,11 +16,6 @@ const PlotSettings = ({
   const averagingCount = settings.averagingCount || 10;
   const numTicks = settings.numTicks || 5;
   const dcSuppress = settings.dcSuppress || false;
-  const showSecondTrace = settings.showSecondTrace !== undefined ? settings.showSecondTrace : false;
-
-  const handleSecondTraceToggle = (e) => {
-    setSettings({ ...settings, showSecondTrace: e.target.checked });
-  };
 
   return (
     <Box>
@@ -72,7 +67,7 @@ const PlotSettings = ({
 
       <Typography gutterBottom>Min Y-Axis Range: {minY} dB</Typography>
       <Slider
-        min={-120}
+        min={-60}
         max={0}
         value={minY}
         onChange={(e, value) => {
@@ -81,14 +76,14 @@ const PlotSettings = ({
         valueLabelDisplay="auto"
         step={1}
         marks={[
-          { value: -120, label: '-120 dB' },
+          { value: -60, label: '-60 dB' },
           { value: 0, label: '0 dB' },
         ]}
       />
 
       <Typography gutterBottom>Max Y-Axis Range: {maxY} dB</Typography>
       <Slider
-        min={-20}
+        min={-60}
         max={60}
         value={maxY}
         onChange={(e, value) => {
@@ -97,21 +92,9 @@ const PlotSettings = ({
         valueLabelDisplay="auto"
         step={1}
         marks={[
-          { value: -20, label: '-20 dB' },
+          { value: -60, label: '-60 dB' },
           { value: 60, label: '60 dB' },
         ]}
-      />
-
-      <FormControlLabel
-        control={
-          <Switch
-            checked={showSecondTrace}
-            onChange={handleSecondTraceToggle}
-            name="showSecondTrace"
-            color="primary"
-          />
-        }
-        label="Show Second Trace Instead of First"
       />
     </Box>
   );

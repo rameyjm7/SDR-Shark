@@ -3,7 +3,7 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, showSecondTrace, plotWidth }) => {
   const [fftData, setFftData] = useState([]);
   const [fftData2, setFftData2] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
@@ -37,7 +37,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/data');
+        const response = await axios.get('/api/data');
         const data = response.data;
 
         // Replace NaN values in FFT data
@@ -79,7 +79,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/analytics', {
+        const response = await axios.get('/api/analytics', {
           params: {
             min_peak_distance: settings.minPeakDistance * 1e3, // Convert to Hz
             number_of_peaks: settings.numberOfPeaks,
@@ -163,8 +163,9 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     return { tickVals, tickText };
   };
 
+  // Fixing the tick values to ensure they stay within valid range
   const { tickVals, tickText } = generateTickValsAndLabels(
-    sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6,
+    Math.max(sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6, 0),
     sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6
   );
 
@@ -185,7 +186,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   }
 
   // Select the appropriate trace data based on the showSecondTrace setting
-  const selectedFftData = settings.showSecondTrace ? fftData2 : fftData;
+  const selectedFftData = showSecondTrace ? fftData2 : fftData;
 
   return (
     <div>
