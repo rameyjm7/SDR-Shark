@@ -4,16 +4,39 @@ import os
 from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 
-class sdr_scheduler_config:
 
-    def __init__(self) -> None:
-        self.settings_file = "/root/configurations/sdr_scheduler_config.json"
-
-        # Default settings
+class SdrSettings:
+    
+    def __init__(self, name):
+        self.name = name
         self.frequency = 102.1e6  # Center frequency in Hz
         self.sampleRate = 16e6   # Sample rate in Hz
         self.bandwidth = 16e6
         self.gain = 30            # Gain in dB
+        self.averagingCount = 20
+        pass
+
+class sdr_scheduler_config:
+
+    def __init__(self) -> None:
+        self.settings_file = "/root/configurations/sdr_scheduler_config.json"
+        self.sdr_settings = {
+            "hackrf" : SdrSettings("hackrf"),
+            "sidekiq" : SdrSettings("sidekiq")
+        }
+        self.sdr_name = "sidekiq"
+        # Default settings
+        self.sdr_settings['hackrf'].frequency = 102.1e6  # Center frequency in Hz
+        self.sdr_settings['hackrf'].bandwidth = 20e6     # Bandwidth in Hz
+        self.sdr_settings['hackrf'].sampleRate = 20e6    # Sample Rate in Hz
+        self.sdr_settings['hackrf'].gain = 30
+        self.sdr_settings['hackrf'].averagingCount = 20
+        
+        self.sdr_settings['sidekiq'].frequency = 102.1e6  # Center frequency in Hz
+        self.sdr_settings['sidekiq'].bandwidth = 60e6     # Bandwidth in Hz
+        self.sdr_settings['sidekiq'].sampleRate = 60e6    # Sample Rate in Hz
+        self.sdr_settings['sidekiq'].gain = 30
+        self.sdr_settings['sidekiq'].averagingCount = 20
         self.tasks = []
         self.task_lock = threading.Lock()
         self.sleeptime = 0.01
@@ -22,10 +45,9 @@ class sdr_scheduler_config:
         self.sweep_settings = {
             'frequency_start': 700e6,
             'frequency_stop': 820e6,
-            'bandwidth': self.bandwidth
+            'bandwidth': 20e6
         }
         self.sweeping_enabled = False
-        self.averagingCount = 20
         self.dc_suppress = True
         self.show_waterfall = True
         self.waterfall_samples = 100
@@ -37,10 +59,19 @@ class sdr_scheduler_config:
         self.radio_name = "sidekiq"
         
         # Initialize SDRs
-        self.sdr0 = SDRGeneric("sidekiq", center_freq=self.frequency, sample_rate=self.sampleRate, bandwidth=self.bandwidth, gain=self.gain, size=self.sample_size)
+        self.sdr0 = SDRGeneric("sidekiq", 
+                               center_freq=self.sdr_settings['sidekiq'].frequency,
+                               sample_rate=self.sdr_settings['sidekiq'].sampleRate,
+                               bandwidth=self.sdr_settings['sidekiq'].bandwidth,
+                               gain=self.sdr_settings['sidekiq'].gain,
+                               size=self.sample_size)
         self.sdr0.start()
-        self.sdr1 = SDRGeneric("hackrf", center_freq=102.1e6, sample_rate=20e6, bandwidth=20e6,
-                               gain=self.gain, size=self.sample_size)
+        self.sdr1 = SDRGeneric("hackrf",
+                               center_freq=self.sdr_settings['hackrf'].frequency,
+                               sample_rate=self.sdr_settings['hackrf'].sampleRate,
+                               bandwidth=self.sdr_settings['hackrf'].bandwidth,
+                               gain=self.sdr_settings['hackrf'].gain,
+                               size=self.sample_size)
         self.sdr1.start()
         
         # Load settings from file
@@ -55,12 +86,17 @@ class sdr_scheduler_config:
                     self.apply_settings(settings)
             except Exception as e:
                 print(f"Error loading settings: {e}")
+                self.create_default_settings()
+                pass
         else:
-            print(f"Settings file '{self.settings_file}' not found. Creating with default settings.")
-            self.save_settings(self.get_default_config())
-            with open(self.settings_file, 'r') as f:
-                    settings = json.load(f)
-                    self.apply_settings(settings)
+            self.create_default_settings()
+
+    def create_default_settings(self):
+        print(f"Settings file '{self.settings_file}' not found. Creating with default settings.")
+        self.save_settings(self.get_default_config())
+        with open(self.settings_file, 'r') as f:
+                settings = json.load(f)
+                self.apply_settings(settings)
 
     def save_settings(self, settings_ = None):
         """Save current settings to a JSON file."""
@@ -91,10 +127,10 @@ class sdr_scheduler_config:
                 return min_value  # Default to minimum if out of range or not finite
             return value
 
-        self.frequency = validate_value(self.frequency, MIN_FREQUENCY, MAX_FREQUENCY)
-        self.sampleRate = validate_value(self.sampleRate, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
-        self.bandwidth = validate_value(self.bandwidth, MIN_BANDWIDTH, MAX_BANDWIDTH)
-        self.gain = validate_value(self.gain, MIN_GAIN, MAX_GAIN)
+        self.sdr_settings[self.sdr_name].frequency = validate_value(self.sdr_frequency(), MIN_FREQUENCY, MAX_FREQUENCY)
+        self.sdr_settings[self.sdr_name].sampleRate = validate_value(self.sdr_sampleRate(), MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
+        self.sdr_settings[self.sdr_name].bandwidth = validate_value(self.sdr_bandwidth(), MIN_BANDWIDTH, MAX_BANDWIDTH)
+        self.sdr_settings[self.sdr_name].gain = validate_value(self.sdr_gain(), MIN_GAIN, MAX_GAIN)
 
         self.sweep_settings['frequency_start'] = validate_value(self.sweep_settings['frequency_start'], MIN_FREQUENCY, MAX_FREQUENCY)
         self.sweep_settings['frequency_stop'] = validate_value(self.sweep_settings['frequency_stop'], MIN_FREQUENCY, MAX_FREQUENCY)
@@ -103,14 +139,14 @@ class sdr_scheduler_config:
     def get_settings(self):
         """Get current settings as a dictionary."""
         settings = {
-            "frequency": self.frequency,
-            "sample_rate": self.sampleRate,
-            "bandwidth": self.bandwidth,
-            "gain": self.gain,
+            "frequency": self.sdr_frequency(),
+            "sample_rate": self.sdr_sampleRate(),
+            "bandwidth": self.sdr_bandwidth(),
+            "gain": self.sdr_gain(),
+            "averagingCount": self.sdr_averagingCount(),
             "sweep_settings": self.sweep_settings,
             "sweeping_enabled": self.sweeping_enabled,
             "peak_threshold_minimum_dB": self.peak_threshold_minimum_dB,
-            "averagingCount": self.averagingCount,
             "dc_suppress": self.dc_suppress,
             "show_waterfall": self.show_waterfall,
             "waterfall_samples": self.waterfall_samples,
@@ -125,16 +161,19 @@ class sdr_scheduler_config:
 
     def apply_settings(self, settings):
         """Apply settings from a dictionary with validation."""
-        self.frequency = settings.get("frequency", self.frequency)
-        self.sampleRate = settings.get("sampleRate", self.sampleRate)
-        self.bandwidth = settings.get("bandwidth", self.bandwidth)
-        self.gain = settings.get("gain", self.gain)
+        self.sdr_name = settings.get("sdr", self.radio_name)
+        
+        self.sdr_settings[self.sdr_name].frequency = settings.get("frequency", self.sdr_frequency())
+        self.sdr_settings[self.sdr_name].sampleRate = settings.get("sampleRate", self.sdr_sampleRate())
+        self.sdr_settings[self.sdr_name].bandwidth = settings.get("bandwidth", self.sdr_bandwidth())
+        self.sdr_settings[self.sdr_name].gain = settings.get("gain", self.sdr_gain())
+        self.sdr_settings[self.sdr_name].averagingCount = settings.get("averagingCount", self.sdr_averagingCount())
+        
         self.sweep_settings = settings.get("sweep_settings", self.sweep_settings)
         self.sweep_settings['frequency_start'] = settings.get("frequency_start", self.sweep_settings['frequency_start'])
         self.sweep_settings['frequency_stop'] = settings.get("frequency_stop", self.sweep_settings['frequency_stop'])
         self.sweeping_enabled = settings.get("sweeping_enabled", self.sweeping_enabled)
         self.peak_threshold_minimum_dB = settings.get("peak_threshold_minimum_dB", self.peak_threshold_minimum_dB)
-        self.averagingCount = settings.get("averagingCount", self.averagingCount)
         self.dc_suppress = settings.get("dc_suppress", self.dc_suppress)
         self.show_waterfall = settings.get("show_waterfall", self.show_waterfall)
         self.waterfall_samples = settings.get("waterfall_samples", self.waterfall_samples)
@@ -148,18 +187,30 @@ class sdr_scheduler_config:
         # Validate the settings after applying them
         self.validate_settings()
 
-        self.sdr_name = settings.get("sdr", self.radio_name)
 
         if self.sdr_name in 'hackrf':
-            self.sdr1.set_frequency(self.frequency)
-            self.sdr1.set_sample_rate(20e6 if self.sampleRate > 20e6 else self.sampleRate)
-            self.sdr1.set_bandwidth(20e6 if self.sampleRate > 20e6 else self.sampleRate)
-            self.sdr1.set_gain(self.gain)
+            self.sdr1.set_frequency(self.sdr_frequency())
+            sr = self.sdr_sampleRate()
+            self.sdr1.set_sample_rate(20e6 if sr > 20e6 else sr)
+            self.sdr1.set_bandwidth(20e6 if sr > 20e6 else sr)
+            self.sdr1.set_gain(self.sdr_settings[self.sdr_name].gain)
         else:
-            self.sdr0.set_frequency(self.frequency)
-            self.sdr0.set_sample_rate(self.sampleRate)
-            self.sdr0.set_bandwidth(self.sampleRate)
-            self.sdr0.set_gain(self.gain)
+            self.sdr0.set_frequency(self.sdr_settings[self.sdr_name].frequency)
+            sr = self.sdr_sampleRate()
+            self.sdr0.set_sample_rate(sr)
+            self.sdr0.set_bandwidth(sr)
+            self.sdr0.set_gain(self.sdr_gain())
+
+    def sdr_gain(self):
+        return self.sdr_settings[self.sdr_name].gain
+    def sdr_sampleRate(self):
+        return self.sdr_settings[self.sdr_name].sampleRate
+    def sdr_bandwidth(self):
+        return self.sdr_settings[self.sdr_name].bandwidth
+    def sdr_frequency(self):
+        return self.sdr_settings[self.sdr_name].frequency
+    def sdr_averagingCount(self):
+        return self.sdr_settings[self.sdr_name].averagingCount
 
     def reselect_radio(self, name: str) -> int:
         """Temporarily disabled due to the use of both radios."""
@@ -169,8 +220,8 @@ class sdr_scheduler_config:
     def get_default_config(self):
         return """{
     "frequency": 751000000.0,
-    "sample_rate": 60000000.0,
-    "bandwidth": 60000000.0,
+    "sample_rate": 20000000.0,
+    "bandwidth": 20000000.0,
     "gain": 10,
     "sweep_settings": {
         "frequency_start": 700000000.0,

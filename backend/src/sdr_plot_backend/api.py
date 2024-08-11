@@ -14,8 +14,9 @@ from sdr_plot_backend.utils import vars
 api_blueprint = Blueprint('api', __name__)
 
 sample_buffer = np.zeros(vars.sample_size, dtype=np.complex64)  # Increase buffer size to decrease RBW
-data_buffer = deque(maxlen=vars.averagingCount)
+data_buffer = deque(maxlen=vars.sdr_averagingCount())
 waterfall_buffer = deque(maxlen=100)  # Buffer for waterfall data
+waterfall_buffer2 = deque(maxlen=100)  # Buffer for waterfall data
 
 data_lock = threading.Lock()
 fft_data = {
@@ -50,6 +51,7 @@ def process_fft(samples):
 
 def generate_fft_data():
     full_fft = []
+    sdr_name = "sidekiq"
     current_freq = vars.sweep_settings['frequency_start']
     while running:
         start_time = time.time()
@@ -83,15 +85,16 @@ def generate_fft_data():
                     waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
-            vars.frequency = current_freq
-            vars.sdr0.set_frequency(vars.frequency)
+            vars.sdr_settings[sdr_name].frequency = current_freq
+            vars.sdr0.set_frequency(current_freq)
             time.sleep(0.05)
         else:
             # Normal operation without sweeping
             if len(full_fft) == 0:
                 full_fft = current_fft
             else:
-                full_fft = (full_fft[:vars.sample_size] * (vars.averagingCount - 1) + current_fft) / vars.averagingCount
+                full_fft = (full_fft[:vars.sample_size] * \
+                    ( vars.sdr_settings[sdr_name].averagingCount - 1) + current_fft) / vars.sdr_settings[sdr_name].averagingCount
                 # dc_index = int(len(full_fft)/2)-1
                 # full_fft[dc_index] = full_fft[dc_index+1]
 
@@ -103,11 +106,11 @@ def radio_scanner():
     nfft = 8*1024
     detector = PeakDetector(sdr=vars.sdr1,averaging_count=30,nfft=nfft)
     detector.start_receiving_data()
-
+    sdr_name = "hackrf"
     while running:
-        detector.set_averaging(50)
+        detector.set_averaging(vars.sdr_settings[sdr_name].averagingCount)
         detected_peaks = detector.detect_signal_peaks(
-            vars.frequency,
+            vars.sdr_frequency(),
             sample_rate=20e6,
             fft_size=nfft,  # wide_fft_size
             min_peak_distance=80,
@@ -117,7 +120,8 @@ def radio_scanner():
             with data_lock:
                 fft_data['original_fft2'] = detector.get_latest_data()
                 fft_data['peaks'] = detected_peaks
-
+                fft_array = np.array(fft_data['original_fft2'])
+                waterfall_buffer2.append(downsample(fft_array).tolist())
     detector.stop_receiving_data()
          
 fft_thread = threading.Thread(target=generate_fft_data)
@@ -130,8 +134,12 @@ def get_data():
     with data_lock:
         if vars.sdr_name == "hackrf":
             fft_response = [float(x) for x in fft_data['original_fft2']]
+            waterfall_response = [[float(y) for y in x] for x in waterfall_buffer2]
+            
         else:
             fft_response = [float(x) for x in fft_data['original_fft']]
+            waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
+            
             
         # fft_response = [float(x) for x in fft_data['original_fft']]
         
@@ -143,7 +151,6 @@ def get_data():
             'bandwidth': float(peak.get('bandwidth', 0.0))  # Handle missing 'bandwidth' key
         } for idx, peak in enumerate(fft_data['peaks'])]
 
-        waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
 
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
@@ -207,11 +214,11 @@ def select_sdr():
 def get_settings():
     settings = {
         'sdr': vars.radio_name,
-        'frequency': vars.frequency / 1e6,  # Convert to MHz
-        'gain': vars.gain,
-        'sampleRate': vars.sampleRate / 1e6,  # Convert to MHz
-        'bandwidth': vars.bandwidth / 1e6,  # Convert to MHz
-        'averagingCount': vars.averagingCount,
+        'frequency': vars.sdr_frequency() / 1e6,  # Convert to MHz
+        'gain': vars.sdr_gain(),
+        'sampleRate': vars.sdr_sampleRate() / 1e6,  # Convert to MHz
+        'bandwidth': vars.sdr_bandwidth() / 1e6,  # Convert to MHz
+        'averagingCount': vars.sdr_settings[vars.sdr_name].averagingCount,
         'dcSuppress': vars.dc_suppress,
         'showWaterfall': vars.show_waterfall,
         'updateInterval': vars.sleeptime * 1000,  # Convert to ms

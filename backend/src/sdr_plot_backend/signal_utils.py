@@ -33,7 +33,7 @@ class PeakDetector:
             # Average the FFT results
             fft_magnitude_avg = np.mean(self.fft_results, axis=0)
             fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
-        return fft_magnitude_db.tolist()
+        return fft_magnitude_db
 
     def receive_data(self, once=False):
         while self.running or once:

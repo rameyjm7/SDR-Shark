@@ -34,11 +34,11 @@ def execute_tasks():
         with vars.task_lock:
             for i, task in enumerate(vars.tasks):
                 if task['type'] == 'tune':
-                    vars.frequency = task['frequency']
-                    yield f"data: {json.dumps({'status': f'Tuning to {vars.frequency / 1e6} MHz...', 'taskIndex': i})}\n\n"
+                    vars.sdr_settings[vars.sdr_name].frequency = task['frequency']
+                    yield f"data: {json.dumps({'status': f'Tuning to {vars.sdr_frequency() / 1e6} MHz...', 'taskIndex': i})}\n\n"
                     try:
-                        vars.sdr0.set_frequency(vars.frequency)
-                        yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.frequency / 1e6} MHz', 'taskIndex': i})}\n\n"
+                        vars.sdr0.set_frequency(vars.sdr_frequency())
+                        yield f"data: {json.dumps({'status': f'Successfully tuned to {vars.sdr_frequency() / 1e6} MHz', 'taskIndex': i})}\n\n"
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to tune: {e!s}', 'taskIndex': i})}\n\n"
                     time.sleep(0.25)
@@ -47,7 +47,7 @@ def execute_tasks():
                     label = task['label']
                     yield f"data: {json.dumps({'status': f'Recording for {duration} seconds with label {label}...', 'taskIndex': i})}\n\n"
                     try:
-                        num_samples = int(vars.sampleRate * duration)
+                        num_samples = int(vars.sdr_sampleRate() * duration)
                         samples = vars.sdr0.get_latest_samples()
                         fft_data = np.fft.fftshift(np.fft.fft(samples))
                         fft_magnitude = 20 * np.log10(np.abs(fft_data))
@@ -58,11 +58,11 @@ def execute_tasks():
                         data = {
                             'metadata': {
                                 'label': label,
-                                'frequency': vars.frequency,
-                                'sample_rate': vars.sampleRate,
-                                'gain': vars.gain,
-                                'bandwidth': vars.bandwidth,
-                                'fft_averaging': vars.averagingCount,
+                                'frequency': vars.sdr_frequency(),
+                                'sample_rate': vars.sdr_sampleRate(),
+                                'gain': vars.sdr_gain(),
+                                'bandwidth': vars.sdr_bandwidth(),
+                                'fft_averaging': vars.sdr_averagingCount(),
                             },
                             'iq_data': samples.tolist(),
                             'fft_data': fft_magnitude.tolist()
