@@ -11,7 +11,7 @@ class SignalClassifier:
             AM.AmRadioClassifier(),
             Bluetooth.BluetoothClassicClassifier(),
             Bluetooth.BluetoothLowEnergyClassifier(),
-            LTE.LteClassifier(),
+            LTE.LTEClassifier(),
             FiveG.FiveGClassifier()
         ]
 

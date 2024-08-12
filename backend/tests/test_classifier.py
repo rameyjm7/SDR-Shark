@@ -89,5 +89,31 @@ class TestSignalClassifier(unittest.TestCase):
         result_labels = {signal['label'] for signal in result}
         self.assertTrue(expected_labels.issubset(result_labels))
 
+    # New tests for LTE signals in range
+    def test_signals_in_range_lte_band_71(self):
+        result = self.classifier.get_signals_in_range(670, 40)  # 650 MHz to 690 MHz
+        expected_labels = {'LTE Band 71', '5G Band n71'}  # Updated to include both LTE and 5G
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    def test_signals_in_range_lte_band_66(self):
+        result = self.classifier.get_signals_in_range(1720, 60)  # 1690 MHz to 1750 MHz
+        expected_labels = {'LTE Band 66'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    # New tests for 5G signals in range
+    def test_signals_in_range_5g_band_n71(self):
+        result = self.classifier.get_signals_in_range(670, 40)  # 650 MHz to 690 MHz
+        expected_labels = {'5G Band n71'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    def test_signals_in_range_5g_band_n77(self):
+        result = self.classifier.get_signals_in_range(3500, 600)  # 3200 MHz to 3800 MHz
+        expected_labels = {'5G Band n77'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
 if __name__ == '__main__':
     unittest.main()
