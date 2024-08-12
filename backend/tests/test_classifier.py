@@ -15,9 +15,11 @@ class TestSignalClassifier(unittest.TestCase):
         self.assertTrue(any(signal['label'] == 'WiFi 5 GHz' for signal in result))
 
     def test_fm_radio(self):
-        result = self.classifier.classify_signal(88, 20)
+        result = self.classifier.classify_signal(92.1, 0.15)
         self.assertTrue(any(signal['label'] == 'FM Radio' for signal in result))
-
+        result = self.classifier.classify_signal(102.1, 0.2)
+        self.assertTrue(any(signal['label'] == 'FM Radio' for signal in result))
+        
     def test_am_radio(self):
         result = self.classifier.classify_signal(535, 10)
         self.assertTrue(any(signal['label'] == 'AM Radio' for signal in result))
@@ -36,7 +38,7 @@ class TestSignalClassifier(unittest.TestCase):
 
     def test_ble_channel_35(self):
         result = self.classifier.classify_signal(2476, 2)
-        self.assertTrue(any(signal['label'] == 'Bluetooth Low Energy' and signal['channel'] == 'Channel 36 (BLE Data)' for signal in result))
+        self.assertTrue(any(signal['label'] == 'Bluetooth Low Energy' and signal['channel'] == 'Channel 35 (BLE Data)' for signal in result))
 
     def test_ble_channel_36(self):
         result = self.classifier.classify_signal(2478, 2)

@@ -1,10 +1,34 @@
-class SignalClassifier:
+from abc import ABC, abstractmethod
+
+
+class BaseSignalClassifier(ABC):
+    @abstractmethod
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        pass
+
+
+class WiFiSignalClassifier(BaseSignalClassifier):
     def __init__(self):
         self.signals = [
             {"label": "WiFi 2.4 GHz", "frequency": 2400, "bandwidth": 22, "channel": "802.11 WLAN"},
             {"label": "WiFi 5 GHz", "frequency": 5180, "bandwidth": 160, "channel": "802.11 WLAN"},
-            {"label": "FM Radio", "frequency": 88, "bandwidth": 20},
-            {"label": "AM Radio", "frequency": 535, "bandwidth": 10},
+        ]
+
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        matches = []
+        for signal in self.signals:
+            freq_diff = abs(signal["frequency"] - frequency_mhz)
+            if freq_diff <= (signal["bandwidth"] / 2):
+                signal_copy = signal.copy()
+                signal_copy["frequency"] = frequency_mhz
+                signal_copy["bandwidth"] = signal["bandwidth"]
+                matches.append(signal_copy)
+        return matches
+
+
+class BluetoothSignalClassifier(BaseSignalClassifier):
+    def __init__(self):
+        self.signals = [
             {
                 "label": "Bluetooth Classic",
                 "frequency": 2402,
@@ -56,12 +80,64 @@ class SignalClassifier:
                 else:
                     signal_copy["channel"] = "Unknown Channel"
                 matches.append(signal_copy)
-
-            else:
-                freq_diff = abs(signal["frequency"] - frequency_mhz)
-                if freq_diff <= (signal["bandwidth"] / 2):
-                    signal_copy["frequency"] = frequency_mhz
-                    signal_copy["bandwidth"] = signal["bandwidth"]
-                    matches.append(signal_copy)
-
         return matches
+
+
+class FMRadioSignalClassifier(BaseSignalClassifier):
+    def __init__(self):
+        self.signals = [
+            {"label": "FM Radio", "frequency": 88, "bandwidth": 0.25},
+        ]
+
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        matches = []
+        for signal in self.signals:
+            freq_diff = abs(signal["frequency"] - frequency_mhz)
+            if freq_diff <= (signal["bandwidth"] / 2):
+                signal_copy = signal.copy()
+                signal_copy["frequency"] = frequency_mhz
+                signal_copy["bandwidth"] = signal["bandwidth"]
+                matches.append(signal_copy)
+        return matches
+
+
+class AMRadioSignalClassifier(BaseSignalClassifier):
+    def __init__(self):
+        self.signals = [
+            {"label": "AM Radio", "frequency": 535, "bandwidth": 10},
+        ]
+
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        matches = []
+        for signal in self.signals:
+            freq_diff = abs(signal["frequency"] - frequency_mhz)
+            if freq_diff <= (signal["bandwidth"] / 2):
+                signal_copy = signal.copy()
+                signal_copy["frequency"] = frequency_mhz
+                signal_copy["bandwidth"] = signal["bandwidth"]
+                matches.append(signal_copy)
+        return matches
+
+
+class SignalClassifier:
+    def __init__(self):
+        self.classifiers = [
+            WiFiSignalClassifier(),
+            BluetoothSignalClassifier(),
+            FMRadioSignalClassifier(),
+            AMRadioSignalClassifier(),
+        ]
+
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        matches = []
+        for classifier in self.classifiers:
+            matches.extend(classifier.classify_signal(frequency_mhz, bandwidth_mhz))
+        return matches
+
+
+# Example usage
+if __name__ == "__main__":
+    classifier = SignalClassifier()
+    potential_signals = classifier.classify_signal(2402, 1)  # Test with Bluetooth Classic frequency
+    for signal in potential_signals:
+        print(f"Potential Signal: {signal['label']} at {signal['frequency']} MHz, Bandwidth: {signal['bandwidth']} MHz, Channel: {signal.get('channel', 'N/A')}")
