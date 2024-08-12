@@ -174,20 +174,32 @@ const Analysis = ({ settings, setSettings }) => {
     return acc;
   }, {});
 
-  // Convert grouped classifications to TreeViewBaseItem[]
-  const classificationItems = Object.entries(groupedClassifications).map(([label, classifications], groupIndex) => ({
-    id: `group-${groupIndex}`,
-    label: label,
-    children: classifications.map((classification, index) => ({
-      id: `item-${groupIndex}-${index}`,
-      label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz`,
-    })),
-  }));
 
+
+  // Convert grouped classifications to TreeViewBaseItem[]
+  const classificationItems = Object.entries(groupedClassifications).reduce((acc, [label, classifications], groupIndex) => {
+    const groupId = `group-${groupIndex}`;
+    const groupItem = {
+      id: groupId,
+      label: label,
+      children: classifications.map((classification, index) => {
+        // Sequentially define the item ID
+        const itemId = `item-${acc.nextId}`;
+        acc.nextId += 1;  // Increment the ID for the next item
+        return {
+          id: itemId,
+          label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz`,
+        };
+      }),
+    };
+    acc.items.push(groupItem);
+    return acc;
+  }, { nextId: 0, items: [] }).items;
+
+  
   const handleItemSelectionToggle = (event, itemId, isSelected) => {
     if (isSelected) {
       console.log(itemId);
-      console.log(isSelected);
       setLastSelectedItem(itemId);
     }
   };
