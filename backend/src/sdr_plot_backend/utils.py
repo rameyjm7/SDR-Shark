@@ -125,8 +125,11 @@ class sdr_scheduler_config:
         MAX_GAIN = 76           # Example maximum gain
 
         def validate_value(value, min_value, max_value):
-            if not np.isfinite(value) or value < min_value or value > max_value:
-                return min_value  # Default to minimum if out of range or not finite
+            if value:
+                if not np.isfinite(value) or value < min_value or value > max_value:
+                    return min_value  # Default to minimum if out of range or not finite
+            else:
+                return min_value
             return value
 
         self.sdr_settings[self.sdr_name].frequency = validate_value(self.sdr_frequency(), MIN_FREQUENCY, MAX_FREQUENCY)

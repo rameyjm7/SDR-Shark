@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
-import { TreeViewBaseItem } from '@mui/x-tree-view/models';
 import { DataGrid } from '@mui/x-data-grid';
-import { FormControlLabel, Slider, Switch, Typography } from '@mui/material';
+import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem } from '@mui/material';
 
 // Function to generate a unique ID
 const generateUniqueId = (prefix, key) => `${prefix}-${key}-${Math.random().toString(36).substr(2, 9)}`;
@@ -12,6 +11,8 @@ const generateUniqueId = (prefix, key) => `${prefix}-${key}-${Math.random().toSt
 const Analysis = ({ settings, setSettings }) => {
   const [peaks, setPeaks] = useState([]);
   const [generalClassifications, setGeneralClassifications] = useState([]);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [lastSelectedItem, setLastSelectedItem] = useState(null);
 
   const convertToHz = (valueInMHz) => valueInMHz * 1e6;
   const convertToMHz = (valueInHz) => valueInHz / 1e6;
@@ -46,11 +47,58 @@ const Analysis = ({ settings, setSettings }) => {
 
   const updateSettings = async (newSettings) => {
     try {
+      console.log('Updating settings:', newSettings);
       await axios.post('/api/update_settings', newSettings);
+      console.log('Settings updated successfully!');
     } catch (error) {
       console.error('Error updating settings:', error);
     }
   };
+
+  const handleContextMenu = (event, item) => {
+    console.log(event);
+    event.preventDefault();
+    setContextMenu(
+      contextMenu === null
+        ? { mouseX: event.clientX - 2, mouseY: event.clientY - 4 }
+        : null,
+    );
+  };
+
+  const handleMenuClose = () => {
+    setContextMenu(null);
+  };
+
+  const handleTuneTo = () => {
+    if (lastSelectedItem) {
+  
+      // Extract groupIndex and itemIndex from the itemId
+      const [groupIndex, itemIndex] = lastSelectedItem.split('-').slice(1).map(Number);
+      
+      // Reference the correct item in generalClassifications using groupIndex and itemIndex
+      const classification = generalClassifications[groupIndex];
+  
+      if (classification) {
+        const frequency = classification.frequency;
+        if (frequency) {
+          const frequencyInHz = convertToHz(frequency);
+          const newSettings = { ...settings, frequency: parseFloat(frequency) };
+          setSettings(newSettings);
+          updateSettings(newSettings).then(() => {
+            console.log(`Successfully tuned to ${frequency} MHz`);
+          });
+        } else {
+          console.warn('Could not find frequency for the selected item.');
+        }
+      } else {
+        console.warn('Could not find the selected item in generalClassifications.');
+      }
+    } else {
+      console.warn('No item selected for tuning.');
+    }
+    handleMenuClose();
+  };
+  
 
   const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
@@ -109,6 +157,16 @@ const Analysis = ({ settings, setSettings }) => {
       label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz`,
     })),
   }));
+
+
+  const handleItemSelectionToggle = (event, itemId, isSelected) => {
+    if (isSelected) {
+      console.log(itemId);
+      console.log(isSelected);
+      setLastSelectedItem(itemId);
+    }
+  };
+
 
   return (
     <Box>
@@ -181,7 +239,23 @@ const Analysis = ({ settings, setSettings }) => {
       </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>
-        <RichTreeView items={classificationItems} />
+        <RichTreeView
+          items={classificationItems}
+          onItemSelectionToggle={handleItemSelectionToggle}
+          onContextMenu={(event, item) => handleContextMenu(event, item)}
+        />
+        <Menu
+          open={contextMenu !== null}
+          onClose={handleMenuClose}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+        >
+          <MenuItem onClick={handleTuneTo}>Tune to</MenuItem>
+        </Menu>
       </Box>
       <Box sx={{ height: 400, width: '100%', mt: 2 }}>
         <Typography variant="h6" gutterBottom>Detected Peaks</Typography>
