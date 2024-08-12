@@ -182,15 +182,16 @@ def get_data():
 
 @api_blueprint.route('/api/analytics')
 def get_analytics():
+    num_digits = 3
     with data_lock:
         peaks_response = fft_data['peaks'].copy()
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
 
         for peak in peaks_response:
-            freq = round(float(peak['frequency']), 2)  # Convert to MHz and round to 0.01 MHz
+            freq = round(float(peak['frequency']), num_digits)  # Convert to MHz and round z
             power = float(peak['power'])
-            bandwidth = round(float(peak.get('bandwidth', 0.0)), 2)  # Convert to MHz and round to 0.01 MHz
+            bandwidth = round(float(peak.get('bandwidth', 0.0)), num_digits)  # Convert to MHz and round 
             classification = "???"  # Placeholder for classification
 
             peaks_data.append({
