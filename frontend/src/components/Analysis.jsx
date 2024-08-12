@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, FormControlLabel, Slider, Switch, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
+import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
+import { TreeViewBaseItem } from '@mui/x-tree-view/models';
 import { DataGrid } from '@mui/x-data-grid';
+import { FormControlLabel, Slider, Switch, Typography } from '@mui/material';
+
+// Function to generate a unique ID
+const generateUniqueId = (prefix, key) => `${prefix}-${key}-${Math.random().toString(36).substr(2, 9)}`;
 
 const Analysis = ({ settings, setSettings }) => {
   const [peaks, setPeaks] = useState([]);
@@ -14,7 +20,6 @@ const Analysis = ({ settings, setSettings }) => {
     const { name, value, type, checked } = e.target;
     let newValue = type === 'checkbox' ? checked : parseFloat(value);
 
-    // Convert MHz to Hz for frequency, sampleRate, and bandwidth
     if (name === 'frequency' || name === 'sampleRate' || name === 'bandwidth') {
       newValue = convertToHz(newValue);
     }
@@ -30,7 +35,6 @@ const Analysis = ({ settings, setSettings }) => {
   const handleSliderChange = (e, value, name) => {
     let newValue = value;
 
-    // Convert MHz to Hz for frequency, sampleRate, and bandwidth
     if (name === 'frequency' || name === 'sampleRate' || name === 'bandwidth') {
       newValue = convertToHz(newValue);
     }
@@ -55,27 +59,12 @@ const Analysis = ({ settings, setSettings }) => {
     { field: 'classification', headerName: 'Classifications', width: 200 },
   ];
 
-  const classificationColumns = [
-    { field: 'label', headerName: 'Label', width: 180 },
-    { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
-    { field: 'bandwidth', headerName: 'Bandwidth (MHz)', width: 140 },
-    { field: 'channel', headerName: 'Channel', width: 200 },
-  ];
-
   const peakRows = peaks.map((peak, index) => ({
     id: index,
     frequency: peak.frequency !== undefined ? convertToMHz(peak.frequency).toFixed(3) : 'N/A',
     power: peak.power !== undefined ? peak.power.toFixed(3) : 'N/A',
     bandwidth: peak.bandwidth !== undefined ? peak.bandwidth.toFixed(3) : 'N/A',
-    classification: peak.classification?.map(c => `${c.label} (${c.channel})`).join(', ') || 'N/A', // Combine classifications
-  }));
-
-  const classificationRows = generalClassifications.map((classification, index) => ({
-    id: index,
-    label: classification.label,
-    frequency: classification.frequency !== undefined ? convertToMHz(classification.frequency).toFixed(3) : 'N/A',
-    bandwidth: classification.bandwidth !== undefined ? classification.bandwidth.toFixed(3) : 'N/A',
-    channel: classification.channel,
+    classification: peak.classification?.map(c => `${c.label} (${c.channel})`).join(', ') || 'N/A',
   }));
 
   useEffect(() => {
@@ -84,17 +73,16 @@ const Analysis = ({ settings, setSettings }) => {
         const response = await axios.get('/api/analytics');
         const data = response.data;
         setPeaks(data.peaks);
-        setGeneralClassifications(data.classifications); // Set general classifications
+        setGeneralClassifications(data.classifications);
       } catch (error) {
         console.error('Error fetching analytics:', error);
       }
     };
 
-    const interval = setInterval(fetchAnalytics, 250); // Fetch analytics data every 250ms
+    const interval = setInterval(fetchAnalytics, 250);
     return () => clearInterval(interval);
   }, [setSettings]);
 
-  // Ensure peak detection is enabled by default
   useEffect(() => {
     if (settings.peakDetection === undefined) {
       const newSettings = { ...settings, peakDetection: true };
@@ -103,13 +91,32 @@ const Analysis = ({ settings, setSettings }) => {
     }
   }, [settings, setSettings]);
 
+  // Group classifications by label
+  const groupedClassifications = generalClassifications.reduce((acc, classification) => {
+    if (!acc[classification.label]) {
+      acc[classification.label] = [];
+    }
+    acc[classification.label].push(classification);
+    return acc;
+  }, {});
+
+  // Convert grouped classifications to TreeViewBaseItem[]
+  const classificationItems = Object.entries(groupedClassifications).map(([label, classifications], groupIndex) => ({
+    id: `group-${groupIndex}`,
+    label: label,
+    children: classifications.map((classification, index) => ({
+      id: `item-${groupIndex}-${index}`,
+      label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz`,
+    })),
+  }));
+
   return (
     <Box>
       <Box display="flex" flexDirection="column" alignItems="center">
         <FormControlLabel
           control={
             <Switch
-              checked={settings.peakDetection} // Enable by default if undefined
+              checked={settings.peakDetection ?? false} // Ensure this is always defined
               onChange={handleChange}
               name="peakDetection"
               color="primary"
@@ -174,13 +181,7 @@ const Analysis = ({ settings, setSettings }) => {
       </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>
-        <Box sx={{ height: 300, width: '100%', mt: 2 }}>
-          <DataGrid
-            rows={classificationRows}
-            columns={classificationColumns}
-            pageSize={5}
-          />
-        </Box>
+        <RichTreeView items={classificationItems} />
       </Box>
       <Box sx={{ height: 400, width: '100%', mt: 2 }}>
         <Typography variant="h6" gutterBottom>Detected Peaks</Typography>

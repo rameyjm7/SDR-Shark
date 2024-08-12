@@ -54,6 +54,6 @@ class LTEClassifier(BaseSignalClassifier):
                     "label": band["label"],
                     "frequency": str(band["frequency"]),
                     "bandwidth": str(band["bandwidth"]),
-                    "channel": f"{band['channel']} (Center Frequency: {band['frequency']} MHz)"
+                    "channel": f"{band['channel']}"
                 })
         return matches

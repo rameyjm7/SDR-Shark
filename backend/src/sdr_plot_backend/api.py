@@ -191,7 +191,7 @@ def get_analytics():
         current_frequency = vars.sdr_frequency() / 1e6  # Convert to MHz
         current_bandwidth = vars.sdr_bandwidth() / 1e6  # Convert to MHz
         classifications = vars.classifier.get_signals_in_range(current_frequency, current_bandwidth)
-        classifications_list = [{"label": c['label'], "channel": c.get('channel', 'N/A')} for c in classifications]
+        classifications_list = classifications
         payload['classifications'] = classifications_list
         
         # Peak classifications

@@ -38,7 +38,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
-        console.log(data);
 
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
