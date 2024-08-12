@@ -48,19 +48,34 @@ const Analysis = ({ settings, setSettings }) => {
     }
   };
 
-  const columns = [
+  const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
     { field: 'power', headerName: 'Power (dB)', width: 140 },
     { field: 'bandwidth', headerName: 'Bandwidth (MHz)', width: 140 },
     { field: 'classification', headerName: 'Classifications', width: 200 },
   ];
 
-  const rows = peaks.map((peak, index) => ({
+  const classificationColumns = [
+    { field: 'label', headerName: 'Label', width: 180 },
+    { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
+    { field: 'bandwidth', headerName: 'Bandwidth (MHz)', width: 140 },
+    { field: 'channel', headerName: 'Channel', width: 200 },
+  ];
+
+  const peakRows = peaks.map((peak, index) => ({
     id: index,
-    frequency: convertToMHz(peak.frequency).toFixed(3),
-    power: peak.power.toFixed(3),
-    bandwidth: peak.bandwidth.toFixed(3),
-    classification: peak.classification.map(c => `${c.label} (${c.channel})`).join(', '), // Combine classifications
+    frequency: peak.frequency !== undefined ? convertToMHz(peak.frequency).toFixed(3) : 'N/A',
+    power: peak.power !== undefined ? peak.power.toFixed(3) : 'N/A',
+    bandwidth: peak.bandwidth !== undefined ? peak.bandwidth.toFixed(3) : 'N/A',
+    classification: peak.classification?.map(c => `${c.label} (${c.channel})`).join(', ') || 'N/A', // Combine classifications
+  }));
+
+  const classificationRows = generalClassifications.map((classification, index) => ({
+    id: index,
+    label: classification.label,
+    frequency: classification.frequency !== undefined ? convertToMHz(classification.frequency).toFixed(3) : 'N/A',
+    bandwidth: classification.bandwidth !== undefined ? classification.bandwidth.toFixed(3) : 'N/A',
+    channel: classification.channel,
   }));
 
   useEffect(() => {
@@ -159,17 +174,19 @@ const Analysis = ({ settings, setSettings }) => {
       </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>
-        <ul>
-          {generalClassifications.map((classification, index) => (
-            <li key={index}>{classification.label} ({classification.channel})</li>
-          ))}
-        </ul>
+        <Box sx={{ height: 300, width: '100%', mt: 2 }}>
+          <DataGrid
+            rows={classificationRows}
+            columns={classificationColumns}
+            pageSize={5}
+          />
+        </Box>
       </Box>
       <Box sx={{ height: 400, width: '100%', mt: 2 }}>
         <Typography variant="h6" gutterBottom>Detected Peaks</Typography>
         <DataGrid
-          rows={rows}
-          columns={columns}
+          rows={peakRows}
+          columns={peakColumns}
           pageSize={5}
         />
       </Box>
