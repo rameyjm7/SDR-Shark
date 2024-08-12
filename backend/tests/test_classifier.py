@@ -64,5 +64,30 @@ class TestSignalClassifier(unittest.TestCase):
         result = self.classifier.classify_signal(2490, 1)
         self.assertFalse(any(signal['label'] == 'Bluetooth Classic' for signal in result))
 
+    # New tests for signals in range
+    def test_signals_in_range_wifi_and_bluetooth(self):
+        result = self.classifier.get_signals_in_range(2450, 60)  # 2420 MHz to 2480 MHz
+        expected_labels = {'WiFi 2.4 GHz', 'Bluetooth Classic', 'Bluetooth Low Energy'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    def test_signals_in_range_fm_radio(self):
+        result = self.classifier.get_signals_in_range(100, 10)  # 95 MHz to 105 MHz
+        expected_labels = {'FM Radio'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    def test_signals_in_range_am_radio(self):
+        result = self.classifier.get_signals_in_range(600, 100)  # 550 MHz to 650 MHz
+        expected_labels = {'AM Radio'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
+    def test_signals_in_range_bluetooth_classic_only(self):
+        result = self.classifier.get_signals_in_range(2440, 20)  # 2430 MHz to 2450 MHz
+        expected_labels = {'Bluetooth Classic'}
+        result_labels = {signal['label'] for signal in result}
+        self.assertTrue(expected_labels.issubset(result_labels))
+
 if __name__ == '__main__':
     unittest.main()

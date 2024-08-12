@@ -5,6 +5,7 @@ import { DataGrid } from '@mui/x-data-grid';
 
 const Analysis = ({ settings, setSettings }) => {
   const [peaks, setPeaks] = useState([]);
+  const [generalClassifications, setGeneralClassifications] = useState([]);
 
   const convertToHz = (valueInMHz) => valueInMHz * 1e6;
   const convertToMHz = (valueInHz) => valueInHz / 1e6;
@@ -51,29 +52,30 @@ const Analysis = ({ settings, setSettings }) => {
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
     { field: 'power', headerName: 'Power (dB)', width: 140 },
     { field: 'bandwidth', headerName: 'Bandwidth (MHz)', width: 140 },
-    { field: 'classification', headerName: 'Classification', width: 150 },
+    { field: 'classification', headerName: 'Classifications', width: 200 },
   ];
 
   const rows = peaks.map((peak, index) => ({
     id: index,
-    frequency: convertToMHz(peak.frequency),
-    power: peak.power,
-    bandwidth: peak.bandwidth,
-    classification: peak.classification,
+    frequency: convertToMHz(peak.frequency).toFixed(3),
+    power: peak.power.toFixed(3),
+    bandwidth: peak.bandwidth.toFixed(3),
+    classification: peak.classification.map(c => `${c.label} (${c.channel})`).join(', '), // Combine classifications
   }));
 
   useEffect(() => {
-    const fetchPeaks = async () => {
+    const fetchAnalytics = async () => {
       try {
         const response = await axios.get('/api/analytics');
         const data = response.data;
         setPeaks(data.peaks);
+        setGeneralClassifications(data.classifications); // Set general classifications
       } catch (error) {
-        console.error('Error fetching peaks:', error);
+        console.error('Error fetching analytics:', error);
       }
     };
 
-    const interval = setInterval(fetchPeaks, 250); // Fetch peaks data every 250ms
+    const interval = setInterval(fetchAnalytics, 250); // Fetch analytics data every 250ms
     return () => clearInterval(interval);
   }, [setSettings]);
 
@@ -100,68 +102,77 @@ const Analysis = ({ settings, setSettings }) => {
           }
           label="Annotate Peaks"
         />
-          <>
-            <Box display="flex" justifyContent="space-between" width="100%">
-              <Box flex={1} mx={1}>
-                <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
-                <Slider
-                  min={1}
-                  max={20}
-                  value={settings.numberOfPeaks}
-                  onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
-                  valueLabelDisplay="auto"
-                  step={1}
-                  marks={[
-                    { value: 1, label: '1' },
-                    { value: 10, label: '10' },
-                    { value: 20, label: '20' }
-                  ]}
-                />
-              </Box>
-              <Box flex={1} mx={1}>
-                <Typography gutterBottom>Peak Threshold (dB): {settings.peakThreshold}</Typography>
-                <Slider
-                  min={-100}
-                  max={0}
-                  value={settings.peakThreshold}
-                  onChange={(e, value) => handleSliderChange(e, value, 'peakThreshold')}
-                  valueLabelDisplay="auto"
-                  step={1}
-                  marks={[
-                    { value: -100, label: '-100 dB' },
-                    { value: -50, label: '-50 dB' },
-                    { value: 0, label: '0 dB' }
-                  ]}
-                />
-              </Box>
+        <>
+          <Box display="flex" justifyContent="space-between" width="100%">
+            <Box flex={1} mx={1}>
+              <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
+              <Slider
+                min={1}
+                max={20}
+                value={settings.numberOfPeaks}
+                onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
+                valueLabelDisplay="auto"
+                step={1}
+                marks={[
+                  { value: 1, label: '1' },
+                  { value: 10, label: '10' },
+                  { value: 20, label: '20' }
+                ]}
+              />
             </Box>
-            <Box display="flex" justifyContent="space-between" width="100%">
-              <Box flex={1} mx={1}>
-                <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
-                <Slider
-                  min={0.01}
-                  max={1.0}
-                  value={settings.minPeakDistance}
-                  onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
-                  valueLabelDisplay="auto"
-                  step={0.01}
-                  marks={[
-                    { value: 0.01, label: '0.01 MHz' },
-                    { value: 0.5, label: '0.5 MHz' },
-                    { value: 1.0, label: '1 MHz' }
-                  ]}
-                />
-              </Box>
+            <Box flex={1} mx={1}>
+              <Typography gutterBottom>Peak Threshold (dB): {settings.peakThreshold}</Typography>
+              <Slider
+                min={-100}
+                max={0}
+                value={settings.peakThreshold}
+                onChange={(e, value) => handleSliderChange(e, value, 'peakThreshold')}
+                valueLabelDisplay="auto"
+                step={1}
+                marks={[
+                  { value: -100, label: '-100 dB' },
+                  { value: -50, label: '-50 dB' },
+                  { value: 0, label: '0 dB' }
+                ]}
+              />
             </Box>
-          </>
+          </Box>
+          <Box display="flex" justifyContent="space-between" width="100%">
+            <Box flex={1} mx={1}>
+              <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
+              <Slider
+                min={0.01}
+                max={1.0}
+                value={settings.minPeakDistance}
+                onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
+                valueLabelDisplay="auto"
+                step={0.01}
+                marks={[
+                  { value: 0.01, label: '0.01 MHz' },
+                  { value: 0.5, label: '0.5 MHz' },
+                  { value: 1.0, label: '1 MHz' }
+                ]}
+              />
+            </Box>
+          </Box>
+        </>
       </Box>
-        <Box sx={{ height: 400, width: '100%', mt: 2 }}>
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            pageSize={5}
-          />
-        </Box>
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>General Classifications</Typography>
+        <ul>
+          {generalClassifications.map((classification, index) => (
+            <li key={index}>{classification.label} ({classification.channel})</li>
+          ))}
+        </ul>
+      </Box>
+      <Box sx={{ height: 400, width: '100%', mt: 2 }}>
+        <Typography variant="h6" gutterBottom>Detected Peaks</Typography>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          pageSize={5}
+        />
+      </Box>
     </Box>
   );
 };

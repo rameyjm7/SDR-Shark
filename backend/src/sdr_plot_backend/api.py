@@ -183,26 +183,41 @@ def get_data():
 @api_blueprint.route('/api/analytics')
 def get_analytics():
     num_digits = 3
+    payload = {}
     with data_lock:
+        
+        # General classifications based on the current SDR frequency and bandwidth
+        general_classifications = []
+        current_frequency = vars.sdr_frequency() / 1e6  # Convert to MHz
+        current_bandwidth = vars.sdr_bandwidth() / 1e6  # Convert to MHz
+        classifications = vars.classifier.classify_signal(current_frequency, current_bandwidth)
+        classifications_list = [{"label": c['label'], "channel": c.get('channel', 'N/A')} for c in classifications]
+        payload['classifications'] = classifications_list
+        
+        # Peak classifications
         peaks_response = fft_data['peaks'].copy()
         fft_response = fft_data['original_fft'].copy()
         peaks_data = []
 
         for peak in peaks_response:
-            freq = round(float(peak['frequency']), num_digits)  # Convert to MHz and round z
+            freq = round(float(peak['frequency']), num_digits)  # Convert to MHz and round
             power = float(peak['power'])
             bandwidth = round(float(peak.get('bandwidth', 0.0)), num_digits)  # Convert to MHz and round 
-            classification = "???"  # Placeholder for classification
+
+            # Classify the signal
+            classifications = vars.classifier.classify_signal(freq, bandwidth)
+            classifications_list = [{"label": c['label'], "channel": c.get('channel', 'N/A')} for c in classifications]
 
             peaks_data.append({
                 'peak': f'Peak {peaks_response.index(peak) + 1}',  # Generate peak index based on position
                 'frequency': freq,
                 'power': power,
                 'bandwidth': bandwidth,
-                'classification': classification
+                'classification': classifications_list
             })
-
-    return jsonify({'peaks': peaks_data})
+            payload['peaks'] = peaks_data
+    
+    return jsonify(payload)
 
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])

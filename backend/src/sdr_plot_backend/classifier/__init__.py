@@ -1,20 +1,33 @@
 from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi
 
+
+
 class SignalClassifier:
     def __init__(self):
         self.classifiers = [
-            WiFi.WiFiSignalClassifier(),
-            Bluetooth.BluetoothSignalClassifier(),
-            FM.FMRadioSignalClassifier(),
-            AM.AMRadioSignalClassifier(),
+            WiFi.WiFi24GHzClassifier(),
+            WiFi.WiFi5GHzClassifier(),
+            FM.FmRadioClassifier(),
+            AM.AmRadioClassifier(),
+            Bluetooth.BluetoothClassicClassifier(),
+            Bluetooth.BluetoothLowEnergyClassifier()
         ]
 
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
-        matches = []
+        results = []
         for classifier in self.classifiers:
-            matches.extend(classifier.classify_signal(frequency_mhz, bandwidth_mhz))
-        return matches
+            results.extend(classifier.classify_signal(frequency_mhz, bandwidth_mhz))
+        return results
 
+    def get_signals_in_range(self, center_freq_mhz, bandwidth_mhz):
+        start_freq_mhz = center_freq_mhz - bandwidth_mhz / 2
+        end_freq_mhz = center_freq_mhz + bandwidth_mhz / 2
+        signals_in_range = []
+
+        for classifier in self.classifiers:
+            signals_in_range.extend(classifier.get_signals_in_range(start_freq_mhz, end_freq_mhz))
+
+        return signals_in_range
 
 # Example usage
 if __name__ == "__main__":

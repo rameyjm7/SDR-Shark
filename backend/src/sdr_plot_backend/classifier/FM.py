@@ -1,18 +1,12 @@
 from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 
-class FMRadioSignalClassifier(BaseSignalClassifier):
-    def __init__(self):
-        self.signals = [
-            {"label": "FM Radio", "frequency": 88, "bandwidth": 0.25},
-        ]
-
+class FmRadioClassifier(BaseSignalClassifier):
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
-        matches = []
-        for signal in self.signals:
-            freq_diff = abs(signal["frequency"] - frequency_mhz)
-            if freq_diff <= (signal["bandwidth"] / 2):
-                signal_copy = signal.copy()
-                signal_copy["frequency"] = frequency_mhz
-                signal_copy["bandwidth"] = signal["bandwidth"]
-                matches.append(signal_copy)
-        return matches
+        if 88 <= frequency_mhz <= 108:
+            return [{"label": "FM Radio", "frequency": 88, "bandwidth": 20}]
+        return []
+
+    def get_signals_in_range(self, start_freq_mhz, end_freq_mhz):
+        if 88 <= end_freq_mhz and start_freq_mhz <= 108:
+            return [{"label": "FM Radio", "frequency": 88, "bandwidth": 20}]
+        return []

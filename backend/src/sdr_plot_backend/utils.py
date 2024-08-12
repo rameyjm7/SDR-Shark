@@ -3,6 +3,7 @@ import json
 import os
 from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
+from sdr_plot_backend.classifier import SignalClassifier
 
 
 class SdrSettings:
@@ -76,6 +77,7 @@ class sdr_scheduler_config:
         
         # Load settings from file
         self.load_settings()
+        self.classifier = SignalClassifier()
 
     def load_settings(self):
         """Load settings from a JSON file. If the file doesn't exist, create it with default values."""
