@@ -69,15 +69,11 @@ const Analysis = ({ settings, setSettings }) => {
     setContextMenu(null);
   };
 
-  const handleTuneTo = () => {
+  const handleTuneToFreq = () => {
     if (lastSelectedItem) {
-  
-      // Extract groupIndex and itemIndex from the itemId
       const [groupIndex, itemIndex] = lastSelectedItem.split('-').slice(1).map(Number);
-      
-      // Reference the correct item in generalClassifications using groupIndex and itemIndex
       const classification = generalClassifications[groupIndex];
-  
+
       if (classification) {
         const frequency = classification.frequency;
         if (frequency) {
@@ -98,7 +94,37 @@ const Analysis = ({ settings, setSettings }) => {
     }
     handleMenuClose();
   };
-  
+
+  const handleTuneToFreqBandwidth = () => {
+    if (lastSelectedItem) {
+      const [groupIndex, itemIndex] = lastSelectedItem.split('-').slice(1).map(Number);
+      const classification = generalClassifications[groupIndex];
+
+      if (classification) {
+        const frequency = classification.frequency;
+        const bandwidth = classification.bandwidth;
+        if (frequency && bandwidth) {
+          const newSettings = { 
+            ...settings, 
+            frequency: parseFloat(frequency), 
+            sampleRate: parseFloat(bandwidth),
+            bandwidth: parseFloat(bandwidth)
+          };
+          setSettings(newSettings);
+          updateSettings(newSettings).then(() => {
+            console.log(`Successfully tuned to ${frequency} MHz and set bandwidth to ${bandwidth} MHz`);
+          });
+        } else {
+          console.warn('Could not find frequency or bandwidth for the selected item.');
+        }
+      } else {
+        console.warn('Could not find the selected item in generalClassifications.');
+      }
+    } else {
+      console.warn('No item selected for tuning.');
+    }
+    handleMenuClose();
+  };
 
   const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
@@ -158,7 +184,6 @@ const Analysis = ({ settings, setSettings }) => {
     })),
   }));
 
-
   const handleItemSelectionToggle = (event, itemId, isSelected) => {
     if (isSelected) {
       console.log(itemId);
@@ -166,7 +191,6 @@ const Analysis = ({ settings, setSettings }) => {
       setLastSelectedItem(itemId);
     }
   };
-
 
   return (
     <Box>
@@ -254,7 +278,8 @@ const Analysis = ({ settings, setSettings }) => {
               : undefined
           }
         >
-          <MenuItem onClick={handleTuneTo}>Tune to</MenuItem>
+          <MenuItem onClick={handleTuneToFreq}>Tune to Freq</MenuItem>
+          <MenuItem onClick={handleTuneToFreqBandwidth}>Tune to Freq, Bandwidth</MenuItem>
         </Menu>
       </Box>
       <Box sx={{ height: 400, width: '100%', mt: 2 }}>
