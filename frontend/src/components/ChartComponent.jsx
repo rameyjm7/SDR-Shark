@@ -195,7 +195,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             y: Array.isArray(fftData) ? fftData : [],
             type: 'scatter',
             mode: 'lines',
-            marker: { color: 'white' },
+            marker: { color: 'orange' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
           }
         ]}

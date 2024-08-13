@@ -3,35 +3,35 @@ from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 class LTEClassifier(BaseSignalClassifier):
     def __init__(self):
         self.lte_bands = [
-            {"label": "LTE Band 71 Uplink", "frequency": 663, "bandwidth": 36, "channel": "71"},
-            {"label": "LTE Band 71 Downlink", "frequency": 617, "bandwidth": 36, "channel": "71"},
-            {"label": "LTE Band 29 Downlink", "frequency": 722.5, "bandwidth": 12, "channel": "29"},
-            {"label": "LTE Band 12 Uplink", "frequency": 707.5, "bandwidth": 18, "channel": "12"},
-            {"label": "LTE Band 12 Downlink", "frequency": 737.5, "bandwidth": 18, "channel": "12"},
-            {"label": "LTE Band 17 Uplink", "frequency": 710, "bandwidth": 12, "channel": "17"},
-            {"label": "LTE Band 17 Downlink", "frequency": 740, "bandwidth": 12, "channel": "17"},
-            {"label": "LTE Band 13 Uplink", "frequency": 782, "bandwidth": 10, "channel": "13"},
-            {"label": "LTE Band 13 Downlink", "frequency": 751, "bandwidth": 10, "channel": "13"},
-            {"label": "LTE Band 14 Uplink", "frequency": 793, "bandwidth": 11, "channel": "14"},
-            {"label": "LTE Band 14 Downlink", "frequency": 763, "bandwidth": 11, "channel": "14"},
-            {"label": "LTE Band 5 Uplink", "frequency": 836.5, "bandwidth": 25, "channel": "5"},
-            {"label": "LTE Band 5 Downlink", "frequency": 881.5, "bandwidth": 25, "channel": "5"},
-            {"label": "LTE Band 26 Uplink", "frequency": 831.5, "bandwidth": 35, "channel": "26"},
-            {"label": "LTE Band 26 Downlink", "frequency": 876.5, "bandwidth": 35, "channel": "26"},
-            {"label": "LTE Band 4 Uplink", "frequency": 1732.5, "bandwidth": 45, "channel": "4"},
-            {"label": "LTE Band 4 Downlink", "frequency": 2132.5, "bandwidth": 45, "channel": "4"},
-            {"label": "LTE Band 66 Uplink", "frequency": 1745, "bandwidth": 70, "channel": "66"},
-            {"label": "LTE Band 66 Downlink", "frequency": 2155, "bandwidth": 70, "channel": "66"},
-            {"label": "LTE Band 2 Uplink", "frequency": 1880, "bandwidth": 60, "channel": "2"},
-            {"label": "LTE Band 2 Downlink", "frequency": 1960, "bandwidth": 60, "channel": "2"},
-            {"label": "LTE Band 25 Uplink", "frequency": 1882.5, "bandwidth": 65, "channel": "25"},
-            {"label": "LTE Band 25 Downlink", "frequency": 1962.5, "bandwidth": 65, "channel": "25"},
-            {"label": "LTE Band 30 Uplink", "frequency": 2310, "bandwidth": 10, "channel": "30"},
-            {"label": "LTE Band 30 Downlink", "frequency": 2355, "bandwidth": 10, "channel": "30"},
-            {"label": "LTE Band 41 Uplink/Downlink", "frequency": 2593, "bandwidth": 194, "channel": "41"},
-            {"label": "LTE Band 38 Uplink/Downlink", "frequency": 2595, "bandwidth": 50, "channel": "38"},
-            {"label": "LTE Band 48 Uplink/Downlink", "frequency": 3625, "bandwidth": 150, "channel": "48"},
-            {"label": "LTE Band 46 Uplink/Downlink", "frequency": 5537.5, "bandwidth": 775, "channel": "46"},
+            {"label": "LTE", "frequency": 663, "bandwidth": 36, "channel": "71", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 617, "bandwidth": 36, "channel": "71", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 722.5, "bandwidth": 12, "channel": "29", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 707.5, "bandwidth": 18, "channel": "12", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 737.5, "bandwidth": 18, "channel": "12", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 710, "bandwidth": 12, "channel": "17", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 740, "bandwidth": 12, "channel": "17", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 782, "bandwidth": 10, "channel": "13", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 751, "bandwidth": 10, "channel": "13", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 793, "bandwidth": 11, "channel": "14", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 763, "bandwidth": 11, "channel": "14", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 836.5, "bandwidth": 25, "channel": "5", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 881.5, "bandwidth": 25, "channel": "5", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 831.5, "bandwidth": 35, "channel": "26", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 876.5, "bandwidth": 35, "channel": "26", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 1732.5, "bandwidth": 45, "channel": "4", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 2132.5, "bandwidth": 45, "channel": "4", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 1745, "bandwidth": 70, "channel": "66", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 2155, "bandwidth": 70, "channel": "66", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 1880, "bandwidth": 60, "channel": "2", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 1960, "bandwidth": 60, "channel": "2", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 1882.5, "bandwidth": 65, "channel": "25", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 1962.5, "bandwidth": 65, "channel": "25", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 2310, "bandwidth": 10, "channel": "30", "metadata": "Uplink"},
+            {"label": "LTE", "frequency": 2355, "bandwidth": 10, "channel": "30", "metadata": "Downlink"},
+            {"label": "LTE", "frequency": 2593, "bandwidth": 194, "channel": "41", "metadata": "Uplink/Downlink"},
+            {"label": "LTE", "frequency": 2595, "bandwidth": 50, "channel": "38", "metadata": "Uplink/Downlink"},
+            {"label": "LTE", "frequency": 3625, "bandwidth": 150, "channel": "48", "metadata": "Uplink/Downlink"},
+            {"label": "LTE", "frequency": 5537.5, "bandwidth": 775, "channel": "46", "metadata": "Uplink/Downlink"},
         ]
     
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
@@ -42,7 +42,8 @@ class LTEClassifier(BaseSignalClassifier):
                     "label": band["label"],
                     "frequency": band["frequency"],
                     "bandwidth": band["bandwidth"],
-                    "channel": f"Channel {band['channel']} (Center Frequency: {band['frequency']} MHz)"
+                    "channel": band["channel"],
+                    "metadata": band["metadata"]
                 })
         return matches
 
@@ -54,6 +55,7 @@ class LTEClassifier(BaseSignalClassifier):
                     "label": band["label"],
                     "frequency": str(band["frequency"]),
                     "bandwidth": str(band["bandwidth"]),
-                    "channel": f"{band['channel']}"
+                    "channel": band["channel"],
+                    "metadata": band["metadata"]
                 })
         return matches
