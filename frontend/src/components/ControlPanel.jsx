@@ -17,6 +17,7 @@ const ControlPanel = ({
   minY,
   setMinY,
   maxY,
+  setMaxY,
   updateInterval,
   setUpdateInterval,
   waterfallSamples,
@@ -45,23 +46,19 @@ const ControlPanel = ({
       const response = await axios.get('/api/get_settings');
       const data = response.data;
       setSdr(data.sdr);
-      setLocalSettings({
-        frequency: data.frequency,
-        gain: data.gain,
-        sampleRate: data.sampleRate,
-        bandwidth: data.bandwidth,
-        averagingCount: data.averagingCount,
-        dcSuppress: data.dcSuppress,
-        showWaterfall: data.showWaterfall,
-        updateInterval: data.updateInterval,
-        waterfallSamples: data.waterfallSamples,
-        frequency_start: data.frequency_start,
-        frequency_stop: data.frequency_stop,
-        sweeping_enabled: data.sweeping_enabled,
-        numTicks: data.numTicks || 5, // Add numTicks to settings
-      });
+
+      // Set the correct trace based on the SDR
+      setSettings((prevSettings) => ({
+        ...prevSettings,
+        showSecondTrace: data.sdr === 'hackrf',
+        ...data, // include all settings from the response
+      }));
+
+      setLocalSettings(data);
       setUpdateInterval(data.updateInterval);
       setWaterfallSamples(data.waterfallSamples);
+      setMinY(minY);  
+      setMaxY(maxY);  
       setStatus('Settings loaded');
       setSettingsLoaded(true);
     } catch (error) {
@@ -84,22 +81,6 @@ const ControlPanel = ({
       setStatus('Error updating settings');
     }
   };
-
-  useEffect(() => {
-    if (settings.sdr === 'sidekiq') {
-      setLocalSettings((prevSettings) => ({
-        ...prevSettings,
-        bandwidth: 60,
-        sampleRate: 60,
-      }));
-    } else {
-      setLocalSettings((prevSettings) => ({
-        ...prevSettings,
-        bandwidth: 20,
-        sampleRate: 20,
-      }));
-    }
-  }, [settings.sdr]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -136,12 +117,20 @@ const ControlPanel = ({
     const newSdr = e.target.value;
     setSdr(newSdr);
     setStatus(`Changing SDR to ${newSdr}...`);
+
+    // Update the second trace toggle based on selected SDR
+    const updatedSettings = {
+      ...localSettings,
+      sdr: newSdr,
+      showSecondTrace: newSdr === 'hackrf',
+    };
+    setSettings(updatedSettings);
+    setLocalSettings(updatedSettings);
+
     axios.post('/api/select_sdr', { sdr_name: newSdr })
       .then(response => {
         console.log('SDR changed:', response.data);
-        const newSettings = { ...localSettings, sdr: newSdr };
-        setLocalSettings(newSettings);
-        applySettings(newSettings);
+        applySettings(updatedSettings);
         setStatus(`SDR changed to ${newSdr}`);
       })
       .catch(error => {
@@ -177,7 +166,7 @@ const ControlPanel = ({
         },
       });
       setSettings(enforcedSettings);
-      setLocalSettings(enforcedSettings); // Update the local state with enforced settings
+      setLocalSettings(enforcedSettings); 
       setStatus('Settings updated');
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -205,47 +194,65 @@ const ControlPanel = ({
   };
 
   return (
-<Box className="control-panel">
-        <Tabs value={tabIndex} onChange={handleTabChange}>
-          <Tab label="SDR" />
-          <Tab label="Plot" />
-          <Tab label="Analysis" />
-        </Tabs>
-        <Box className="tab-content">
-          {tabIndex === 0 && (
-            <>
-              <Typography variant="h6">SDR Settings</Typography>
-              <Box display="flex" alignItems="center">
-                <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-                  Status: {status}
-                </Typography>
-                <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
-                  <RefreshIcon />
-                </IconButton>
-                <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
-                  <SaveIcon />
-                </IconButton>
-              </Box>
-              <Typography variant="body1">Select SDR:</Typography>
-              <Select value={sdr} onChange={handleSdrChange} fullWidth>
-                <MenuItem value="hackrf">HackRF</MenuItem>
-                <MenuItem value="sidekiq">Sidekiq</MenuItem>
-              </Select>
-              <SDRSettings settings={localSettings} handleChange={handleChange} handleKeyPress={handleKeyPress} />
-              <SweepSettings settings={localSettings} setSettings={setLocalSettings} status={status} setStatus={setStatus} />
-            </>
-          )}
-          {tabIndex === 1 && (
-            <>
-              <PlotSettings settings={localSettings} handleSliderChange={handleSliderChange} handleSliderChangeCommitted={handleSliderChangeCommitted} handleChange={handleChange} />
-              <WaterfallSettings settings={localSettings} showWaterfall={showWaterfall} setShowWaterfall={setShowWaterfall} />
-            </>
-          )}
-          {tabIndex === 2 && (
-            <Analysis settings={settings} setSettings={setSettings} />
-          )}
-        </Box>
+    <Box className="control-panel" sx={{ p: 2 }}>
+      <Tabs value={tabIndex} onChange={handleTabChange}>
+        <Tab label="SDR" />
+        <Tab label="Plot" />
+        <Tab label="Analysis" />
+      </Tabs>
+      <Box className="control-panel-tab-content">
+        {tabIndex === 0 && (
+          <>
+            <Typography variant="h6">SDR Settings</Typography>
+            <Box display="flex" alignItems="center">
+              <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
+                Status: {status}
+              </Typography>
+              <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
+                <RefreshIcon />
+              </IconButton>
+              <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
+                <SaveIcon />
+              </IconButton>
+            </Box>
+            <Typography variant="body1">Select SDR:</Typography>
+            <Select value={sdr} onChange={handleSdrChange} fullWidth>
+              <MenuItem value="hackrf">HackRF</MenuItem>
+              <MenuItem value="sidekiq">Sidekiq</MenuItem>
+            </Select>
+            <SDRSettings 
+                settings={localSettings} 
+                handleChange={handleChange} 
+                handleKeyPress={handleKeyPress} 
+                setSettings={setSettings}
+              />
+          </>
+        )}
+        {tabIndex === 1 && (
+          <>
+            <PlotSettings
+              settings={localSettings}
+              setSettings={setLocalSettings}
+              handleSliderChange={handleSliderChange}
+              handleSliderChangeCommitted={handleSliderChangeCommitted}
+              handleChange={handleChange}
+              minY={minY}
+              setMinY={setMinY}
+              maxY={maxY}
+              setMaxY={setMaxY}
+            />
+            <WaterfallSettings
+              settings={localSettings}
+              showWaterfall={showWaterfall}
+              setShowWaterfall={setShowWaterfall}
+            />
+          </>
+        )}
+        {tabIndex === 2 && (
+          <Analysis settings={settings} setSettings={setSettings} />
+        )}
       </Box>
+    </Box>
   );
 };
 

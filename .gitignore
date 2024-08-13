@@ -22,3 +22,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.pyc
+docker/code.zip
+.vscode/launch.json
+backend/sdr_plot_backend.egg-info*
+backend/src/sdr_plot_backend.egg-info/
+backend/dist/
+backend/tests/iq_data.pkl
+backend/tests/fft_data.pkl
+backend/tests/scan_data.pkl
+scan_data.pkl

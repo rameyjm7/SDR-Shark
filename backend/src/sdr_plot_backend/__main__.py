@@ -1,11 +1,13 @@
+import faulthandler
+
 from flask import Flask
-from sdr_plot_backend.api import api_blueprint
+from flask_cors import CORS
+
 from sdr_plot_backend.actions import actions_blueprint
+from sdr_plot_backend.api import api_blueprint
 from sdr_plot_backend.file_manager import file_mgr_blueprint
 from sdr_plot_backend.sigid_plugin import sigid_plugin_blueprint
-from flask_cors import CORS
-import logging 
-import faulthandler
+
 faulthandler.enable()
 
 def create_app():
@@ -21,4 +23,3 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(host='0.0.0.0', port=5000, threaded=True)
-    

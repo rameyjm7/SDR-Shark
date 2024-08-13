@@ -2,30 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import axios from 'axios';
 import ChartComponent from './ChartComponent';
-import ControlPanel from './ControlPanel';
 import '../App.css';
 
-const Plots = () => {
-  const [settings, setSettings] = useState({
-    frequency: 102.1,
-    gain: 30,
-    sampleRate: 16,
-    bandwidth: 16,
-    averagingCount: 20,
-    dcSuppress: true,
-    peakDetection: false,
-    minPeakDistance: 0.25,
-    numberOfPeaks: 5,
-    numTicks: 5, // Initialize numTicks
-    peaks: []
-  });
-  const [minY, setMinY] = useState(-60);
-  const [maxY, setMaxY] = useState(20);
-  const [updateInterval, setUpdateInterval] = useState(30);
-  const [waterfallSamples, setWaterfallSamples] = useState(100);
-  const [showWaterfall, setShowWaterfall] = useState(true);
-  const [peaks, setPeaks] = useState([]);
-  const [time, setTime] = useState('');
+const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
   const [sweepSettings, setSweepSettings] = useState({
     frequency_start: 100,
     frequency_stop: 200,
@@ -41,12 +20,11 @@ const Plots = () => {
 
   const fetchInitialSettings = async () => {
     try {
+      console.log("Fetching initial settings...");
       const response = await axios.get('/api/get_settings');
       const data = response.data;
-      setSettings({
-        ...data,
-        numTicks: data.numTicks || 5, // Ensure numTicks is included
-      });
+      console.log("Initial settings fetched:", data);
+
       setSweepSettings({
         frequency_start: data.frequency_start,
         frequency_stop: data.frequency_stop,
@@ -54,7 +32,7 @@ const Plots = () => {
         bandwidth: data.sweeping_enabled ? data.frequency_stop - data.frequency_start : data.bandwidth,
       });
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Error fetching initial settings:', error);
     }
   };
 
@@ -74,10 +52,10 @@ const Plots = () => {
   };
 
   const updateSettings = async (newSettings) => {
-    setSettings(newSettings);
-    console.log(newSettings);
     try {
+      console.log("Updating settings with:", newSettings);
       await axios.post('/api/update_settings', newSettings);
+      console.log("Settings updated successfully.");
     } catch (error) {
       console.error('Error updating settings:', error);
     }
@@ -94,26 +72,8 @@ const Plots = () => {
           maxY={maxY}
           updateInterval={updateInterval}
           waterfallSamples={waterfallSamples}
-          peaks={settings.peakDetection ? peaks : []}
           showWaterfall={showWaterfall}
-          setPeaks={setPeaks}
-          setTime={setTime}
-        />
-      </Box>
-      <Box className="control-panel">
-        <ControlPanel
-          settings={settings}
-          setSettings={updateSettings}
-          minY={minY}
-          setMinY={setMinY}
-          maxY={maxY}
-          setMaxY={setMaxY}
-          updateInterval={updateInterval}
-          setUpdateInterval={setUpdateInterval}
-          waterfallSamples={waterfallSamples}
-          setWaterfallSamples={setWaterfallSamples}
-          showWaterfall={showWaterfall}
-          setShowWaterfall={setShowWaterfall}
+          showSecondTrace={showSecondTrace} // Pass the showSecondTrace prop to ChartComponent
         />
       </Box>
     </div>

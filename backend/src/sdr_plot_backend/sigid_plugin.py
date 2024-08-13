@@ -1,11 +1,8 @@
-from flask import Blueprint, jsonify, request
-import pickle
 import base64
-import numpy as np
-from scipy.signal import find_peaks
-from PIL import Image
+import pickle
 from io import BytesIO
-from sdr_plot_backend.utils import vars
+
+from flask import Blueprint, jsonify
 
 sigid_plugin_blueprint = Blueprint('sigid_plugin', __name__)
 
@@ -38,5 +35,5 @@ def get_data():
     response = {
         'signals_database': signals_database
     }
-    
+
     return jsonify(response)

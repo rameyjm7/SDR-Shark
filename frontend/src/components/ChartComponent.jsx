@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Plot from 'react-plotly.js';
+import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -10,16 +11,46 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   const prevTickValsRef = useRef([]);
   const prevTickTextRef = useRef([]);
   const [currentFrequency, setCurrentFrequency] = useState(0);
+  const [plotHeight, setPlotHeight] = useState(35); // Start with a default value
+
+  useEffect(() => {
+    const adjustPlotHeight = () => {
+      const containerHeight = window.innerHeight;
+      const availableHeight = containerHeight - 100; // Adjust based on the height of other elements (like the control panel)
+      const calculatedHeight = (availableHeight * 0.4) / containerHeight * 100; // Set to 40% of the available height
+      setPlotHeight(calculatedHeight);
+    };
+
+    adjustPlotHeight();
+    window.addEventListener('resize', adjustPlotHeight);
+
+    return () => {
+      window.removeEventListener('resize', adjustPlotHeight);
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log(`minY: ${minY}, maxY: ${maxY}`);
+  }, [minY, maxY]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get('http://10.139.1.185:5000/api/data');
         const data = response.data;
-        setFftData(data.fft);
-        setWaterfallData(data.waterfall.slice(-waterfallSamples));
+
+        // Replace NaN values in FFT data
+        const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
+        setFftData(sanitizedFftData);
+
+        // Replace NaN values in Waterfall data
+        const sanitizedWaterfallData = data.waterfall.map(row =>
+          row.map(value => isNaN(value) ? -255 : value)
+        );
+        setWaterfallData(sanitizedWaterfallData.slice(-waterfallSamples));
+
         setTime(data.time);
-    
+
         if (data.settings.sweeping_enabled) {
           setSweepSettings({
             frequency_start: data.settings.sweep_settings.frequency_start,
@@ -27,7 +58,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             sweeping_enabled: data.settings.sweeping_enabled,
             bandwidth: data.settings.sweep_settings.frequency_stop - data.settings.sweep_settings.frequency_start,
           });
-    
+
           const currentFreq = data.settings.center_freq;
           setCurrentFrequency(currentFreq);
         } else {
@@ -37,7 +68,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         console.error('Error fetching data:', error);
       }
     };
-    
+
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples, setSweepSettings, settings.frequency, settings.sampleRate]);
@@ -45,7 +76,12 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/analytics');
+        const response = await axios.get('http://10.139.1.185:5000/api/analytics', {
+          params: {
+            min_peak_distance: settings.minPeakDistance * 1e3, // Convert to Hz
+            number_of_peaks: settings.numberOfPeaks,
+          }
+        });
         setPeaks(response.data.peaks);
       } catch (error) {
         console.error('Error fetching peaks:', error);
@@ -54,11 +90,61 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
 
     const interval = setInterval(fetchPeaks, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [settings.minPeakDistance, settings.numberOfPeaks]);
 
-
-  const peakAnnotations = generateAnnotations(peaks);
-  const peakTableAnnotation = generatePeakTableAnnotation(peaks);
+  const generateColor = (value) => {
+    if (value >= 0) {
+      return 'rgb(0, 255, 0)';
+    } else if (value >= -10) {
+      const ratio = (value + 10) / 10;
+      const red = Math.floor(255 * (1 - ratio));
+      const green = 255;
+      const blue = 0;
+      return `rgb(${red}, ${green}, ${blue})`;
+    } else if (value >= -20) {
+      const ratio = (value + 20) / 10;
+      const red = 255;
+      const green = Math.floor(255 * ratio);
+      const blue = 0;
+      return `rgb(${red}, ${green}, ${blue})`;
+    } else {
+      return 'rgb(255, 0, 0)';
+    }
+  };
+  const generateAnnotations = (peaks, baseFreq, freqStep) => {
+    const startFreq = baseFreq;
+    const endFreq = baseFreq + freqStep * (fftData.length - 1);
+    if (!settings.peakDetection) return [];
+  
+    return peaks
+      .filter((peak) => peak.frequency >= startFreq && peak.frequency <= endFreq)
+      .map((peak) => {
+        // Correct the frequency calculation here
+        const freq = startFreq + ((peak.frequency - startFreq) / freqStep) * freqStep;
+        const power = peak.power.toFixed(2);
+        const powerColor = generateColor(power);
+        return {
+          x: freq.toFixed(2),
+          y: parseFloat(power),
+          xref: 'x',
+          yref: 'y',
+          text: `${(freq / 1e6).toFixed(2)} MHz<br><span style="color:${powerColor}">${power} dB</span>`,
+          showarrow: true,
+          arrowhead: 2,
+          ax: 0,
+          ay: -40,
+          font: {
+            size: 12,
+            color: 'white',
+          },
+          align: 'center',
+        };
+      });
+  };
+  
+  const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
+  const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData.length;
+  const peakAnnotations = generateAnnotations(peaks, baseFreq, freqStep);
 
   const generateTickValsAndLabels = (startFreq, stopFreq) => {
     const numTicks = settings.numTicks || 5; // Default to 5 if not set
@@ -72,9 +158,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       tickVals.push(freq);
       tickText.push((freq / 1e6).toFixed(2)); // Convert to MHz
     }
-    tickVals.push(stopFreq*0.999);
+    tickVals.push(stopFreq * 0.999);
     tickText.push((stopFreq / 1e6).toFixed(2)); // Convert to MHz
-
     return { tickVals, tickText };
   };
 
@@ -99,36 +184,23 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.error("Tick values out of range:", tickVals);
   }
 
-  // Add an extra point at the end of the range
-  const extendedFftData = [...fftData];
-  if (extendedFftData.length > 0) {
-    const lastFrequency = sweepSettings.sweeping_enabled ? sweepSettings.frequency_stop : (settings.frequency + settings.sampleRate / 2) * 1e6;
-    extendedFftData.push(extendedFftData[extendedFftData.length - 1]);
-    extendedFftData[extendedFftData.length - 1] = {
-      ...extendedFftData[extendedFftData.length - 1],
-      x: lastFrequency
-    };
-  }
-
   return (
     <div>
       <Plot
         data={[
           {
-            x: Array.isArray(extendedFftData) ? extendedFftData.map((_, index) => {
-              const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
-              const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / extendedFftData.length;
+            x: Array.isArray(fftData) ? fftData.map((_, index) => {
               return (baseFreq + index * freqStep).toFixed(2);
             }) : [],
-            y: Array.isArray(extendedFftData) ? extendedFftData : [],
+            y: Array.isArray(fftData) ? fftData : [],
             type: 'scatter',
             mode: 'lines',
             marker: { color: 'white' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
-          },
+          }
         ]}
         layout={{
-          title: `Spectrum Viewer (Time: ${time}) (Freq: ${currentFrequency / 1e6})`,
+          title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,
           xaxis: {
             title: 'Frequency (MHz)',
             color: 'white',
@@ -150,14 +222,15 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             t: 50,
             pad: 4
           },
+          autosize: true,  // Let Plotly auto size
           paper_bgcolor: '#000',
           plot_bgcolor: '#000',
           font: {
             color: 'white',
           },
-          annotations: [...peakAnnotations, peakTableAnnotation].filter(Boolean),
+          annotations: [...peakAnnotations].filter(Boolean),
         }}
-        style={{ width: '100%', height: '40vh' }}
+        style={{ width: `${plotWidth}vw` }}
       />
       {showWaterfall && (
         <Plot
@@ -193,6 +266,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
               t: 0,
               pad: 4
             },
+            autosize: true,  // Let Plotly auto size
             paper_bgcolor: '#000',
             plot_bgcolor: '#000',
             font: {
@@ -202,7 +276,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           config={{
             displayModeBar: false, // Hide the mode bar
           }}
-          style={{ width: '100%', height: '40vh' }}
+          style={{ width: `${plotWidth}vw` }}
         />
       )}
     </div>

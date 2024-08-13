@@ -1,4 +1,3 @@
-/* App.css */
 body, html, #root {
   margin: 0;
   padding: 0;
@@ -8,47 +7,51 @@ body, html, #root {
   flex-direction: column;
 }
 
-.plots_container {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-}
-
 .plots {
-  flex: 1;
+  flex: 1; /* Slightly more space for the plots */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
   overflow: hidden;
-}
 
-
-.tab-container {
-  display: flex;
-  width: 150px;
-  flex-direction: column;
-  flex: 1;
-}
-
-.tab-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-@media (min-width: 600px) {
-  .plots_container {
-    flex-direction: row;
-  }
-  .plots, .control-panel {
-    flex: 1;
-  }
 }
 
 .control-panel {
-  height: 100%;
-  width: 30vw;
+  flex: 0.3; /* Reduce the width of the control panel */
+  display: flex;
+  flex-direction: column;
   padding: 10px;
-  background-color: #1a1a1a;
+  background-color: #1c1c1c;
+  color: white;
+}
+
+.tab-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 
+.plots_container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* New styles for control panel content to stretch */
+.control-panel-content {
+  flex: 1; /* Make it take the remaining space */
+  overflow-y: auto; /* Allow scrolling inside the control panel */
+}
+
+.resize-handle {
+  width: 10px;
+  cursor: ew-resize;
+  background-color: #444;
+}
