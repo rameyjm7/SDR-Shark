@@ -41,9 +41,10 @@ function TabPanel(props) {
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
       {...other}
+      style={{ height: '100%' }} // Ensure the TabPanel takes up the full height
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>  {/* Added overflowY to ensure scrolling */}
           {children}
         </Box>
       )}
@@ -158,39 +159,42 @@ const App = () => {
                 plotWidth={plotWidth} // Pass the calculated plot width as a prop
               />
             </TabPanel>
+            <TabPanel value={tabValue} index={1}>
+          <Analysis settings={settings} setSettings={setSettings} />
+         </TabPanel>
+            <TabPanel value={tabValue} index={2}>
+              <Actions tasks={tasks} setTasks={setTasks} />
+            </TabPanel>
+            <TabPanel value={tabValue} index={3}>
+              <FileBrowser onAnalyze={handleAnalyze} />
+            </TabPanel>
+            <TabPanel value={tabValue} index={4}>
+              <Analyzer fftData={fftData} metadata={metadata} />
+            </TabPanel>
+            <TabPanel value={tabValue} index={5}>
+              <Box sx={{ height: '100%', overflowY: 'auto' }}>  {/* Ensure SigDex is contained within the tab */}
+                <SigDex />
+              </Box>
+          </TabPanel>
           </Box>
           <Box id="rightPanel" sx={{ paddingLeft: '10px', height: '100%', flex: '0 1 auto' }}>
-          <ControlPanel
-            settings={settings}
-            setSettings={setSettings}
-            minY={minY}
-            setMinY={(value) => { setMinY(value); }}
-            maxY={maxY}
-            setMaxY={(value) => { setMaxY(value); }}
-            updateInterval={updateInterval}
-            setUpdateInterval={setUpdateInterval}
-            waterfallSamples={waterfallSamples}
-            setWaterfallSamples={setWaterfallSamples}
-            showWaterfall={showWaterfall}
-            setShowWaterfall={setShowWaterfall}
-          />
+            <ControlPanel
+              settings={settings}
+              setSettings={setSettings}
+              minY={minY}
+              setMinY={(value) => { setMinY(value); }}
+              maxY={maxY}
+              setMaxY={(value) => { setMaxY(value); }}
+              updateInterval={updateInterval}
+              setUpdateInterval={setUpdateInterval}
+              waterfallSamples={waterfallSamples}
+              setWaterfallSamples={setWaterfallSamples}
+              showWaterfall={showWaterfall}
+              setShowWaterfall={setShowWaterfall}
+            />
           </Box>
         </Box>
-        <TabPanel value={tabValue} index={1}>
-          <Analysis settings={settings} setSettings={setSettings} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={2}>
-          <Actions tasks={tasks} setTasks={setTasks} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={3}>
-          <FileBrowser onAnalyze={handleAnalyze} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={4}>
-          <Analyzer fftData={fftData} metadata={metadata} />
-        </TabPanel>
-        <TabPanel value={tabValue} index={5}>
-          <SigDex />
-        </TabPanel>
+        
       </Box>
     </ThemeProvider>
   );
