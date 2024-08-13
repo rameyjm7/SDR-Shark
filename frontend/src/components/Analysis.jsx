@@ -188,7 +188,7 @@ const Analysis = ({ settings, setSettings }) => {
         acc.nextId += 1;  // Increment the ID for the next item
         return {
           id: itemId,
-          label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz`,
+          label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz, Metadata: ${classification.metadata}`,
         };
       }),
     };

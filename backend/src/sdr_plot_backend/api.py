@@ -270,11 +270,6 @@ def update_settings():
         print(e)
         return jsonify({'success': False, 'error': str(e)})
 
-# @api_blueprint.route('/api/get_settings', methods=['GET'])
-# def get_settings():
-#     settings = vars.get_settings()
-#     return jsonify(settings)
-
 @api_blueprint.route('/api/start_sweep', methods=['POST'])
 def start_sweep():
     vars.sweeping_enabled = True

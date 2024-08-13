@@ -1,4 +1,4 @@
-from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG
+from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN
 
 
 
@@ -12,7 +12,9 @@ class SignalClassifier:
             Bluetooth.BluetoothClassicClassifier(),
             Bluetooth.BluetoothLowEnergyClassifier(),
             LTE.LTEClassifier(),
-            FiveG.FiveGClassifier()
+            FiveG.FiveGClassifier(),
+            FiveG.NRClassifier(),
+            LoRaWAN.LoRaWANClassifier()
         ]
 
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
