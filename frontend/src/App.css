@@ -8,14 +8,16 @@ body, html, #root {
 }
 
 .plots {
-  flex: 1;
+  flex: 1; /* Slightly more space for the plots */
   display: flex;
   flex-direction: column;
   padding: 0;
+  overflow: hidden;
+
 }
 
 .control-panel {
-  flex: 0.3; /* Adjusted to take a specific fraction of the width */
+  flex: 0.3; /* Reduce the width of the control panel */
   display: flex;
   flex-direction: column;
   padding: 10px;
@@ -27,15 +29,14 @@ body, html, #root {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%; /* Ensure the tab container takes full height */
 }
 
 .tab-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* Allow scrolling if content exceeds height */
 }
+
 
 .plots_container {
   flex: 1;
@@ -43,9 +44,10 @@ body, html, #root {
   flex-direction: column;
 }
 
+/* New styles for control panel content to stretch */
 .control-panel-content {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1; /* Make it take the remaining space */
+  overflow-y: auto; /* Allow scrolling inside the control panel */
 }
 
 .resize-handle {
@@ -53,4 +55,3 @@ body, html, #root {
   cursor: ew-resize;
   background-color: #444;
 }
-

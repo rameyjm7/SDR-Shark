@@ -44,7 +44,7 @@ function TabPanel(props) {
       style={{ height: '100%' }} // Ensure the TabPanel takes up the full height
     >
       {value === index && (
-        <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>  {/* Added overflowY to ensure scrolling */}
+        <Box sx={{ p: 3, height: '100%' }}>
           {children}
         </Box>
       )}
@@ -160,8 +160,8 @@ const App = () => {
               />
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
-          <Analysis settings={settings} setSettings={setSettings} />
-         </TabPanel>
+              <Analysis settings={settings} setSettings={setSettings} />
+            </TabPanel>
             <TabPanel value={tabValue} index={2}>
               <Actions tasks={tasks} setTasks={setTasks} />
             </TabPanel>
@@ -175,26 +175,26 @@ const App = () => {
               <Box sx={{ height: '100%', overflowY: 'auto' }}>  {/* Ensure SigDex is contained within the tab */}
                 <SigDex />
               </Box>
-          </TabPanel>
+            </TabPanel>
           </Box>
           <Box id="rightPanel" sx={{ paddingLeft: '10px', height: '100%', flex: '0 1 auto' }}>
-            <ControlPanel
-              settings={settings}
-              setSettings={setSettings}
-              minY={minY}
-              setMinY={(value) => { setMinY(value); }}
-              maxY={maxY}
-              setMaxY={(value) => { setMaxY(value); }}
-              updateInterval={updateInterval}
-              setUpdateInterval={setUpdateInterval}
-              waterfallSamples={waterfallSamples}
-              setWaterfallSamples={setWaterfallSamples}
-              showWaterfall={showWaterfall}
-              setShowWaterfall={setShowWaterfall}
-            />
+          <ControlPanel
+            settings={settings}
+            setSettings={setSettings}
+            minY={minY}
+            setMinY={(value) => { setMinY(value); }}
+            maxY={maxY}
+            setMaxY={(value) => { setMaxY(value); }}
+            updateInterval={updateInterval}
+            setUpdateInterval={setUpdateInterval}
+            waterfallSamples={waterfallSamples}
+            setWaterfallSamples={setWaterfallSamples}
+            showWaterfall={showWaterfall}
+            setShowWaterfall={setShowWaterfall}
+          />
           </Box>
         </Box>
-        
+
       </Box>
     </ThemeProvider>
   );
