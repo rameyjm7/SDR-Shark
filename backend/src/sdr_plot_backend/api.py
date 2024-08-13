@@ -218,6 +218,10 @@ def get_analytics():
     
     return jsonify(payload)
 
+@api_blueprint.route('/api/get_classifiers', methods=['GET'])
+def get_classifiers():
+    classifiers = vars.classifier.get_all_bands()
+    return jsonify(classifiers)
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():

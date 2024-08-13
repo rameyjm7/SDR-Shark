@@ -2,7 +2,7 @@ from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 
 class LoRaWANClassifier(BaseSignalClassifier):
     def __init__(self):
-        self.lorawan_bands = [
+        self.bands = [
             # Uplink sub-bands
             {"label": "LoRaWAN", "frequency": 903.0, "bandwidth": 1.4, "channel": "0-7", "metadata": "Sub-Band 1"},
             {"label": "LoRaWAN", "frequency": 904.6, "bandwidth": 1.4, "channel": "8-15", "metadata": "Sub-Band 2"},
@@ -18,7 +18,7 @@ class LoRaWANClassifier(BaseSignalClassifier):
 
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
         matches = []
-        for band in self.lorawan_bands:
+        for band in self.bands:
             if band["frequency"] - band["bandwidth"]/2 <= frequency_mhz <= band["frequency"] + band["bandwidth"]/2:
                 matches.append({
                     "label": band["label"],
@@ -31,7 +31,7 @@ class LoRaWANClassifier(BaseSignalClassifier):
 
     def get_signals_in_range(self, start_freq_mhz, end_freq_mhz):
         matches = []
-        for band in self.lorawan_bands:
+        for band in self.bands:
             if start_freq_mhz <= band["frequency"] <= end_freq_mhz:
                 matches.append({
                     "label": band["label"],

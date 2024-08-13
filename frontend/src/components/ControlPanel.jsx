@@ -10,6 +10,7 @@ import SweepSettings from './ControlPanel/SweepSettings';
 import debounce from 'lodash/debounce';
 import '../App.css';
 import Analysis from './Analysis';
+import Classifiers from './ControlPanel/Classifiers';  // Import the new Classifiers component
 
 const ControlPanel = ({
   settings,
@@ -199,6 +200,7 @@ const ControlPanel = ({
         <Tab label="SDR" />
         <Tab label="Plot" />
         <Tab label="Analysis" />
+        <Tab label="Classifiers" />
       </Tabs>
       <Box className="control-panel-tab-content">
         {tabIndex === 0 && (
@@ -250,6 +252,12 @@ const ControlPanel = ({
         )}
         {tabIndex === 2 && (
           <Analysis settings={settings} setSettings={setSettings} />
+        )}
+        {tabIndex === 3 && (  /* Add Classifiers TabPanel */
+          <Classifiers 
+          settings={localSettings}
+          setSettings={setLocalSettings}
+          />
         )}
       </Box>
     </Box>

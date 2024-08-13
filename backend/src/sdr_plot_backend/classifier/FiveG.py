@@ -2,7 +2,7 @@ from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 
 class FiveGClassifier(BaseSignalClassifier):
     def __init__(self):
-        self.fiveg_bands = [
+        self.bands = [
             {"label": "5G", "frequency": 680.5, "bandwidth": 36, "channel": "n71", "metadata": "Downlink"},
             {"label": "5G", "frequency": 722.5, "bandwidth": 12, "channel": "n29", "metadata": "Downlink"},
             {"label": "5G", "frequency": 707.5, "bandwidth": 18, "channel": "n12", "metadata": "Uplink"},
@@ -31,7 +31,7 @@ class FiveGClassifier(BaseSignalClassifier):
 
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
         matches = []
-        for band in self.fiveg_bands:
+        for band in self.bands:
             if band["frequency"] - band["bandwidth"]/2 <= frequency_mhz <= band["frequency"] + band["bandwidth"]/2:
                 matches.append({
                     "label": band["label"],
@@ -44,7 +44,7 @@ class FiveGClassifier(BaseSignalClassifier):
 
     def get_signals_in_range(self, start_freq_mhz, end_freq_mhz):
         matches = []
-        for band in self.fiveg_bands:
+        for band in self.bands:
             if start_freq_mhz <= band["frequency"] <= end_freq_mhz:
                 matches.append({
                     "label": band["label"],
@@ -58,7 +58,7 @@ class FiveGClassifier(BaseSignalClassifier):
 
 class NRClassifier(BaseSignalClassifier):
     def __init__(self):
-        self.nr_bands = [
+        self.bands = [
             {"label": "5G NR", "frequency": 2140, "bandwidth": 60, "channel": "n1", "metadata": "Downlink"},
             {"label": "5G NR", "frequency": 1960, "bandwidth": 60, "channel": "n2", "metadata": "Downlink"},
             {"label": "5G NR", "frequency": 1807.5, "bandwidth": 75, "channel": "n3", "metadata": "Downlink"},
@@ -144,7 +144,7 @@ class NRClassifier(BaseSignalClassifier):
     
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
         matches = []
-        for band in self.nr_bands:
+        for band in self.bands:
             if band["frequency"] - band["bandwidth"]/2 <= frequency_mhz <= band["frequency"] + band["bandwidth"]/2:
                 matches.append({
                     "label": band["label"],
@@ -157,7 +157,7 @@ class NRClassifier(BaseSignalClassifier):
 
     def get_signals_in_range(self, start_freq_mhz, end_freq_mhz):
         matches = []
-        for band in self.nr_bands:
+        for band in self.bands:
             if start_freq_mhz <= band["frequency"] <= end_freq_mhz:
                 matches.append({
                     "label": band["label"],
