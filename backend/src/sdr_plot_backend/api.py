@@ -6,6 +6,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
 import numpy as np
+import json
 from flask import Blueprint, jsonify, request, current_app
 from numba import jit
 
@@ -224,6 +225,20 @@ def get_classifiers():
     classifiers = vars.classifier.get_all_bands()
     return jsonify(classifiers)
 
+@api_blueprint.route('/api/download_all_bands', methods=['GET'])
+def download_all_bands():
+    try:
+        all_bands = vars.classifier.get_all_bands()
+        # Convert to JSON or CSV format here
+        json_data = json.dumps(all_bands, indent=4)
+        
+        # Create a response for file download
+        response = jsonify(all_bands)
+        response.headers['Content-Disposition'] = 'attachment; filename=all_bands.json'
+        return response
+    except Exception as e:
+        current_app.logger.error(f"Error downloading bands: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @api_blueprint.route('/api/upload_classifier', methods=['POST'])

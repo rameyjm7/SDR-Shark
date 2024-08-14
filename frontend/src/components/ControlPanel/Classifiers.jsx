@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
-import { Typography, Menu, MenuItem, Button, Input } from '@mui/material';
-
+import { Typography, Menu, MenuItem } from '@mui/material';
+import ClassifierUploader from './ClassifierUploader';  // Import your new component
 const Classifiers = ({ settings, setSettings }) => {
   const [classifiers, setClassifiers] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSelectedItem, setLastSelectedItem] = useState(null);
-  const [file, setFile] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,10 +79,8 @@ const Classifiers = ({ settings, setSettings }) => {
     if (lastSelectedItem) {
       const itemIndex = lastSelectedItem.split('-').slice(1).map(Number);
       const classification = classifiers[itemIndex];
-      console.log(classification);
       const frequency = classification.frequency;
       if (frequency) {
-        const frequencyInHz = convertToHz(frequency);
         const newSettings = { ...settings, frequency: parseFloat(frequency) };
         setSettings(newSettings);
         updateSettings(newSettings).then(() => {
@@ -100,7 +97,6 @@ const Classifiers = ({ settings, setSettings }) => {
     if (lastSelectedItem) {
       const itemIndex = lastSelectedItem.split('-').slice(1).map(Number);
       const classification = classifiers[itemIndex];
-      console.log(classification);
       const frequency = classification.frequency;
       const bandwidth = classification.bandwidth;
       if (frequency && bandwidth) {
@@ -123,7 +119,6 @@ const Classifiers = ({ settings, setSettings }) => {
 
   const updateSettings = async (newSettings) => {
     try {
-      console.log('Updating settings:', newSettings);
       await axios.post('/api/update_settings', newSettings);
       console.log('Settings updated successfully!');
     } catch (error) {
@@ -131,28 +126,10 @@ const Classifiers = ({ settings, setSettings }) => {
     }
   };
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
-  const handleFileUpload = async () => {
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      await axios.post('/api/upload_classifier', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      // After uploading, refetch the classifiers to update the list
-      const response = await axios.get('/api/get_classifiers');
-      setClassifiers(response.data);
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    }
+  const handleUploadSuccess = async () => {
+    // Refetch classifiers to update the list
+    const response = await axios.get('/api/get_classifiers');
+    setClassifiers(response.data);
   };
 
   return (
@@ -179,11 +156,7 @@ const Classifiers = ({ settings, setSettings }) => {
 
       {/* File upload section */}
       <Box mt={3}>
-        <Typography variant="h6">Load Classifiers</Typography>
-        <Input type="file" onChange={handleFileChange} />
-        <Button variant="contained" color="primary" onClick={handleFileUpload} disabled={!file}>
-          Upload Classifier
-        </Button>
+        <ClassifierUploader onUploadSuccess={handleUploadSuccess} />
       </Box>
     </Box>
   );
