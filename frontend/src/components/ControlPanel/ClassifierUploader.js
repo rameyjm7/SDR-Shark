@@ -31,7 +31,7 @@ const ClassifierUploader = ({ onUploadSuccess }) => {
         },
       });
 
-      setStatusMessage(response.data.message);
+      setStatusMessage(response.data.message || 'Upload successful');
       onUploadSuccess();
     } catch (error) {
       setStatusMessage('Upload failed.');
@@ -71,8 +71,12 @@ const ClassifierUploader = ({ onUploadSuccess }) => {
           borderRadius: 2,
           p: 2,
           textAlign: 'center',
-          backgroundColor: isDragActive ? '#f0f0f0' : '#ffffff',
+          backgroundColor: isDragActive ? '#333' : '#1c1c1c',
+          color: 'white',
           cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: '#444',
+          },
         }}
       >
         <input {...getInputProps()} />
