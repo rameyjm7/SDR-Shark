@@ -4,7 +4,8 @@ import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { Typography, Menu, MenuItem } from '@mui/material';
 import ClassifierUploader from './ClassifierUploader';  // Import your new component
-const Classifiers = ({ settings, setSettings }) => {
+
+const Classifiers = ({ settings, setSettings, addVerticalLines, clearVerticalLines }) => {
   const [classifiers, setClassifiers] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSelectedItem, setLastSelectedItem] = useState(null);
@@ -77,6 +78,7 @@ const Classifiers = ({ settings, setSettings }) => {
 
   const handleTuneToFreq = () => {
     if (lastSelectedItem) {
+      clearVerticalLines();
       const itemIndex = lastSelectedItem.split('-').slice(1).map(Number);
       const classification = classifiers[itemIndex];
       const frequency = classification.frequency;
@@ -110,6 +112,25 @@ const Classifiers = ({ settings, setSettings }) => {
         updateSettings(newSettings).then(() => {
           console.log(`Successfully tuned to ${frequency} MHz and set bandwidth to ${bandwidth} kHz`);
         });
+      } else {
+        console.warn('No frequency or bandwidth found for the selected item.');
+      }
+    }
+    handleMenuClose();
+  };
+
+  const handleAddVerticalLines = () => {
+    if (lastSelectedItem) {
+      const itemIndex = lastSelectedItem.split('-').slice(1).map(Number);
+      const classification = classifiers[itemIndex];
+      const frequency = classification.frequency;
+      const bandwidth = classification.bandwidth;
+      console.log(classification);
+      console.log(frequency);
+      console.log(bandwidth);
+      if (frequency && bandwidth) {
+        addVerticalLines(frequency, bandwidth);  // Call the function with frequency and bandwidth
+        console.log(`Vertical lines added at ${frequency} MHz ± ${bandwidth / 2} MHz`);
       } else {
         console.warn('No frequency or bandwidth found for the selected item.');
       }
@@ -152,6 +173,7 @@ const Classifiers = ({ settings, setSettings }) => {
       >
         <MenuItem onClick={handleTuneToFreq}>Tune to Freq</MenuItem>
         <MenuItem onClick={handleTuneToFreqBandwidth}>Tune to Freq, BW</MenuItem>
+        <MenuItem onClick={handleAddVerticalLines}>Mark Signal Bounds</MenuItem> {/* New menu item */}
       </Menu>
 
       {/* File upload section */}

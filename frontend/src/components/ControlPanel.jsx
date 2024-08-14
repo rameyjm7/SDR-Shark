@@ -6,11 +6,10 @@ import axios from 'axios';
 import SDRSettings from './ControlPanel/SDRSettings';
 import PlotSettings from './ControlPanel/PlotSettings';
 import WaterfallSettings from './ControlPanel/WaterfallSettings';
-import SweepSettings from './ControlPanel/SweepSettings';
-import debounce from 'lodash/debounce';
-import '../App.css';
 import Analysis from './Analysis';
 import Classifiers from './ControlPanel/Classifiers';  // Import the new Classifiers component
+import debounce from 'lodash/debounce';
+import '../App.css';
 
 const ControlPanel = ({
   settings,
@@ -25,6 +24,8 @@ const ControlPanel = ({
   setWaterfallSamples,
   showWaterfall,
   setShowWaterfall,
+  addVerticalLines, // Adding the addVerticalLines function prop
+  clearVerticalLines
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
@@ -253,10 +254,12 @@ const ControlPanel = ({
         {tabIndex === 2 && (
           <Analysis settings={settings} setSettings={setSettings} />
         )}
-        {tabIndex === 3 && (  /* Add Classifiers TabPanel */
+        {tabIndex === 3 && (
           <Classifiers 
-          settings={localSettings}
-          setSettings={setLocalSettings}
+            settings={localSettings}
+            setSettings={setLocalSettings}
+            addVerticalLines={addVerticalLines} // Pass the addVerticalLines function
+            clearVerticalLines={clearVerticalLines}
           />
         )}
       </Box>

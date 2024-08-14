@@ -78,6 +78,41 @@ const App = () => {
   const [metadata, setMetadata] = useState(null);
   const [fftData, setFftData] = useState([]);
   const [plotWidth, setPlotWidth] = useState(60); // Initial plot width in percentage
+  const [verticalLines, setVerticalLines] = useState([]);  // State for vertical lines
+
+  const addVerticalLines = (frequency, bandwidth) => {
+    // Check if frequency and bandwidth are numbers
+    if (typeof frequency !== 'number' || typeof bandwidth !== 'number') {
+        return;
+    }
+
+    // Calculate lower and upper bounds
+    const lowerBound = frequency - bandwidth / 2;
+    const upperBound = frequency + bandwidth / 2;
+
+    // Check if the calculated bounds are numbers
+    if (isNaN(lowerBound) || isNaN(upperBound)) {
+        console.error('Calculated bounds are NaN:', { lowerBound, upperBound });
+        return;
+    }
+
+    // Log the bounds before calling toFixed
+    console.log('Adding vertical lines at', lowerBound, 'MHz and', upperBound, 'MHz');
+
+    setVerticalLines((prevLines) => [
+        ...prevLines,
+        { frequency: lowerBound, label: `${lowerBound.toFixed(2)} MHz` },
+        { frequency: upperBound, label: `${upperBound.toFixed(2)} MHz` },
+    ]);
+
+    console.log(`Vertical lines added at ${lowerBound} MHz and ${upperBound} MHz`);
+};
+
+const clearVerticalLines = () => {
+  console.log('Clearing vertical lines');
+  setVerticalLines((prevLines) => []);
+};
+
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -157,6 +192,8 @@ const App = () => {
                 showWaterfall={showWaterfall}
                 showSecondTrace={showSecondTrace}
                 plotWidth={plotWidth} // Pass the calculated plot width as a prop
+                addVerticalLines={addVerticalLines} // Pass the function down to Plots
+                verticalLines={verticalLines}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
@@ -178,20 +215,22 @@ const App = () => {
             </TabPanel>
           </Box>
           <Box id="rightPanel" sx={{ paddingLeft: '10px', height: '100%', flex: '0 1 auto' }}>
-          <ControlPanel
-            settings={settings}
-            setSettings={setSettings}
-            minY={minY}
-            setMinY={(value) => { setMinY(value); }}
-            maxY={maxY}
-            setMaxY={(value) => { setMaxY(value); }}
-            updateInterval={updateInterval}
-            setUpdateInterval={setUpdateInterval}
-            waterfallSamples={waterfallSamples}
-            setWaterfallSamples={setWaterfallSamples}
-            showWaterfall={showWaterfall}
-            setShowWaterfall={setShowWaterfall}
-          />
+            <ControlPanel
+              settings={settings}
+              setSettings={setSettings}
+              minY={minY}
+              setMinY={setMinY}
+              maxY={maxY}
+              setMaxY={setMaxY}
+              updateInterval={updateInterval}
+              setUpdateInterval={setUpdateInterval}
+              waterfallSamples={waterfallSamples}
+              setWaterfallSamples={setWaterfallSamples}
+              showWaterfall={showWaterfall}
+              setShowWaterfall={setShowWaterfall}
+              addVerticalLines={addVerticalLines}  // Pass the function down to ControlPanel
+              clearVerticalLines={clearVerticalLines}
+            />
           </Box>
         </Box>
 

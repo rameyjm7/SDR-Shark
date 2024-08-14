@@ -4,13 +4,17 @@ import axios from 'axios';
 import ChartComponent from './ChartComponent';
 import '../App.css';
 
-const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY }) => {
+const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY, addVerticalLines, verticalLines  }) => {
   const [sweepSettings, setSweepSettings] = useState({
     frequency_start: 100,
     frequency_stop: 200,
     sweeping_enabled: false,
     bandwidth: 16,
   });
+
+  useEffect(() => {
+    console.log('Plots.js: verticalLines passed to Plots:', verticalLines);
+  }, [verticalLines]);
 
   useEffect(() => {
     fetchInitialSettings();
@@ -20,10 +24,8 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
 
   const fetchInitialSettings = async () => {
     try {
-      console.log("Fetching initial settings...");
       const response = await axios.get('/api/get_settings');
       const data = response.data;
-      console.log("Initial settings fetched:", data);
 
       setSweepSettings({
         frequency_start: data.frequency_start,
@@ -53,13 +55,23 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
 
   const updateSettings = async (newSettings) => {
     try {
-      console.log("Updating settings with:", newSettings);
       await axios.post('/api/update_settings', newSettings);
-      console.log("Settings updated successfully.");
     } catch (error) {
       console.error('Error updating settings:', error);
     }
   };
+
+  // Handle adding vertical lines
+  useEffect(() => {
+    if (addVerticalLines) {
+      addVerticalLines((frequency, bandwidth) => {
+        const lowerBound = frequency - bandwidth / 2;
+        const upperBound = frequency + bandwidth / 2;
+        setVerticalLines((prevLines) => [...prevLines, { frequency: lowerBound }, { frequency: upperBound }]);
+        console.log(`Vertical lines added at ${frequency} MHz ± ${bandwidth / 2} MHz`);
+      });
+    }
+  }, [addVerticalLines]);
 
   return (
     <div className="plots_container">
@@ -73,7 +85,8 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
           updateInterval={updateInterval}
           waterfallSamples={waterfallSamples}
           showWaterfall={showWaterfall}
-          showSecondTrace={showSecondTrace} // Pass the showSecondTrace prop to ChartComponent
+          showSecondTrace={showSecondTrace}
+          verticalLines={verticalLines}  // Pass verticalLines to ChartComponent
         />
       </Box>
     </div>

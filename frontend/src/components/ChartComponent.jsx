@@ -3,7 +3,7 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, verticalLines }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -111,11 +111,12 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       return 'rgb(255, 0, 0)';
     }
   };
+
   const generateAnnotations = (peaks, baseFreq, freqStep) => {
     const startFreq = baseFreq;
     const endFreq = baseFreq + freqStep * (fftData.length - 1);
     if (!settings.peakDetection) return [];
-  
+
     return peaks
       .filter((peak) => peak.frequency >= startFreq && peak.frequency <= endFreq)
       .map((peak) => {
@@ -141,8 +142,10 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         };
       });
   };
-  
-  const baseFreq = sweepSettings.sweeping_enabled ? sweepSettings.frequency_start : (settings.frequency - settings.sampleRate / 2) * 1e6;
+
+  const baseFreq = sweepSettings.sweeping_enabled
+    ? sweepSettings.frequency_start
+    : (settings.frequency - settings.sampleRate / 2) * 1e6;
   const freqStep = (sweepSettings.sweeping_enabled ? sweepSettings.bandwidth : settings.sampleRate * 1e6) / fftData.length;
   const peakAnnotations = generateAnnotations(peaks, baseFreq, freqStep);
 
@@ -184,6 +187,30 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.error("Tick values out of range:", tickVals);
   }
 
+  // Initialize verticalLineTraces before usage
+  let verticalLineTraces = [];
+
+  if (verticalLines && verticalLines.length > 0) {
+    verticalLineTraces = verticalLines.map(({ frequency }) => {
+      const lineColor = 'rgb(255, 0, 0)'; // Red color for vertical lines
+      console.log(`Adding vertical line at ${frequency} MHz`);
+
+      return {
+        x: [frequency*1e6, frequency*1e6], // Fixed frequency for both x points
+        y: [minY, maxY],           // Span the full y-axis range
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: lineColor, width: 2 },
+        hoverinfo: 'x',             // Show frequency on hover
+        name: `${frequency.toFixed(2)} MHz`, // Label for the legend
+      };
+    });
+  }
+
+  useEffect(() => {
+    console.log(`Vertical lines to be added: ${JSON.stringify(verticalLines)}`);
+  }, [verticalLines]);
+
   return (
     <div>
       <Plot
@@ -197,7 +224,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             mode: 'lines',
             marker: { color: 'orange' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
-          }
+          },
+          ...verticalLineTraces, // Add vertical lines to the plot
         ]}
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,
