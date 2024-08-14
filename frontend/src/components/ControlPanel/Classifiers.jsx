@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
-import { Typography, Menu, MenuItem } from '@mui/material';
+import { Typography, Menu, MenuItem, Button, Input } from '@mui/material';
 
 const Classifiers = ({ settings, setSettings }) => {
   const [classifiers, setClassifiers] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSelectedItem, setLastSelectedItem] = useState(null);
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,6 +131,30 @@ const Classifiers = ({ settings, setSettings }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleFileUpload = async () => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      await axios.post('/api/upload_classifier', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      // After uploading, refetch the classifiers to update the list
+      const response = await axios.get('/api/get_classifiers');
+      setClassifiers(response.data);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h6" gutterBottom>Signal Classifiers</Typography>
@@ -151,6 +176,15 @@ const Classifiers = ({ settings, setSettings }) => {
         <MenuItem onClick={handleTuneToFreq}>Tune to Freq</MenuItem>
         <MenuItem onClick={handleTuneToFreqBandwidth}>Tune to Freq, BW</MenuItem>
       </Menu>
+
+      {/* File upload section */}
+      <Box mt={3}>
+        <Typography variant="h6">Load Classifiers</Typography>
+        <Input type="file" onChange={handleFileChange} />
+        <Button variant="contained" color="primary" onClick={handleFileUpload} disabled={!file}>
+          Upload Classifier
+        </Button>
+      </Box>
     </Box>
   );
 };

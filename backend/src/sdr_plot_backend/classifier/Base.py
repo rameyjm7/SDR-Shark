@@ -1,3 +1,5 @@
+import json
+import csv
 from abc import ABC, abstractmethod
 
 class BaseSignalClassifier(ABC):
@@ -15,3 +17,24 @@ class BaseSignalClassifier(ABC):
     def get_bands(self):
         """Returns the list of bands handled by the classifier."""
         return self.bands
+
+    def dump_bands(self, file_path, file_format='json'):
+        """
+        Dumps the list of bands to a file in the specified format (JSON or CSV).
+        
+        :param file_path: Path to the output file.
+        :param file_format: Format to save the bands ('json' or 'csv').
+        """
+        if file_format == 'json':
+            with open(file_path, 'w') as f:
+                json.dump(self.bands, f, indent=4)
+        elif file_format == 'csv':
+            if self.bands:
+                with open(file_path, 'w', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=self.bands[0].keys())
+                    writer.writeheader()
+                    for band in self.bands:
+                        writer.writerow(band)
+        else:
+            raise ValueError("Unsupported file format. Use 'json' or 'csv'.")
+

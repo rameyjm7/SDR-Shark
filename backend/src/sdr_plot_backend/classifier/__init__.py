@@ -42,6 +42,24 @@ class SignalClassifier:
             all_bands.extend(classifier.get_bands())
         return all_bands
     
+    def dump_all_bands(self, file_path, format="json"):
+        """Dump all bands from all classifiers into a JSON or CSV file."""
+        all_bands = self.get_all_bands()
+        
+        if format == "json":
+            with open(file_path, 'w') as json_file:
+                json.dump(all_bands, json_file, indent=4)
+        elif format == "csv":
+            with open(file_path, 'w', newline='') as csv_file:
+                fieldnames = ["label", "frequency", "bandwidth", "channel", "metadata"]
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+                writer.writeheader()
+                for band in all_bands:
+                    writer.writerow(band)
+        else:
+            raise ValueError(f"Unsupported format: {format}. Use 'json' or 'csv'.")
+        
     def load_classifier_from_csv(self, file_path):
         """Load a classifier from a CSV file and add it to the list of classifiers."""
         class CustomClassifier(BaseSignalClassifier):

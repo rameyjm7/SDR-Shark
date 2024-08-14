@@ -56,6 +56,7 @@ class sdr_scheduler_config:
         self.showFirstTrace = True
         self.showSecondTrace = False
         self.recordings_dir = "/root/workspace/data/recordings"
+        self.classifiers_path = "/mnt/samba_share/datascience/band_dictionaries/"
         self.lockBandwidthSampleRate = False  # Default setting for lock
         self.radio_name = "sidekiq"
         

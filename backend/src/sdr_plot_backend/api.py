@@ -3,9 +3,10 @@ import threading
 import time
 from collections import deque
 from datetime import datetime
-
+from werkzeug.utils import secure_filename
+import os
 import numpy as np
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from numba import jit
 
 from sdr_plot_backend.signal_utils import perform_and_refine_scan, PeakDetector  # Import the new utility
@@ -222,6 +223,44 @@ def get_analytics():
 def get_classifiers():
     classifiers = vars.classifier.get_all_bands()
     return jsonify(classifiers)
+
+
+
+@api_blueprint.route('/api/upload_classifier', methods=['POST'])
+def upload_classifier():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'No file part'}), 400
+
+    file = request.files['file']
+    
+    # If user does not select a file, the browser submits an empty file without a filename
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'No selected file'}), 400
+
+    # Ensure the file has a secure filename
+    filename = secure_filename(file.filename)
+    file_path = os.path.join(vars.classifiers_path, filename)
+    
+    # Save the file
+    file.save(file_path)
+
+    # Determine file extension to choose appropriate loading method
+    file_extension = os.path.splitext(filename)[1].lower()
+
+    try:
+        if file_extension == '.csv':
+            vars.classifier.load_classifier_from_csv(file_path)
+        elif file_extension == '.json':
+            vars.classifier.load_classifier_from_json(file_path)
+        else:
+            return jsonify({'status': 'error', 'message': 'Unsupported file type'}), 400
+        
+        return jsonify({'status': 'success', 'message': f'Classifier {filename} uploaded and loaded successfully'})
+    
+    except Exception as e:
+        current_app.logger.error(f"Error loading classifier: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @api_blueprint.route('/api/select_sdr', methods=['POST'])
 def select_sdr():
