@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, IconButton, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Select, MenuItem, IconButton, Tabs, Tab, Button } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
@@ -25,7 +25,7 @@ const ControlPanel = ({
   showWaterfall,
   setShowWaterfall,
   addVerticalLines, // Adding the addVerticalLines function prop
-  clearVerticalLines
+  clearVerticalLines, // Adding the clearVerticalLines function prop
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
@@ -233,6 +233,16 @@ const ControlPanel = ({
         )}
         {tabIndex === 1 && (
           <>
+            {/* Add Clear Markers Button */}
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={clearVerticalLines}  // Call clearVerticalLines on button click
+              >
+                Clear Markers
+              </Button>
+            </Box>
             <PlotSettings
               settings={localSettings}
               setSettings={setLocalSettings}
@@ -259,7 +269,7 @@ const ControlPanel = ({
             settings={localSettings}
             setSettings={setLocalSettings}
             addVerticalLines={addVerticalLines} // Pass the addVerticalLines function
-            clearVerticalLines={clearVerticalLines}
+            clearVerticalLines={clearVerticalLines} // Pass the clearVerticalLines function
           />
         )}
       </Box>
