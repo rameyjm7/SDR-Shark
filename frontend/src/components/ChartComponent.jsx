@@ -210,6 +210,28 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   }, [verticalLines]);
 
 
+    // Initialize horizontalLineTraces before usage
+    let horizontalLineTraces = [];
+
+    if (horizontalLines && horizontalLines.length > 0) {
+      horizontalLineTraces = horizontalLines.map(({ power }) => {
+        const lineColor = 'rgb(255, 0, 0)'; // Red color for horizontal lines
+        return {
+          x: [baseFreq, baseFreq + freqStep * (fftData.length - 1)], // Span the entire frequency range
+          y: [power, power],           // Fixed power level for both y points
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: lineColor, width: 2 },
+          hoverinfo: 'y',             // Show power on hover
+          name: `${power.toFixed(2)} dB`, // Label for the legend
+        };
+      });
+    }
+  
+    useEffect(() => {
+      console.log(`Horizontal lines to be added: ${JSON.stringify(horizontalLines)}`);
+    }, [horizontalLines]);
+
   // this is called when a selection is made, allowing us to get the coordinates and send it to the backend to extract that waterfall
   const handleRelayout = (eventData) => {
     if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]'] &&
@@ -282,8 +304,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     }
 };
 
-
-
   return (
     <div>
       <Plot
@@ -299,6 +319,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
           },
           ...verticalLineTraces, // Add vertical lines to the plot
+          ...horizontalLineTraces, // Add horizontal lines to the plot
         ]}
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,

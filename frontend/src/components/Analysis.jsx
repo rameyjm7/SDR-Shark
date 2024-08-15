@@ -3,9 +3,9 @@ import axios from 'axios';
 import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { DataGrid } from '@mui/x-data-grid';
-import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
-const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines}) => {
+const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines, addHorizontalLines }) => {
   const [peaks, setPeaks] = useState([]);
   const [generalClassifications, setGeneralClassifications] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
@@ -143,6 +143,15 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines}
     handleMenuClose();
   };
 
+  const handleMarkNoiseFloor = () => {
+    const noiseFloor = signalStats.noise_floor;
+    if (noiseFloor !== undefined) {
+      addHorizontalLines(noiseFloor);  // Call the function with noise floor value
+      console.log(`Horizontal line added at noise floor level: ${noiseFloor} dB`);
+    } else {
+      console.warn('Noise floor value is not available.');
+    }
+  };
 
   const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
@@ -319,14 +328,20 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines}
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow key="noise_floor">
-                <TableCell component="th" scope="row">Noise Floor (dB)</TableCell>
-                <TableCell align="right">{signalStats.noise_floor}</TableCell>
-              </TableRow>
-              {/* Add more rows here if there are other statistics */}
+              {Object.entries(signalStats).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell component="th" scope="row">{key.replace(/_/g, ' ')}</TableCell>
+                  <TableCell align="right">{value}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>
+        <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
+          <Button variant="contained" color="primary" onClick={handleMarkNoiseFloor}>
+            Mark Noise Floor
+          </Button>
+        </Box>
       </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>

@@ -125,7 +125,7 @@ const addHorizontalLines = (power) => {
       { power: power, label: `${power.toFixed(2)} dB` },
   ]);
 
-  console.log(`Vertical lines added at ${lowerBound} MHz and ${upperBound} MHz`);
+  console.log(`Horizontal line added at ${power} dB`);
 };
 
 const clearHorizontalLines = () => {

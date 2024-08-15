@@ -74,7 +74,7 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
         console.log(`Horizontal lines added at ${power} dB`);
       });
     }
-  }, [addVerticalLines]);
+  }, [addHorizontalLines]);
 
   // Handle adding vertical lines
   useEffect(() => {

@@ -26,8 +26,8 @@ const ControlPanel = ({
   setShowWaterfall,
   addVerticalLines,
   clearVerticalLines,
-  addHorizontalLines, // Added prop for adding horizontal lines
-  clearHorizontalLines, // Added prop for clearing horizontal lines
+  addHorizontalLines, 
+  clearHorizontalLines, 
   handleSaveSelection,
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
@@ -229,6 +229,7 @@ const ControlPanel = ({
     setTabIndex(newValue);
   };
 
+
   return (
     <Box className="control-panel" sx={{ p: 2 }}>
       <Box display="flex" alignItems="center">
@@ -311,18 +312,20 @@ const ControlPanel = ({
           <Analysis 
           settings={localSettings}
           setSettings={setLocalSettings}
-          addVerticalLines={addVerticalLines}
+          addVerticalLines={addVerticalLines} // Ensure vertical lines are added correctly
           clearVerticalLines={clearVerticalLines}
+          addHorizontalLines={addHorizontalLines}  
+          clearHorizontalLines={clearHorizontalLines}  
           />
         )}
         {tabIndex === 3 && (
           <Classifiers 
             settings={localSettings}
             setSettings={setLocalSettings}
-            addVerticalLines={addVerticalLines}
+            addVerticalLines={addVerticalLines} // Ensure vertical lines are added correctly
             clearVerticalLines={clearVerticalLines}
-            addHorizontalLines={addHorizontalLines}  // Pass addHorizontalLines function
-            clearHorizontalLines={clearHorizontalLines}  // Pass clearHorizontalLines function
+            addHorizontalLines={addHorizontalLines}  
+            clearHorizontalLines={clearHorizontalLines}  
           />
         )}
       </Box>
@@ -331,4 +334,3 @@ const ControlPanel = ({
 };
 
 export default ControlPanel;
-
