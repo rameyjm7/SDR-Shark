@@ -44,6 +44,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "prestart": "node setProxy.js",
     "start": "export NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
@@ -67,7 +68,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://10.139.1.185:5000",
+  "proxy": "http://10.139.1.27:5000",
   "devDependencies": {
     "@babel/core": "^7.24.9",
     "@babel/preset-env": "^7.24.8",

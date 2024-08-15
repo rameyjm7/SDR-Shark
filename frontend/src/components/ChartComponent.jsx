@@ -36,7 +36,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/data');
+        const response = await axios.get('/api/data');
         const data = response.data;
 
         // Replace NaN values in FFT data
@@ -76,7 +76,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   useEffect(() => {
     const fetchPeaks = async () => {
       try {
-        const response = await axios.get('http://10.139.1.185:5000/api/analytics', {
+        const response = await axios.get('/api/analytics', {
           params: {
             min_peak_distance: settings.minPeakDistance * 1e3, // Convert to Hz
             number_of_peaks: settings.numberOfPeaks,

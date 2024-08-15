@@ -20,6 +20,8 @@ class SdrSettings:
 class sdr_scheduler_config:
 
     def __init__(self) -> None:
+        # self.app_root = "/mnt/samba_share/datascience/"
+        self.app_root = "/root"
         self.settings_file = "/root/configurations/sdr_scheduler_config.json"
         self.sdr_settings = {
             "hackrf" : SdrSettings("hackrf"),
@@ -55,8 +57,8 @@ class sdr_scheduler_config:
         self.number_of_peaks = 5
         self.showFirstTrace = True
         self.showSecondTrace = False
-        self.recordings_dir = "/root/workspace/data/recordings"
-        self.classifiers_path = "/mnt/samba_share/datascience/band_dictionaries/"
+        self.recordings_dir = f"{self.app_root}/datascience/recordings"
+        self.classifiers_path = f"{self.app_root}/datascience/band_dictionaries/"
         self.lockBandwidthSampleRate = False  # Default setting for lock
         self.radio_name = "sidekiq"
         

@@ -1,7 +1,9 @@
 import csv
 import json
 from sdr_plot_backend.classifier.Base import BaseSignalClassifier
-from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN, FRS
+from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN, FRS, AeronauticalNavigation, AviationService
+from sdr_plot_backend.classifier import BroadbandRadioService, BroadcastTV, EarthExpSatellite, FederalPart15
+                                            
 
 class SignalClassifier:
     def __init__(self):
@@ -16,7 +18,14 @@ class SignalClassifier:
             FiveG.FiveGClassifier(),
             FiveG.NRClassifier(),
             LoRaWAN.LoRaWANClassifier(),
-            FRS.FRSClassifier()
+            FRS.FRSClassifier(),
+            AeronauticalNavigation.AeronauticalNavigationClassifier(),
+            AviationService.AviationServiceClassifier(),
+            BroadbandRadioService.BroadbandRadioServiceClassifier(),
+            BroadcastTV.USBroadcastTVAndLPTVClassifier(),
+            EarthExpSatellite.EarthExpSatelliteClassifier(),
+            FederalPart15.FederalPart15Classifier()
+            
         ]
 
     def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
