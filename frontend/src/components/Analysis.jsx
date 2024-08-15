@@ -176,25 +176,42 @@ const Analysis = ({ settings, setSettings }) => {
 
 
 
-  // Convert grouped classifications to TreeViewBaseItem[]
-  const classificationItems = Object.entries(groupedClassifications).reduce((acc, [label, classifications], groupIndex) => {
-    const groupId = `group-${groupIndex}`;
-    const groupItem = {
-      id: groupId,
-      label: label,
-      children: classifications.map((classification, index) => {
-        // Sequentially define the item ID
-        const itemId = `item-${acc.nextId}`;
-        acc.nextId += 1;  // Increment the ID for the next item
-        return {
-          id: itemId,
-          label: `Channel: ${classification.channel}, Frequency: ${classification.frequency} MHz, Bandwidth: ${classification.bandwidth} MHz, Metadata: ${classification.metadata}`,
-        };
-      }),
-    };
-    acc.items.push(groupItem);
-    return acc;
-  }, { nextId: 0, items: [] }).items;
+// Convert grouped classifications to TreeViewBaseItem[]
+const classificationItems = Object.entries(groupedClassifications).reduce((acc, [label, classifications], groupIndex) => {
+  const groupId = `group-${groupIndex}`;
+  const groupItem = {
+    id: groupId,
+    label: label,
+    children: classifications.map((classification, index) => {
+      // Sequentially define the item ID
+      const itemId = `item-${acc.nextId}`;
+      acc.nextId += 1;  // Increment the ID for the next item
+
+      // Build the label dynamically based on available fields
+      const labelParts = [];
+      if (classification.channel !== undefined) {
+        labelParts.push(`Channel: ${classification.channel}`);
+      }
+      if (classification.frequency !== undefined) {
+        labelParts.push(`Frequency: ${classification.frequency} MHz`);
+      }
+      if (classification.bandwidth !== undefined) {
+        labelParts.push(`Bandwidth: ${classification.bandwidth} MHz`);
+      }
+      if (classification.metadata !== undefined) {
+        labelParts.push(`Metadata: ${classification.metadata}`);
+      }
+
+      return {
+        id: itemId,
+        label: labelParts.join(', '),  // Join the parts with a comma
+      };
+    }),
+  };
+  acc.items.push(groupItem);
+  return acc;
+}, { nextId: 0, items: [] }).items;
+
 
   
   const handleItemSelectionToggle = (event, itemId, isSelected) => {
