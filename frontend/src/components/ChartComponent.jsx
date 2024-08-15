@@ -211,6 +211,48 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.log(`Vertical lines to be added: ${JSON.stringify(verticalLines)}`);
   }, [verticalLines]);
 
+  const handleRelayout = (eventData) => {
+    if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]'] &&
+        eventData['yaxis.range[0]'] && eventData['yaxis.range[1]']) {
+
+        // Extract the box selection coordinates
+        const xStart = eventData['xaxis.range[0]'];
+        const xEnd = eventData['xaxis.range[1]'];
+        const yStart = eventData['yaxis.range[0]'];
+        const yEnd = eventData['yaxis.range[1]'];
+
+        console.log(`Box selection coordinates: 
+            xStart: ${xStart}, xEnd: ${xEnd}, 
+            yStart: ${yStart}, yEnd: ${yEnd}`);
+
+        // Prepare the coordinates data to be sent to the backend
+        const coordinates = {
+            xStart,
+            xEnd,
+            yStart,
+            yEnd,
+        };
+
+        // Send the coordinates to the backend via POST request
+        fetch('/api/save_selection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(coordinates),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+};
+
+
+
   return (
     <div>
       <Plot
@@ -306,6 +348,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
           displayModeBar: false, // Hide the mode bar
         }}
         style={{ width: `${plotWidth}vw` }}
+        onRelayout={handleRelayout} // Attach the relayout event handler
       />
       )}
     </div>

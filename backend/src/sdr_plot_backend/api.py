@@ -136,6 +136,7 @@ scanner_thread = threading.Thread(target=radio_scanner)
 fft_thread.start()
 scanner_thread.start()
 
+
 @api_blueprint.route('/api/data')
 def get_data():
     with data_lock:
@@ -363,3 +364,30 @@ def cleanup():
     vars.sdr1.stop()
     fft_thread.join()
     scanner_thread.join()
+
+@api_blueprint.route('/api/save_selection', methods=['POST'])
+def save_selection():
+    data = request.get_json()
+    x_start = data.get('xStart')
+    x_end = data.get('xEnd')
+    y_start = data.get('yStart')
+    y_end = data.get('yEnd')
+
+    if not all([x_start, x_end, y_start, y_end]):
+        return jsonify({"error": "Invalid coordinates"}), 400
+
+    with data_lock:
+        # Assuming `waterfall_buffer` contains rows of FFT data and 'y' indexes represent different time slices
+        selected_data = []
+
+        for i in range(int(y_start), int(y_end) + 1):
+            if i < len(waterfall_buffer):
+                row = waterfall_buffer[i]
+                selected_data.append(row[int(x_start):int(x_end) + 1])
+
+    # Save the selected data to a file
+    file_path = os.path.join(vars.recordings_dir, f'selected_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json')
+    with open(file_path, 'w') as file:
+        json.dump(selected_data, file)
+
+    return jsonify({"message": "Data saved successfully", "file_path": file_path})
