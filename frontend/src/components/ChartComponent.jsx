@@ -211,6 +211,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.log(`Vertical lines to be added: ${JSON.stringify(verticalLines)}`);
   }, [verticalLines]);
 
+
+  // this is called when a selection is made, allowing us to get the coordinates and send it to the backend to extract that waterfall
   const handleRelayout = (eventData) => {
     if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]'] &&
         eventData['yaxis.range[0]'] && eventData['yaxis.range[1]']) {
@@ -224,6 +226,10 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         console.log(`Box selection coordinates: 
             xStart: ${xStart}, xEnd: ${xEnd}, 
             yStart: ${yStart}, yEnd: ${yEnd}`);
+        console.log(settings);
+        // Assuming frequency and sampleRate are part of your SDR settings
+        const frequency = settings.frequency; // Adjust based on your actual settings object structure
+        const sampleRate = settings.sampleRate; // Adjust based on your actual settings object structure
 
         // Prepare the coordinates data to be sent to the backend
         const coordinates = {
@@ -231,9 +237,10 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             xEnd,
             yStart,
             yEnd,
+            filename: `${frequency}_${sampleRate}`, // Default filename
         };
 
-        // Send the coordinates to the backend via POST request
+        // Send the initial save request with the default filename
         fetch('/api/save_selection', {
             method: 'POST',
             headers: {
@@ -243,10 +250,36 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Success:', data);
+            console.log('Initial save success:', data);
+
+            // After the initial save, prompt the user to confirm or change the filename
+            const userFilename = prompt('Enter filename (leave blank to keep default):', coordinates.filename);
+
+            if (userFilename && userFilename !== coordinates.filename) {
+                // Send the rename request if the filename is different
+                const renameData = {
+                    old_filename: coordinates.filename,
+                    new_filename: userFilename,
+                };
+
+                fetch('/api/move', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(renameData),
+                })
+                .then(response => response.json())
+                .then(renameData => {
+                    console.log('Rename success:', renameData);
+                })
+                .catch((error) => {
+                    console.error('Rename error:', error);
+                });
+            }
         })
         .catch((error) => {
-            console.error('Error:', error);
+            console.error('Initial save error:', error);
         });
     }
 };

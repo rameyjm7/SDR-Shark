@@ -365,6 +365,36 @@ def cleanup():
     fft_thread.join()
     scanner_thread.join()
 
+
+@api_blueprint.route('/api/move', methods=['POST'])
+def move_file():
+    data = request.get_json()
+    old_filename = data.get('old_filename')
+    new_filename = data.get('new_filename')
+
+    if not old_filename or not new_filename:
+        return jsonify({"error": "Invalid filename(s) provided"}), 400
+
+    old_iq_path = os.path.join(vars.recordings_dir, f'{old_filename}.iq')
+    old_json_path = os.path.join(vars.recordings_dir, f'{old_filename}.json')
+    new_iq_path = os.path.join(vars.recordings_dir, f'{new_filename}.iq')
+    new_json_path = os.path.join(vars.recordings_dir, f'{new_filename}.json')
+
+    # Rename the IQ file
+    if os.path.exists(old_iq_path):
+        os.rename(old_iq_path, new_iq_path)
+    else:
+        return jsonify({"error": "IQ file not found"}), 404
+
+    # Rename the JSON file
+    if os.path.exists(old_json_path):
+        os.rename(old_json_path, new_json_path)
+    else:
+        return jsonify({"error": "JSON file not found"}), 404
+
+    return jsonify({"message": "Files renamed successfully", "new_filename": new_filename})
+
+
 @api_blueprint.route('/api/save_selection', methods=['POST'])
 def save_selection():
     data = request.get_json()
@@ -372,22 +402,62 @@ def save_selection():
     x_end = data.get('xEnd')
     y_start = data.get('yStart')
     y_end = data.get('yEnd')
+    filename = data.get("filename")
 
     if not all([x_start, x_end, y_start, y_end]):
         return jsonify({"error": "Invalid coordinates"}), 400
 
+    selected_data = []
+
     with data_lock:
         # Assuming `waterfall_buffer` contains rows of FFT data and 'y' indexes represent different time slices
-        selected_data = []
-
         for i in range(int(y_start), int(y_end) + 1):
             if i < len(waterfall_buffer):
                 row = waterfall_buffer[i]
+                # Select the range of interest in each row
                 selected_data.append(row[int(x_start):int(x_end) + 1])
 
-    # Save the selected data to a file
-    file_path = os.path.join(vars.recordings_dir, f'selected_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json')
-    with open(file_path, 'w') as file:
-        json.dump(selected_data, file)
+    # Convert selected data to 16-bit signed integer format (assuming the FFT data is float)
+    iq_data = []
+    for row in selected_data:
+        for value in row:
+            # Scale and clip the value within the int16 range
+            iq_value = int(np.clip(value * 32767, -32768, 32767))
+            iq_data.append(iq_value)
 
-    return jsonify({"message": "Data saved successfully", "file_path": file_path})
+    # Define the base file name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_filename = f'{filename}_{timestamp}'
+
+    # Save the IQ data in 16T binary format
+    iq_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.iq')
+    
+    with open(iq_file_path, 'wb') as iq_file:
+        iq_file.write(np.array(iq_data, dtype=np.int16).tobytes())
+
+    # Save the original selected data in JSON format
+    json_data_file_path = os.path.join(vars.recordings_dir, f'{base_filename}_data.json')
+    with open(json_data_file_path, 'w') as json_data_file:
+        json.dump(selected_data, json_data_file, indent=4)
+
+    # Gather SDR settings
+    sdr_settings = {
+        "frequency": vars.sdr_settings[vars.sdr_name].frequency,
+        "bandwidth": vars.sdr_settings[vars.sdr_name].bandwidth,
+        "sample_rate": vars.sdr_settings[vars.sdr_name].sampleRate,
+        "gain": vars.sdr_settings[vars.sdr_name].gain,
+        "sdr": vars.sdr_name,
+        "timestamp": timestamp
+    }
+
+    # Save SDR settings to a JSON file
+    json_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.json')
+    with open(json_file_path, 'w') as json_file:
+        json.dump(sdr_settings, json_file, indent=4)
+
+    return jsonify({
+        "message": "Data saved successfully",
+        "iq_file_path": iq_file_path,
+        "json_file_path": json_file_path,
+        "json_data_file_path": json_data_file_path
+    })

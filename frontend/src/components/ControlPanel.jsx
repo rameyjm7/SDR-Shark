@@ -93,8 +93,8 @@ const ControlPanel = ({
       const noiseFloor = response.data.noise_floor;
 
       // Adjust the Y-axis limits based on the noise floor
-      const newMinY = noiseFloor - 20; // 20dB below the noise floor
-      const newMaxY = noiseFloor + 60; // 60dB above the noise floor
+      const newMinY = noiseFloor - 30; // 30dB below the noise floor
+      const newMaxY = noiseFloor + 70; // 70dB above the noise floor
 
       setMinY(newMinY);
       setMaxY(newMaxY);
