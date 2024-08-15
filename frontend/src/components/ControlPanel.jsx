@@ -7,7 +7,7 @@ import SDRSettings from './ControlPanel/SDRSettings';
 import PlotSettings from './ControlPanel/PlotSettings';
 import WaterfallSettings from './ControlPanel/WaterfallSettings';
 import Analysis from './Analysis';
-import Classifiers from './ControlPanel/Classifiers';  // Import the new Classifiers component
+import Classifiers from './ControlPanel/Classifiers';
 import debounce from 'lodash/debounce';
 import '../App.css';
 
@@ -24,8 +24,8 @@ const ControlPanel = ({
   setWaterfallSamples,
   showWaterfall,
   setShowWaterfall,
-  addVerticalLines, // Adding the addVerticalLines function prop
-  clearVerticalLines, // Adding the clearVerticalLines function prop
+  addVerticalLines,
+  clearVerticalLines,
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
@@ -78,9 +78,28 @@ const ControlPanel = ({
       });
       setSettings(newSettings);
       setStatus('Settings updated');
+
+      // Delay for 1 second to ensure the settings have been applied
+      setTimeout(fetchAndAdjustYAxis, 1000);
     } catch (error) {
       console.error('Error updating settings:', error);
       setStatus('Error updating settings');
+    }
+  };
+
+  const fetchAndAdjustYAxis = async () => {
+    try {
+      const response = await axios.get('/api/noise_floor');
+      const noiseFloor = response.data.noise_floor;
+
+      // Adjust the Y-axis limits based on the noise floor
+      const newMinY = noiseFloor - 20; // 20dB below the noise floor
+      const newMaxY = noiseFloor + 60; // 60dB above the noise floor
+
+      setMinY(newMinY);
+      setMaxY(newMaxY);
+    } catch (error) {
+      console.error('Error fetching noise floor:', error);
     }
   };
 

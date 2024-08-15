@@ -67,6 +67,12 @@ def generate_fft_data():
         # Normalize infinity values
         current_fft = np.where(np.isinf(current_fft), -20, current_fft)
         
+        # Calculate noise floor and store it in signal_stats
+        sorted_fft = np.sort(current_fft)
+        noise_floor_data = sorted_fft[:int(len(sorted_fft) * 0.2)]  # Use the lowest 10% of FFT values
+        noise_floor = np.mean(noise_floor_data)
+        vars.signal_stats["noise_floor"] = noise_floor
+
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
             if len(full_fft) == 0:
@@ -97,8 +103,6 @@ def generate_fft_data():
             else:
                 full_fft = (full_fft[:vars.sample_size] * \
                     ( vars.sdr_settings[sdr_name].averagingCount - 1) + current_fft) / vars.sdr_settings[sdr_name].averagingCount
-                # dc_index = int(len(full_fft)/2)-1
-                # full_fft[dc_index] = full_fft[dc_index+1]
 
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
@@ -219,6 +223,16 @@ def get_analytics():
             payload['peaks'] = peaks_data
     
     return jsonify(payload)
+
+@api_blueprint.route('/api/noise_floor', methods=['GET'])
+def get_noise_floor():
+    # Retrieve the noise floor from the global signal_stats dictionary
+    noise_floor = vars.signal_stats.get("noise_floor", None)
+    
+    if noise_floor is None:
+        return jsonify({"error": "Noise floor not calculated yet"}), 500
+
+    return jsonify({"noise_floor": float(noise_floor)})
 
 @api_blueprint.route('/api/get_classifiers', methods=['GET'])
 def get_classifiers():

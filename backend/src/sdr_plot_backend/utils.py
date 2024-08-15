@@ -81,6 +81,10 @@ class sdr_scheduler_config:
         # Load settings from file
         self.load_settings()
         self.classifier = SignalClassifier()
+        
+        self.signal_stats = {
+            "noise_floor" : -255
+        }
 
     def load_settings(self):
         """Load settings from a JSON file. If the file doesn't exist, create it with default values."""
