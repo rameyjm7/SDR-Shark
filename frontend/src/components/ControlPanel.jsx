@@ -274,22 +274,6 @@ const ControlPanel = ({
         )}
         {tabIndex === 1 && (
           <>
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={clearVerticalLines}
-              >
-                Clear Vertical Markers
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={clearHorizontalLines}  // Clear horizontal lines
-              >
-                Clear Horizontal Markers
-              </Button>
-            </Box>
             <PlotSettings
               settings={localSettings}
               setSettings={setLocalSettings}

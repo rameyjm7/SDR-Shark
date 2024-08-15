@@ -5,7 +5,7 @@ import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { DataGrid } from '@mui/x-data-grid';
 import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
 
-const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines, addHorizontalLines }) => {
+const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines, addHorizontalLines, clearHorizontalLines }) => {
   const [peaks, setPeaks] = useState([]);
   const [generalClassifications, setGeneralClassifications] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
@@ -336,10 +336,25 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
             </TableBody>
           </Table>
         </TableContainer>
+        <Typography variant="h6" gutterBottom>Markers</Typography>
         <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
           <Button variant="contained" color="primary" onClick={handleMarkNoiseFloor}>
             Mark Noise Floor
           </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={clearVerticalLines}
+              >
+                Clear Vertical Markers
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={clearHorizontalLines}  // Clear horizontal lines
+              >
+                Clear Horizontal Markers
+              </Button>
         </Box>
       </Box>
       <Box sx={{ mt: 4 }}>
