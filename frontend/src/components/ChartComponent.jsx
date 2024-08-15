@@ -3,7 +3,7 @@ import axios from 'axios';
 import Plot from 'react-plotly.js';
 import '../App.css';
 
-const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, verticalLines }) => {
+const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, verticalLines, horizontalLines }) => {
   const [fftData, setFftData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
@@ -193,8 +193,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
   if (verticalLines && verticalLines.length > 0) {
     verticalLineTraces = verticalLines.map(({ frequency }) => {
       const lineColor = 'rgb(255, 0, 0)'; // Red color for vertical lines
-      console.log(`Adding vertical line at ${frequency} MHz`);
-
       return {
         x: [frequency*1e6, frequency*1e6], // Fixed frequency for both x points
         y: [minY, maxY],           // Span the full y-axis range

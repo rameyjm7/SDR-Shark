@@ -79,6 +79,7 @@ const App = () => {
   const [fftData, setFftData] = useState([]);
   const [plotWidth, setPlotWidth] = useState(60); // Initial plot width in percentage
   const [verticalLines, setVerticalLines] = useState([]);  // State for vertical lines
+  const [horizontalLines, setHorizontalLines] = useState([]);  // State for horizontal lines
 
   const addVerticalLines = (frequency, bandwidth) => {
     // Check if frequency and bandwidth are numbers
@@ -112,6 +113,27 @@ const clearVerticalLines = () => {
   console.log('Clearing vertical lines');
   setVerticalLines((prevLines) => []);
 };
+
+const addHorizontalLines = (power) => {
+  // Check if power is a number
+  if (typeof power !== 'number') {
+      return;
+  }
+
+  setHorizontalLines((prevLines) => [
+      ...prevLines,
+      { power: power, label: `${power.toFixed(2)} dB` },
+  ]);
+
+  console.log(`Vertical lines added at ${lowerBound} MHz and ${upperBound} MHz`);
+};
+
+const clearHorizontalLines = () => {
+console.log('Clearing horizontal lines');
+  setHorizontalLines((prevLines) => []);
+};
+
+
 
 
   const handleTabChange = (event, newValue) => {
@@ -185,15 +207,17 @@ const clearVerticalLines = () => {
                 settings={settings}
                 minY={minY}
                 maxY={maxY}
-                setMinY={setMinY}  // Ensure these are passed to Plots
+                setMinY={setMinY}  
                 setMaxY={setMaxY}
                 updateInterval={updateInterval}
                 waterfallSamples={waterfallSamples}
                 showWaterfall={showWaterfall}
                 showSecondTrace={showSecondTrace}
-                plotWidth={plotWidth} // Pass the calculated plot width as a prop
-                addVerticalLines={addVerticalLines} // Pass the function down to Plots
+                plotWidth={plotWidth} 
+                addVerticalLines={addVerticalLines} 
                 verticalLines={verticalLines}
+                addHorizontalLines={addHorizontalLines} 
+                horizontalLines={horizontalLines}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
@@ -228,8 +252,10 @@ const clearVerticalLines = () => {
               setWaterfallSamples={setWaterfallSamples}
               showWaterfall={showWaterfall}
               setShowWaterfall={setShowWaterfall}
-              addVerticalLines={addVerticalLines}  // Pass the function down to ControlPanel
+              addVerticalLines={addVerticalLines}  
               clearVerticalLines={clearVerticalLines}
+              addHorizontalLines={addHorizontalLines}  
+              clearHorizontalLines={clearHorizontalLines}
             />
           </Box>
         </Box>

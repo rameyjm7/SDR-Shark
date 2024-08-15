@@ -67,11 +67,7 @@ def generate_fft_data():
         # Normalize infinity values
         current_fft = np.where(np.isinf(current_fft), -20, current_fft)
         
-        # Calculate noise floor and store it in signal_stats
-        sorted_fft = np.sort(current_fft)
-        noise_floor_data = sorted_fft[:int(len(sorted_fft) * 0.2)]  # Use the lowest 10% of FFT values
-        noise_floor = np.mean(noise_floor_data)
-        vars.signal_stats["noise_floor"] = noise_floor
+
 
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
@@ -86,6 +82,15 @@ def generate_fft_data():
                 current_freq = vars.sweep_settings['frequency_start']
                 # Complete sweep, deliver the full FFT
                 averaged_fft = np.array(full_fft)
+                
+                # Calculate noise floor and store it in signal_stats
+                sorted_fft = np.sort(averaged_fft)
+                noise_floor_data = sorted_fft[:int(len(sorted_fft) * 0.2)]  # Use the lowest 10% of FFT values
+                noise_floor = np.mean(noise_floor_data)
+                vars.signal_stats["noise_floor"] = round(float(noise_floor),3)
+                vars.signal_stats["max"] = round(float(np.max(sorted_fft)),3)
+                
+                
                 downsampled_fft_avg = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
                 downsampled_fft = downsample(current_fft, len(current_fft))       # Downsample to match the normal FFT size
 
@@ -104,7 +109,12 @@ def generate_fft_data():
             else:
                 full_fft = (full_fft[:vars.sample_size] * \
                     ( vars.sdr_settings[sdr_name].averagingCount - 1) + current_fft) / vars.sdr_settings[sdr_name].averagingCount
-
+            # Calculate noise floor and store it in signal_stats
+            sorted_fft = np.sort(full_fft)
+            noise_floor_data = sorted_fft[:int(len(sorted_fft) * 0.2)]  # Use the lowest 10% of FFT values
+            noise_floor = np.mean(noise_floor_data)
+            vars.signal_stats["noise_floor"] = round(float(noise_floor),3)
+            
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
                 waterfall_buffer.append(downsample(current_fft).tolist())
@@ -200,6 +210,7 @@ def get_analytics():
         classifications = vars.classifier.get_signals_in_range(current_frequency, current_bandwidth)
         classifications_list = classifications
         payload['classifications'] = classifications_list
+        payload['signal_stats'] = vars.signal_stats
         
         # Peak classifications
         peaks_response = fft_data['peaks'].copy()
@@ -220,7 +231,7 @@ def get_analytics():
                 'frequency': freq,
                 'power': power,
                 'bandwidth': bandwidth,
-                'classification': classifications_list
+                'classification': classifications_list,
             })
             payload['peaks'] = peaks_data
     
@@ -321,7 +332,8 @@ def get_settings():
         'peakThreshold' : vars.peak_threshold_minimum_dB,
         'showFirstTrace': vars.showFirstTrace,
         'showSecondTrace': vars.showSecondTrace,
-        'lockBandwidthSampleRate': vars.lockBandwidthSampleRate
+        'lockBandwidthSampleRate': vars.lockBandwidthSampleRate,
+        'signal_stats' : vars.signal_stats
     }
     return jsonify(settings)
 

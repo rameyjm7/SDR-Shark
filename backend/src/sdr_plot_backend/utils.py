@@ -83,7 +83,8 @@ class sdr_scheduler_config:
         self.classifier = SignalClassifier()
         
         self.signal_stats = {
-            "noise_floor" : -255
+            "noise_floor" : -255,
+            "max" : -255
         }
 
     def load_settings(self):

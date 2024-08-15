@@ -3,16 +3,14 @@ import axios from 'axios';
 import Box from '@mui/material/Box';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { DataGrid } from '@mui/x-data-grid';
-import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem } from '@mui/material';
+import { FormControlLabel, Slider, Switch, Typography, Menu, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 
-// Function to generate a unique ID
-const generateUniqueId = (prefix, key) => `${prefix}-${key}-${Math.random().toString(36).substr(2, 9)}`;
-
-const Analysis = ({ settings, setSettings }) => {
+const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines}) => {
   const [peaks, setPeaks] = useState([]);
   const [generalClassifications, setGeneralClassifications] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSelectedItem, setLastSelectedItem] = useState(null);
+  const [signalStats, setSignalStats] = useState({ noise_floor: -255 });  // Initialize with default noise floor
 
   const convertToHz = (valueInMHz) => valueInMHz * 1e6;
   const convertToMHz = (valueInHz) => valueInHz / 1e6;
@@ -56,7 +54,6 @@ const Analysis = ({ settings, setSettings }) => {
   };
 
   const handleContextMenu = (event, item) => {
-    console.log(event);
     event.preventDefault();
     setContextMenu(
       contextMenu === null
@@ -126,6 +123,27 @@ const Analysis = ({ settings, setSettings }) => {
     handleMenuClose();
   };
 
+  const handleAddVerticalLines = () => {
+    if (lastSelectedItem) {
+      const [groupIndex, itemIndex] = lastSelectedItem.split('-').slice(1).map(Number);
+      const classification = generalClassifications[groupIndex];
+
+      const frequency = classification.frequency;
+      const bandwidth = classification.bandwidth;
+      console.log(classification);
+      console.log(frequency);
+      console.log(bandwidth);
+      if (frequency && bandwidth) {
+        addVerticalLines(frequency, bandwidth);  // Call the function with frequency and bandwidth
+        console.log(`Vertical lines added at ${frequency} MHz ± ${bandwidth / 2} MHz`);
+      } else {
+        console.warn('No frequency or bandwidth found for the selected item.');
+      }
+    }
+    handleMenuClose();
+  };
+
+
   const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
     { field: 'power', headerName: 'Power (dB)', width: 140 },
@@ -148,6 +166,10 @@ const Analysis = ({ settings, setSettings }) => {
         const data = response.data;
         setPeaks(data.peaks);
         setGeneralClassifications(data.classifications);
+        // Set signal stats from the status data
+        if (data.signal_stats) {
+          setSignalStats(data.signal_stats);
+        }
       } catch (error) {
         console.error('Error fetching analytics:', error);
       }
@@ -174,46 +196,42 @@ const Analysis = ({ settings, setSettings }) => {
     return acc;
   }, {});
 
+  // Convert grouped classifications to TreeViewBaseItem[]
+  const classificationItems = Object.entries(groupedClassifications).reduce((acc, [label, classifications], groupIndex) => {
+    const groupId = `group-${groupIndex}`;
+    const groupItem = {
+      id: groupId,
+      label: label,
+      children: classifications.map((classification, index) => {
+        // Sequentially define the item ID
+        const itemId = `item-${acc.nextId}`;
+        acc.nextId += 1;  // Increment the ID for the next item
 
+        // Build the label dynamically based on available fields
+        const labelParts = [];
+        if (classification.channel !== undefined) {
+          labelParts.push(`Channel: ${classification.channel}`);
+        }
+        if (classification.frequency !== undefined) {
+          labelParts.push(`Frequency: ${classification.frequency} MHz`);
+        }
+        if (classification.bandwidth !== undefined) {
+          labelParts.push(`Bandwidth: ${classification.bandwidth} MHz`);
+        }
+        if (classification.metadata !== undefined) {
+          labelParts.push(`Metadata: ${classification.metadata}`);
+        }
 
-// Convert grouped classifications to TreeViewBaseItem[]
-const classificationItems = Object.entries(groupedClassifications).reduce((acc, [label, classifications], groupIndex) => {
-  const groupId = `group-${groupIndex}`;
-  const groupItem = {
-    id: groupId,
-    label: label,
-    children: classifications.map((classification, index) => {
-      // Sequentially define the item ID
-      const itemId = `item-${acc.nextId}`;
-      acc.nextId += 1;  // Increment the ID for the next item
+        return {
+          id: itemId,
+          label: labelParts.join(', '),  // Join the parts with a comma
+        };
+      }),
+    };
+    acc.items.push(groupItem);
+    return acc;
+  }, { nextId: 0, items: [] }).items;
 
-      // Build the label dynamically based on available fields
-      const labelParts = [];
-      if (classification.channel !== undefined) {
-        labelParts.push(`Channel: ${classification.channel}`);
-      }
-      if (classification.frequency !== undefined) {
-        labelParts.push(`Frequency: ${classification.frequency} MHz`);
-      }
-      if (classification.bandwidth !== undefined) {
-        labelParts.push(`Bandwidth: ${classification.bandwidth} MHz`);
-      }
-      if (classification.metadata !== undefined) {
-        labelParts.push(`Metadata: ${classification.metadata}`);
-      }
-
-      return {
-        id: itemId,
-        label: labelParts.join(', '),  // Join the parts with a comma
-      };
-    }),
-  };
-  acc.items.push(groupItem);
-  return acc;
-}, { nextId: 0, items: [] }).items;
-
-
-  
   const handleItemSelectionToggle = (event, itemId, isSelected) => {
     if (isSelected) {
       console.log(itemId);
@@ -291,6 +309,26 @@ const classificationItems = Object.entries(groupedClassifications).reduce((acc, 
         </>
       </Box>
       <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>Signal Statistics</Typography>
+        <TableContainer component={Paper}>
+          <Table aria-label="simple table">
+            <TableHead>
+              <TableRow>
+                <TableCell>Statistic</TableCell>
+                <TableCell align="right">Value</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow key="noise_floor">
+                <TableCell component="th" scope="row">Noise Floor (dB)</TableCell>
+                <TableCell align="right">{signalStats.noise_floor}</TableCell>
+              </TableRow>
+              {/* Add more rows here if there are other statistics */}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+      <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>
         <RichTreeView
           items={classificationItems}
@@ -309,6 +347,7 @@ const classificationItems = Object.entries(groupedClassifications).reduce((acc, 
         >
           <MenuItem onClick={handleTuneToFreq}>Tune to Freq</MenuItem>
           <MenuItem onClick={handleTuneToFreqBandwidth}>Tune to Freq, Bandwidth</MenuItem>
+          <MenuItem onClick={handleAddVerticalLines}>Mark Signal Bounds</MenuItem> {/* New menu item */}
         </Menu>
       </Box>
       <Box sx={{ height: 400, width: '100%', mt: 2 }}>

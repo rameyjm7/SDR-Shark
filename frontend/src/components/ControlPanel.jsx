@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Select, MenuItem, IconButton, Tabs, Tab, Button } from '@mui/material';
+import { Box, Typography, Select, MenuItem, IconButton, Tabs, Tab, Button, CircularProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
@@ -26,9 +26,13 @@ const ControlPanel = ({
   setShowWaterfall,
   addVerticalLines,
   clearVerticalLines,
+  addHorizontalLines, // Added prop for adding horizontal lines
+  clearHorizontalLines, // Added prop for clearing horizontal lines
+  handleSaveSelection,
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
+  const [saving, setSaving] = useState(false);
   const [localSettings, setLocalSettings] = useState(settings);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
@@ -49,11 +53,10 @@ const ControlPanel = ({
       const data = response.data;
       setSdr(data.sdr);
 
-      // Set the correct trace based on the SDR
       setSettings((prevSettings) => ({
         ...prevSettings,
         showSecondTrace: data.sdr === 'hackrf',
-        ...data, // include all settings from the response
+        ...data,
       }));
 
       setLocalSettings(data);
@@ -79,7 +82,6 @@ const ControlPanel = ({
       setSettings(newSettings);
       setStatus('Settings updated');
 
-      // Delay for 1 second to ensure the settings have been applied
       setTimeout(fetchAndAdjustYAxis, 1000);
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -92,14 +94,28 @@ const ControlPanel = ({
       const response = await axios.get('/api/noise_floor');
       const noiseFloor = response.data.noise_floor;
 
-      // Adjust the Y-axis limits based on the noise floor
-      const newMinY = noiseFloor - 30; // 30dB below the noise floor
-      const newMaxY = noiseFloor + 70; // 70dB above the noise floor
+      const newMinY = noiseFloor - 30;
+      const newMaxY = noiseFloor + 70;
 
       setMinY(newMinY);
       setMaxY(newMaxY);
     } catch (error) {
       console.error('Error fetching noise floor:', error);
+    }
+  };
+
+  const handleSaveSelectionClick = async () => {
+    setSaving(true);
+    setStatus('Saving file...');
+
+    try {
+      await handleSaveSelection();
+      setStatus('Selection saved successfully');
+    } catch (error) {
+      console.error('Error saving selection:', error);
+      setStatus('Error saving selection');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -139,7 +155,6 @@ const ControlPanel = ({
     setSdr(newSdr);
     setStatus(`Changing SDR to ${newSdr}...`);
 
-    // Update the second trace toggle based on selected SDR
     const updatedSettings = {
       ...localSettings,
       sdr: newSdr,
@@ -218,7 +233,13 @@ const ControlPanel = ({
     <Box className="control-panel" sx={{ p: 2 }}>
       <Box display="flex" alignItems="center">
         <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-          Status: {status}
+          {saving ? (
+            <>
+              Saving file... <CircularProgress size={14} sx={{ ml: 1 }} />
+            </>
+          ) : (
+            `Status: ${status}`
+          )}
         </Typography>
         <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
           <RefreshIcon />
@@ -252,14 +273,20 @@ const ControlPanel = ({
         )}
         {tabIndex === 1 && (
           <>
-            {/* Add Clear Markers Button */}
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={clearVerticalLines}  // Call clearVerticalLines on button click
+                onClick={clearVerticalLines}
               >
-                Clear Markers
+                Clear Vertical Markers
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={clearHorizontalLines}  // Clear horizontal lines
+              >
+                Clear Horizontal Markers
               </Button>
             </Box>
             <PlotSettings
@@ -281,14 +308,21 @@ const ControlPanel = ({
           </>
         )}
         {tabIndex === 2 && (
-          <Analysis settings={settings} setSettings={setSettings} />
+          <Analysis 
+          settings={localSettings}
+          setSettings={setLocalSettings}
+          addVerticalLines={addVerticalLines}
+          clearVerticalLines={clearVerticalLines}
+          />
         )}
         {tabIndex === 3 && (
           <Classifiers 
             settings={localSettings}
             setSettings={setLocalSettings}
-            addVerticalLines={addVerticalLines} // Pass the addVerticalLines function
-            clearVerticalLines={clearVerticalLines} // Pass the clearVerticalLines function
+            addVerticalLines={addVerticalLines}
+            clearVerticalLines={clearVerticalLines}
+            addHorizontalLines={addHorizontalLines}  // Pass addHorizontalLines function
+            clearHorizontalLines={clearHorizontalLines}  // Pass clearHorizontalLines function
           />
         )}
       </Box>
@@ -297,3 +331,4 @@ const ControlPanel = ({
 };
 
 export default ControlPanel;
+

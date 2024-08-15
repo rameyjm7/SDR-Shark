@@ -4,13 +4,17 @@ import axios from 'axios';
 import ChartComponent from './ChartComponent';
 import '../App.css';
 
-const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY, addVerticalLines, verticalLines  }) => {
+const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, showWaterfall, minY, maxY, setMinY, setMaxY, addVerticalLines, verticalLines, addHorizontalLines, horizontalLines  }) => {
   const [sweepSettings, setSweepSettings] = useState({
     frequency_start: 100,
     frequency_stop: 200,
     sweeping_enabled: false,
     bandwidth: 16,
   });
+
+  useEffect(() => {
+    console.log('Plots.js: horizontalLines passed to Plots:', horizontalLines);
+  }, [horizontalLines]);
 
   useEffect(() => {
     console.log('Plots.js: verticalLines passed to Plots:', verticalLines);
@@ -61,6 +65,17 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
     }
   };
 
+
+  // Handle adding horizontal lines
+  useEffect(() => {
+    if (addHorizontalLines) {
+      addHorizontalLines((power) => {
+        addHorizontalLines((prevLines) => [...prevLines, { power: power }]);
+        console.log(`Horizontal lines added at ${power} dB`);
+      });
+    }
+  }, [addVerticalLines]);
+
   // Handle adding vertical lines
   useEffect(() => {
     if (addVerticalLines) {
@@ -87,6 +102,7 @@ const Plots = ({ settings, updateInterval, showSecondTrace, waterfallSamples, sh
           showWaterfall={showWaterfall}
           showSecondTrace={showSecondTrace}
           verticalLines={verticalLines}  // Pass verticalLines to ChartComponent
+          horizontalLines={horizontalLines}
         />
       </Box>
     </div>
