@@ -111,7 +111,7 @@ const PlotSettings = ({
 
         <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
           <Box sx={{ flex: 1, mr: 2 }}>
-            <Typography gutterBottom>Min Y-Axis Range: {minY} dB</Typography>
+          <Typography gutterBottom>Min Y-Axis Range: {minY.toFixed(2)} dB</Typography>
             <Slider
               min={-60}
               max={0}
@@ -126,7 +126,7 @@ const PlotSettings = ({
             />
           </Box>
           <Box sx={{ flex: 1, ml: 2 }}>
-            <Typography gutterBottom>Max Y-Axis Range: {maxY} dB</Typography>
+            <Typography gutterBottom>Max Y-Axis Range: {maxY.toFixed(2)} dB</Typography>
             <Slider
               min={-60}
               max={60}

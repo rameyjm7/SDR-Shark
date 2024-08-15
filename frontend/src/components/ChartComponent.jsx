@@ -262,50 +262,51 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       />
       {showWaterfall && (
         <Plot
-          data={[
-            {
-              z: waterfallData,
-              type: 'heatmap',
-              colorscale: 'Jet',
-              zsmooth: 'fast',
-              zmin: minY,
-              zmax: maxY,
-            },
-          ]}
-          layout={{
-            title: '',
-            xaxis: {
-              title: 'Frequency (MHz)',
-              color: 'white',
-              gridcolor: '#444',
-              zeroline: false, // Remove the white line across the 0 mark
-              tickvals: prevTickValsRef.current,
-              ticktext: prevTickTextRef.current,
-            },
-            yaxis: {
-              title: 'Samples',
-              color: 'white',
-              gridcolor: '#444',
-            },
-            margin: {
-              l: 50,
-              r: 50,
-              b: 50,
-              t: 0,
-              pad: 4
-            },
-            autosize: true,  // Let Plotly auto size
-            paper_bgcolor: '#000',
-            plot_bgcolor: '#000',
-            font: {
-              color: 'white',
-            },
-          }}
-          config={{
-            displayModeBar: false, // Hide the mode bar
-          }}
-          style={{ width: `${plotWidth}vw` }}
-        />
+        data={[
+          {
+            z: waterfallData,
+            type: 'heatmap',
+            colorscale: 'Jet',
+            zsmooth: 'fast',
+            zmin: minY,
+            zmax: maxY,
+            showscale: false, // Remove the color scale
+          },
+        ]}
+        layout={{
+          title: '',
+          xaxis: {
+            title: 'Frequency (MHz)',
+            color: 'white',
+            gridcolor: '#444',
+            zeroline: false, // Remove the white line across the 0 mark
+            tickvals: prevTickValsRef.current,
+            ticktext: prevTickTextRef.current,
+          },
+          yaxis: {
+            title: 'Samples',
+            color: 'white',
+            gridcolor: '#444',
+          },
+          margin: {
+            l: 50,
+            r: 50,
+            b: 50,
+            t: 0,
+            pad: 4
+          },
+          autosize: true,  // Let Plotly auto size
+          paper_bgcolor: '#000',
+          plot_bgcolor: '#000',
+          font: {
+            color: 'white',
+          },
+        }}
+        config={{
+          displayModeBar: false, // Hide the mode bar
+        }}
+        style={{ width: `${plotWidth}vw` }}
+      />
       )}
     </div>
   );

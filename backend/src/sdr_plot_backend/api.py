@@ -86,10 +86,11 @@ def generate_fft_data():
                 current_freq = vars.sweep_settings['frequency_start']
                 # Complete sweep, deliver the full FFT
                 averaged_fft = np.array(full_fft)
-                downsampled_fft = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
+                downsampled_fft_avg = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
+                downsampled_fft = downsample(current_fft, len(current_fft))       # Downsample to match the normal FFT size
 
                 with data_lock:
-                    fft_data['original_fft'] = downsampled_fft.tolist()
+                    fft_data['original_fft'] = downsampled_fft_avg.tolist()
                     waterfall_buffer.append(downsample(downsampled_fft).tolist())
                 
                 full_fft = []  # Clear the full FFT for the next sweep
@@ -106,7 +107,7 @@ def generate_fft_data():
 
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
-                waterfall_buffer.append(downsample(full_fft).tolist())
+                waterfall_buffer.append(downsample(current_fft).tolist())
 
 def radio_scanner():
     nfft = 8*1024
@@ -232,7 +233,10 @@ def get_noise_floor():
     if noise_floor is None:
         return jsonify({"error": "Noise floor not calculated yet"}), 500
 
-    return jsonify({"noise_floor": float(noise_floor)})
+    # Round the noise floor to two decimal places
+    rounded_noise_floor = round(float(noise_floor), 2)
+    return jsonify({"noise_floor": rounded_noise_floor})
+
 
 @api_blueprint.route('/api/get_classifiers', methods=['GET'])
 def get_classifiers():

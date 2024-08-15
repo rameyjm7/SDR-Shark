@@ -216,6 +216,17 @@ const ControlPanel = ({
 
   return (
     <Box className="control-panel" sx={{ p: 2 }}>
+      <Box display="flex" alignItems="center">
+        <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
+          Status: {status}
+        </Typography>
+        <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
+          <RefreshIcon />
+        </IconButton>
+        <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
+          <SaveIcon />
+        </IconButton>
+      </Box>
       <Tabs value={tabIndex} onChange={handleTabChange}>
         <Tab label="SDR" />
         <Tab label="Plot" />
@@ -226,17 +237,6 @@ const ControlPanel = ({
         {tabIndex === 0 && (
           <>
             <Typography variant="h6">SDR Settings</Typography>
-            <Box display="flex" alignItems="center">
-              <Typography variant="subtitle1" color="textSecondary" sx={{ mb: 2 }}>
-                Status: {status}
-              </Typography>
-              <IconButton onClick={fetchSettings} sx={{ ml: 2 }}>
-                <RefreshIcon />
-              </IconButton>
-              <IconButton onClick={() => applySettings(localSettings)} sx={{ ml: 2 }}>
-                <SaveIcon />
-              </IconButton>
-            </Box>
             <Typography variant="body1">Select SDR:</Typography>
             <Select value={sdr} onChange={handleSdrChange} fullWidth>
               <MenuItem value="hackrf">HackRF</MenuItem>
