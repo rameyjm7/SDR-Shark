@@ -243,7 +243,6 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
 
   const handleItemSelectionToggle = (event, itemId, isSelected) => {
     if (isSelected) {
-      console.log(itemId);
       setLastSelectedItem(itemId);
     }
   };

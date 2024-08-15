@@ -82,6 +82,12 @@ const App = () => {
   const [horizontalLines, setHorizontalLines] = useState([]);  // State for horizontal lines
 
   const addVerticalLines = (frequency, bandwidth) => {
+    if (typeof frequency == "string") {
+      frequency = parseFloat(frequency);
+    }
+    if (typeof bandwidth == "string") {
+      bandwidth = parseFloat(bandwidth);
+    }
     // Check if frequency and bandwidth are numbers
     if (typeof frequency !== 'number' || typeof bandwidth !== 'number') {
         return;
@@ -97,16 +103,11 @@ const App = () => {
         return;
     }
 
-    // Log the bounds before calling toFixed
-    console.log('Adding vertical lines at', lowerBound, 'MHz and', upperBound, 'MHz');
-
     setVerticalLines((prevLines) => [
         ...prevLines,
         { frequency: lowerBound, label: `${lowerBound.toFixed(2)} MHz` },
         { frequency: upperBound, label: `${upperBound.toFixed(2)} MHz` },
     ]);
-
-    console.log(`Vertical lines added at ${lowerBound} MHz and ${upperBound} MHz`);
 };
 
 const clearVerticalLines = () => {
@@ -256,6 +257,7 @@ console.log('Clearing horizontal lines');
               clearVerticalLines={clearVerticalLines}
               addHorizontalLines={addHorizontalLines}  
               clearHorizontalLines={clearHorizontalLines}
+              verticalLines={verticalLines}
             />
           </Box>
         </Box>

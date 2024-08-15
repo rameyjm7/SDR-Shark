@@ -26,9 +26,10 @@ const ControlPanel = ({
   setShowWaterfall,
   addVerticalLines,
   clearVerticalLines,
-  addHorizontalLines, 
-  clearHorizontalLines, 
+  addHorizontalLines,
+  clearHorizontalLines,
   handleSaveSelection,
+  verticalLines, // Add this prop to receive vertical lines
 }) => {
   const [sdr, setSdr] = useState(settings.sdr || 'hackrf');
   const [status, setStatus] = useState('Ready');
@@ -228,7 +229,6 @@ const ControlPanel = ({
   const handleTabChange = (event, newValue) => {
     setTabIndex(newValue);
   };
-
 
   return (
     <Box className="control-panel" sx={{ p: 2 }}>
