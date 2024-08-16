@@ -108,11 +108,14 @@ const App = () => {
         { frequency: lowerBound, label: `${lowerBound.toFixed(2)} MHz` },
         { frequency: upperBound, label: `${upperBound.toFixed(2)} MHz` },
     ]);
+   sendMarkersToBackend(verticalLines, horizontalLines); // Send to backend
+
 };
 
 const clearVerticalLines = () => {
   console.log('Clearing vertical lines');
   setVerticalLines((prevLines) => []);
+  sendMarkersToBackend(verticalLines, horizontalLines); // Send to backend
 };
 
 const addHorizontalLines = (power) => {
@@ -125,17 +128,33 @@ const addHorizontalLines = (power) => {
       ...prevLines,
       { power: power, label: `${power.toFixed(2)} dB` },
   ]);
-
+  sendMarkersToBackend(verticalLines, horizontalLines); // Send to backend
   console.log(`Horizontal line added at ${power} dB`);
 };
 
 const clearHorizontalLines = () => {
 console.log('Clearing horizontal lines');
   setHorizontalLines((prevLines) => []);
+  sendMarkersToBackend(verticalLines, []); // Send to backend
 };
 
 
+const sendMarkersToBackend = (verticalLines, horizontalLines) => {
+  // Prepare data for backend
+  const markerData = {
+    vertical_lines: verticalLines,
+    horizontal_lines: horizontalLines,
+  };
 
+  // Make a POST request to the backend
+  axios.post('/api/signal_detection', markerData)
+    .then(response => {
+      console.log('Markers sent to backend:', response.data);
+    })
+    .catch(error => {
+      console.error('Error sending markers to backend:', error);
+    });
+};
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);

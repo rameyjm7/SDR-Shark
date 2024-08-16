@@ -2,7 +2,7 @@ import csv
 import json
 from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN, FRS, AeronauticalNavigation, AviationService
-from sdr_plot_backend.classifier import BroadbandRadioService, BroadcastTV, EarthExpSatellite, FederalPart15
+from sdr_plot_backend.classifier import BroadbandRadioService, BroadcastTV, EarthExpSatellite, FederalPart15, MURS, NOAAWeather, UHF, PublicSafety
                                             
 
 class SignalClassifier:
@@ -24,7 +24,11 @@ class SignalClassifier:
             BroadbandRadioService.BroadbandRadioServiceClassifier(),
             BroadcastTV.USBroadcastTVAndLPTVClassifier(),
             EarthExpSatellite.EarthExpSatelliteClassifier(),
-            FederalPart15.FederalPart15Classifier()
+            FederalPart15.FederalPart15Classifier(),
+            MURS.MURSClassifier(),
+            NOAAWeather.NOAAWeatherRadioClassifier(),
+            UHF.UHFFrequenciesClassifier(),
+            PublicSafety.PublicSafetyClassifier()
             
         ]
 

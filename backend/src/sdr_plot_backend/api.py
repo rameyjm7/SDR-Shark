@@ -237,6 +237,89 @@ def get_analytics():
     
     return jsonify(payload)
 
+@api_blueprint.route('/api/signal_detection', methods=['POST'])
+def signal_detection():
+    marker_data = request.json
+    vertical_lines = marker_data.get('vertical_lines', [])
+    horizontal_lines = marker_data.get('horizontal_lines', [])
+    filename = marker_data.get("filename")
+
+    if not vertical_lines or not horizontal_lines:
+        return jsonify({"error": "Markers not provided"}), 400
+    
+    if len(vertical_lines) == 0 and len(horizontal_lines) == 0:
+        return jsonify({"success": "No markers to analyze"}), 200
+
+
+    # Assume vertical_lines are in MHz and horizontal_lines are in dB
+
+    # Convert vertical line positions to FFT indexes (assuming some relationship between frequency and FFT bin)
+    x_start = min(vertical_lines) * 1024
+    x_end = max(vertical_lines) * 1024
+
+    # Convert horizontal line positions to amplitude bounds (assuming some dB to amplitude conversion)
+    y_start = horizontal_lines[0]  # Lower bound in dB
+    y_end = horizontal_lines[1] if len(horizontal_lines) > 1 else max(y_start, y_start + 1)  # Upper bound
+
+    selected_data = []
+
+    with data_lock:
+        # Assuming `waterfall_buffer` contains rows of FFT data and 'y' indexes represent different time slices
+        for i in range(len(waterfall_buffer)):
+            row = waterfall_buffer[i]
+            selected_row = row[int(x_start):int(x_end) + 1]
+            if all(y_start <= value <= y_end for value in selected_row):
+                selected_data.append(selected_row)
+
+    if not selected_data:
+        return jsonify({"error": "No data found within the specified markers"}), 400
+
+    # Convert selected data to 16-bit signed integer format (assuming the FFT data is float)
+    iq_data = []
+    for row in selected_data:
+        for value in row:
+            # Scale and clip the value within the int16 range
+            iq_value = int(np.clip(value * 32767, -32768, 32767))
+            iq_data.append(iq_value)
+
+    # Define the base file name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_filename = f'{filename}_{timestamp}'
+
+    # Save the IQ data in 16T binary format
+    iq_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.iq')
+    
+    with open(iq_file_path, 'wb') as iq_file:
+        iq_file.write(np.array(iq_data, dtype=np.int16).tobytes())
+
+    # Save the original selected data in JSON format
+    json_data_file_path = os.path.join(vars.recordings_dir, f'{base_filename}_data.json')
+    with open(json_data_file_path, 'w') as json_data_file:
+        json.dump(selected_data, json_data_file, indent=4)
+
+    # Gather SDR settings
+    sdr_settings = {
+        "frequency": vars.sdr_settings[vars.sdr_name].frequency,
+        "bandwidth": vars.sdr_settings[vars.sdr_name].bandwidth,
+        "sample_rate": vars.sdr_settings[vars.sdr_name].sampleRate,
+        "gain": vars.sdr_settings[vars.sdr_name].gain,
+        "sdr": vars.sdr_name,
+        "timestamp": timestamp
+    }
+
+    # Save SDR settings to a JSON file
+    json_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.json')
+    with open(json_file_path, 'w') as json_file:
+        json.dump(sdr_settings, json_file, indent=4)
+
+    return jsonify({
+        "message": "Signal detection data saved successfully",
+        "iq_file_path": iq_file_path,
+        "json_file_path": json_file_path,
+        "json_data_file_path": json_data_file_path
+    })
+
+
 @api_blueprint.route('/api/noise_floor', methods=['GET'])
 def get_noise_floor():
     # Retrieve the noise floor from the global signal_stats dictionary
