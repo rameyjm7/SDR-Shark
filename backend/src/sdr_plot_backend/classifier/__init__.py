@@ -4,6 +4,7 @@ from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN, FRS, AeronauticalNavigation, AviationService
 from sdr_plot_backend.classifier import BroadbandRadioService, BroadcastTV, EarthExpSatellite, FederalPart15, MURS, NOAAWeather, UHF, PublicSafety
 from sdr_plot_backend.classifier import F460_470MHz, AircraftRadio, SiriusXM, HDRadio, DMR, P25
+from sdr_plot_backend.classifier import GenericClassifier
 
 class SignalClassifier:
     def __init__(self):
@@ -34,7 +35,8 @@ class SignalClassifier:
             SiriusXM.SiriusXMRadioClassifier(),
             HDRadio.HDRadioClassifier(),
             DMR.DMRClassifier(),
-            P25.P25Classifier()
+            P25.P25Classifier(),
+            GenericClassifier.GenericClassifier() # includes a lot of smaller classifiers with less overhead
             
         ]
 

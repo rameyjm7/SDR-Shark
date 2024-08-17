@@ -38,3 +38,29 @@ class BaseSignalClassifier(ABC):
         else:
             raise ValueError("Unsupported file format. Use 'json' or 'csv'.")
 
+    
+    def classify_signal(self, frequency_mhz, bandwidth_mhz=None):
+        matches = []
+        for band in self.bands:
+            if band["frequency"] - band["bandwidth"]/2 <= frequency_mhz <= band["frequency"] + band["bandwidth"]/2:
+                matches.append({
+                    "label": band["label"],
+                    "frequency": band["frequency"],
+                    "bandwidth": band["bandwidth"],
+                    "channel": band["channel"],
+                    "metadata": band["metadata"]
+                })
+        return matches
+
+    def get_signals_in_range(self, start_freq_mhz, end_freq_mhz):
+        matches = []
+        for band in self.bands:
+            if start_freq_mhz <= band["frequency"] <= end_freq_mhz:
+                matches.append({
+                    "label": band["label"],
+                    "frequency": str(band["frequency"]),
+                    "bandwidth": str(band["bandwidth"]),
+                    "channel": band["channel"],
+                    "metadata": band["metadata"]
+                })
+        return matches
