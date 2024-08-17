@@ -70,13 +70,13 @@ class sdr_scheduler_config:
                                gain=self.sdr_settings['sidekiq'].gain,
                                size=self.sample_size)
         self.sdr0.start()
-        self.sdr1 = SDRGeneric("hackrf",
-                               center_freq=self.sdr_settings['hackrf'].frequency,
-                               sample_rate=self.sdr_settings['hackrf'].sampleRate,
-                               bandwidth=self.sdr_settings['hackrf'].bandwidth,
-                               gain=self.sdr_settings['hackrf'].gain,
-                               size=self.sample_size)
-        self.sdr1.start()
+        # self.sdr1 = SDRGeneric("hackrf",
+        #                        center_freq=self.sdr_settings['hackrf'].frequency,
+        #                        sample_rate=self.sdr_settings['hackrf'].sampleRate,
+        #                        bandwidth=self.sdr_settings['hackrf'].bandwidth,
+        #                        gain=self.sdr_settings['hackrf'].gain,
+        #                        size=self.sample_size)
+        # self.sdr1.start()
         
         # Load settings from file
         self.load_settings()
@@ -186,10 +186,10 @@ class sdr_scheduler_config:
         self.sweep_settings['frequency_start'] = settings.get("frequency_start", self.sweep_settings['frequency_start'])
         self.sweep_settings['frequency_stop'] = settings.get("frequency_stop", self.sweep_settings['frequency_stop'])
         self.sweeping_enabled = settings.get("sweeping_enabled", self.sweeping_enabled)
-        self.peak_threshold_minimum_dB = settings.get("peak_threshold_minimum_dB", self.peak_threshold_minimum_dB)
-        self.dc_suppress = settings.get("dc_suppress", self.dc_suppress)
-        self.show_waterfall = settings.get("show_waterfall", self.show_waterfall)
-        self.waterfall_samples = settings.get("waterfall_samples", self.waterfall_samples)
+        self.peak_threshold_minimum_dB = settings.get("peakThreshold", self.peak_threshold_minimum_dB)
+        self.dc_suppress = settings.get("dcSuppress", self.dc_suppress)
+        self.show_waterfall = settings.get("showWaterfall", self.show_waterfall)
+        self.waterfall_samples = settings.get("waterfallSamples", self.waterfall_samples)
         self.number_of_peaks = settings.get("number_of_peaks", self.number_of_peaks)
         self.recordings_dir = settings.get("recordings_dir", self.recordings_dir)
         self.lockBandwidthSampleRate = settings.get("lockBandwidthSampleRate", self.lockBandwidthSampleRate)

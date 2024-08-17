@@ -105,9 +105,9 @@ class PeakDetector:
 
                     # Add detected peak information
                     detected_peaks.append({
-                        'frequency': peak_freq * 1e6,  # Convert MHz to Hz
+                        'frequency': peak_freq,  
                         'power': fft_magnitude_db[peak_idx],  # Use the power directly
-                        'bandwidth': bandwidth_mhz * 1e6  # Convert MHz to Hz
+                        'bandwidth': bandwidth_mhz 
                     })
 
             return detected_peaks

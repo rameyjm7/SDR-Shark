@@ -114,11 +114,23 @@ def generate_fft_data():
             vars.signal_stats["noise_floor"] = round(float(noise_floor),3)
             vars.signal_stats["noise_riding_threshold"] = round(vars.signal_stats['noise_floor'] + vars.peak_threshold_minimum_dB,3)
             vars.signal_stats['max'] = round(float(np.max(full_fft)),3)
-            
+
+
+            max_index = np.argmax(full_fft)  # Index of the maximum value in the FFT
+
+            # Calculate the frequency step (resolution)
+            frequency_step = vars.sdr_sampleRate() / vars.sample_size  # Frequency resolution of each FFT bin
+
+            # Calculate the frequency corresponding to the maximum value
+            max_freq = ((max_index * frequency_step) + (vars.sdr_frequency() - vars.sdr_sampleRate() / 2))/1e6
+
+            # Store the max frequency in signal_stats
+            vars.signal_stats['max_freq'] = round(float(max_freq), 3)
+
             if vars.signal_stats['max'] > vars.signal_stats["noise_riding_threshold"]:
-                vars.signal_stats['signal_detected'] = True
+                vars.signal_stats['signal_detected'] = 1
             else:
-                vars.signal_stats['signal_detected'] = False
+                vars.signal_stats['signal_detected'] = 0
             
             
             
@@ -128,17 +140,17 @@ def generate_fft_data():
 
 def radio_scanner():
     nfft = 8*1024
-    detector = PeakDetector(sdr=vars.sdr1,averaging_count=30,nfft=nfft)
+    detector = PeakDetector(sdr=vars.sdr0,averaging_count=30,nfft=nfft)
     detector.start_receiving_data()
-    sdr_name = "hackrf"
+    sdr_name = "sidekiq"
     while running:
         detector.set_averaging(vars.sdr_settings[sdr_name].averagingCount)
         detected_peaks = detector.detect_signal_peaks(
             vars.sdr_frequency(),
-            sample_rate=20e6,
+            sample_rate=vars.sdr_sampleRate(),
             fft_size=nfft,  # wide_fft_size
             min_peak_distance=80,
-            threshold_offset=5
+            threshold_offset=vars.peak_threshold_minimum_dB
         )
         if detected_peaks:
             with data_lock:
@@ -255,7 +267,7 @@ def signal_detection():
         return jsonify({"success": "No vertical_lines markers to analyze"}), 200
 
     if not horizontal_lines:
-        horizontal_lines = [vars.signals_stats['noise_floor']]
+        horizontal_lines = [vars.signal_stats['noise_floor']]
     
     # Assume vertical_lines are in MHz and horizontal_lines are in dB
 

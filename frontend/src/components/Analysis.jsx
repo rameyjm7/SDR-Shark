@@ -147,6 +147,20 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
     handleMenuClose();
   };
 
+  const handleAddLine = (key, value) => {
+    if (typeof value === 'number') {
+      if (key.toLowerCase().includes('freq')) {
+        addVerticalLines(value, 0.001);
+        console.log(`Vertical line added at: ${value} MHz`);
+      } else {
+        addHorizontalLines(value);
+        console.log(`Horizontal line added at: ${value} dB`);
+      }
+    } else {
+      console.warn('Cannot add a line for a non-numeric value.');
+    }
+  };
+
   const handleMarkNoiseFloor = () => {
     const noiseFloor = signalStats.noise_floor;
     if (noiseFloor !== undefined) {
@@ -321,25 +335,37 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
         </>
       </Box>
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>Signal Statistics</Typography>
-        <TableContainer component={Paper}>
-          <Table aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Statistic</TableCell>
-                <TableCell align="right">Value</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {Object.entries(signalStats).map(([key, value]) => (
-                <TableRow key={key}>
-                  <TableCell component="th" scope="row">{key.replace(/_/g, ' ')}</TableCell>
-                  <TableCell align="right">{value}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      <Typography variant="h6" gutterBottom>Signal Statistics</Typography>
+      <TableContainer component={Paper}>
+      <Table aria-label="simple table">
+        <TableHead>
+          <TableRow>
+            <TableCell>Statistic</TableCell>
+            <TableCell align="right">Value</TableCell>
+            <TableCell align="right">Action</TableCell> {/* New column for the button */}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Object.entries(signalStats).map(([key, value]) => (
+            <TableRow key={key}>
+              <TableCell component="th" scope="row">{key.replace(/_/g, ' ')}</TableCell>
+              <TableCell align="right">{value}</TableCell>
+              <TableCell align="right">
+                {typeof value === 'number' && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => handleAddLine(key, value)}
+                  >
+                    Add Line
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
         <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Markers</Typography>
         <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
