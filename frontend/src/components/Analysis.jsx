@@ -282,96 +282,92 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
         <>
           <Box display="flex" justifyContent="space-between" width="100%">
             <Box flex={1} mx={1}>
-              <Typography gutterBottom>Number of Peaks: {settings.numberOfPeaks}</Typography>
-              <Slider
-                min={1}
-                max={20}
-                value={settings.numberOfPeaks}
-                onChange={(e, value) => handleSliderChange(e, value, 'numberOfPeaks')}
-                valueLabelDisplay="auto"
-                step={1}
-                marks={[
-                  { value: 1, label: '1' },
-                  { value: 10, label: '10' },
-                  { value: 20, label: '20' }
-                ]}
-              />
-            </Box>
-            <Box flex={1} mx={1}>
-              <Typography gutterBottom>Noise offset Peak Threshold (dB): {settings.peakThreshold}</Typography>
-              <Slider
-                min={0}
-                max={50}
-                value={settings.peakThreshold}
-                onChange={(e, value) => handleSliderChange(e, value, 'peakThreshold')}
-                valueLabelDisplay="auto"
-                step={1}
-                marks={[
-                  { value: 0, label: '0 dB' },
-                  { value: 25, label: '25 dB' },
-                  { value: 50, label: '50 dB' }
-                ]}
-              />
-            </Box>
-          </Box>
-          <Box display="flex" justifyContent="space-between" width="100%">
-            <Box flex={1} mx={1}>
-              <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
-              <Slider
-                min={0.01}
-                max={1.0}
-                value={settings.minPeakDistance}
-                onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
-                valueLabelDisplay="auto"
-                step={0.01}
-                marks={[
-                  { value: 0.01, label: '0.01 MHz' },
-                  { value: 0.5, label: '0.5 MHz' },
-                  { value: 1.0, label: '1 MHz' }
-                ]}
-              />
-            </Box>
+                <Typography gutterBottom>Min Distance Between Peaks (MHz): {settings.minPeakDistance}</Typography>
+                <Slider
+                  min={0.01}
+                  max={1.0}
+                  value={settings.minPeakDistance}
+                  onChange={(e, value) => handleSliderChange(e, value, 'minPeakDistance')}
+                  valueLabelDisplay="auto"
+                  step={0.01}
+                  marks={[
+                    { value: 0.01, label: '0.01 MHz' },
+                    { value: 0.5, label: '0.5 MHz' },
+                    { value: 1.0, label: '1 MHz' }
+                  ]}
+                />
+              </Box>
+              <Box flex={1} mx={1}>
+                <Typography gutterBottom>Noise offset Peak Threshold (dB): {settings.peakThreshold}</Typography>
+                <Slider
+                  min={0}
+                  max={50}
+                  value={settings.peakThreshold}
+                  onChange={(e, value) => handleSliderChange(e, value, 'peakThreshold')}
+                  valueLabelDisplay="auto"
+                  step={1}
+                  marks={[
+                    { value: 0, label: '0 dB' },
+                    { value: 25, label: '25 dB' },
+                    { value: 50, label: '50 dB' }
+                  ]}
+                />
+              </Box>
           </Box>
         </>
       </Box>
       <Box sx={{ mt: 4 }}>
       <Typography variant="h6" gutterBottom>Signal Statistics</Typography>
-      <TableContainer component={Paper}>
-      <Table aria-label="simple table">
-        <TableHead>
-          <TableRow>
-            <TableCell>Statistic</TableCell>
-            <TableCell align="right">Value</TableCell>
-            <TableCell align="right">Action</TableCell> {/* New column for the button */}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {Object.entries(signalStats).map(([key, value]) => (
-            <TableRow key={key}>
-              <TableCell component="th" scope="row">{key.replace(/_/g, ' ')}</TableCell>
-              <TableCell align="right">{value}</TableCell>
-              <TableCell align="right">
-                {typeof value === 'number' && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => handleAddLine(key, value)}
-                  >
-                    Add Line
-                  </Button>
-                )}
-              </TableCell>
+      <TableContainer component={Paper} style={{ maxWidth: '600px', margin: '0 auto' }}>
+        <Table aria-label="simple table" style={{ width: 'auto', tableLayout: 'auto' }}>
+          <TableHead>
+            <TableRow>
+              <TableCell style={{ padding: '8px 12px' }}>Statistic</TableCell>
+              <TableCell align="right" style={{ padding: '8px 12px' }}>Value</TableCell>
+              <TableCell align="right" style={{ padding: '8px 12px' }}>Action</TableCell> {/* New column for the button */}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {Object.entries(signalStats).map(([key, value]) => {
+              // Capitalize each word in the key
+              const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+
+              // Add (MHz) if the key contains 'freq'
+              const formattedLabel = key.includes('freq')
+                ? `${formattedKey} (MHz)`
+                : key.includes('power') || key.includes('max') || key.includes('noise')
+                ? `${formattedKey} (dB)`
+                : formattedKey;
+
+              return (
+                <TableRow key={key}>
+                  <TableCell component="th" scope="row" style={{ padding: '8px 12px' }}>
+                    {formattedLabel}
+                  </TableCell>
+                  <TableCell align="right" style={{ padding: '8px 12px' }}>
+                    {value}
+                  </TableCell>
+                  <TableCell align="right" style={{ padding: '8px 12px' }}>
+                    {typeof value === 'number' && (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleAddLine(key, value)}
+                        style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: 'auto' }}
+                      >
+                        Add Line
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
         <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Markers</Typography>
         <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
-          <Button variant="contained" color="primary" onClick={handleMarkNoiseFloor}>
-            Mark Noise Floor
-          </Button>
           <Button variant="contained" color="secondary" onClick={clearVerticalLines}>
             Clear Vertical Markers
           </Button>

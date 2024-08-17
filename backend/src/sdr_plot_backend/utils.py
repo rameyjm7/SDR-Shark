@@ -44,7 +44,7 @@ class sdr_scheduler_config:
         self.task_lock = threading.Lock()
         self.sleeptime = 0.01
         self.sample_size = 8 * 1024  # Adjust sample size to receive more data
-        self.peak_threshold_minimum_dB = -25
+        self.peak_threshold_minimum_dB = 10
         self.sweep_settings = {
             'frequency_start': 700e6,
             'frequency_stop': 820e6,

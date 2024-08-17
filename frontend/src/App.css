@@ -1,57 +1,87 @@
 body, html, #root {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
 }
 
 .plots {
-  flex: 1; /* Slightly more space for the plots */
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  overflow: hidden;
-
+    flex: 1; /* Slightly reduced height for plots */
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
 }
 
 .control-panel {
-  flex: 0.3; /* Reduce the width of the control panel */
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  background-color: #1c1c1c;
-  color: white;
+    flex: 0.25; /* Slightly reduced height for control panel */
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #1c1c1c;
+    color: white;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Dark mode styled scrollbars for Webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #1c1c1c; /* Dark track background */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #444; /* Darker thumb background */
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* Slightly lighter on hover */
+}
+
+/* Firefox scrollbar */
+body, html, #root, .control-panel {
+    scrollbar-width: thin; /* Thin scrollbar */
+    scrollbar-color: #444 #1c1c1c; /* Thumb and track colors */
+}
+
+/* IE 10+ */
+body, html, #root, .control-panel {
+    -ms-overflow-style: scrollbar; /* Use default scrollbar, but styled */
 }
 
 .tab-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .tab-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-
 .plots_container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* New styles for control panel content to stretch */
 .control-panel-content {
-  flex: 1; /* Make it take the remaining space */
-  overflow-y: auto; /* Allow scrolling inside the control panel */
+    flex: 1;
+    overflow-y: auto;
 }
 
 .resize-handle {
-  width: 10px;
-  cursor: ew-resize;
-  background-color: #444;
+    width: 10px;
+    cursor: ew-resize;
+    background-color: #444;
 }

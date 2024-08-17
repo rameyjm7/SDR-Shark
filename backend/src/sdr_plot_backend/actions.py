@@ -45,33 +45,63 @@ def execute_tasks():
                 elif task['type'] == 'record':
                     duration = task['duration']
                     label = task['label']
-                    yield f"data: {json.dumps({'status': f'Recording for {duration} seconds with label {label}...', 'taskIndex': i})}\n\n"
+                    num_records = task.get('num_records', 10)  # Number of records to capture
+                    interval = task.get('interval', 1)  # Interval between records in seconds
+
+                    yield f"data: {json.dumps({'status': f'Recording {num_records} records, each for {duration} seconds with label {label}...', 'taskIndex': i})}\n\n"
                     try:
-                        num_samples = int(vars.sdr_sampleRate() * duration)
-                        samples = vars.sdr0.get_latest_samples()
-                        fft_data = np.fft.fftshift(np.fft.fft(samples))
-                        fft_magnitude = 20 * np.log10(np.abs(fft_data))
-                        fft_magnitude = np.where(np.isinf(fft_magnitude), -20, fft_magnitude)
-                        if vars.dc_suppress:
-                            dc_index = len(fft_magnitude) // 2
-                            fft_magnitude[dc_index] = fft_magnitude[dc_index + 1]
-                        data = {
-                            'metadata': {
-                                'label': label,
-                                'frequency': vars.sdr_frequency(),
-                                'sample_rate': vars.sdr_sampleRate(),
-                                'gain': vars.sdr_gain(),
-                                'bandwidth': vars.sdr_bandwidth(),
-                                'fft_averaging': vars.sdr_averagingCount(),
-                            },
-                            'iq_data': samples.tolist(),
-                            'fft_data': fft_magnitude.tolist()
-                        }
-                        file_name = f"{label}_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.pkl"
-                        file_path = os.path.join(vars.recordings_dir, file_name)
-                        with open(file_path, 'wb') as f:
-                            pickle.dump(data, f)
+                        records = []
+                        for record_index in range(num_records):
+                            # Capture samples
+                            num_samples = int(vars.sdr_sampleRate() * duration)
+                            samples = vars.sdr0.get_latest_samples()
+
+                            # Apply FFT and calculate the magnitude
+                            fft_data = np.fft.fftshift(np.fft.fft(samples))
+                            fft_magnitude = 20 * np.log10(np.abs(fft_data))
+                            fft_magnitude = np.where(np.isinf(fft_magnitude), -20, fft_magnitude)
+
+                            if vars.dc_suppress:
+                                dc_index = len(fft_magnitude) // 2
+                                fft_magnitude[dc_index] = fft_magnitude[dc_index + 1]
+
+                            # Convert IQ data to 16-bit signed integer format
+                            iq_data = np.clip(samples * 32767, -32768, 32767).astype(np.int16)
+
+                            # Store the data in a dictionary
+                            record = {
+                                'fft_magnitude': fft_magnitude.tolist(),
+                                'iq_data': iq_data.tolist(),
+                            }
+                            records.append(record)
+
+                            yield f"data: {json.dumps({'status': f'Recorded {record_index + 1}/{num_records} records', 'taskIndex': i})}\n\n"
+
+                            # Sleep for the specified interval before the next record
+                            time.sleep(interval)
+
+                        # Define the base file name
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        base_filename = f'{label}_{timestamp}'
+
+                        # Save the records in a pickle file
+                        pickle_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.pkl')
+                        with open(pickle_file_path, 'wb') as pickle_file:
+                            pickle.dump({
+                                'metadata': {
+                                    "label": label,
+                                    "frequency": vars.sdr_frequency(),
+                                    "sample_rate": vars.sdr_sampleRate(),
+                                    "gain": vars.sdr_gain(),
+                                    "bandwidth": vars.sdr_bandwidth(),
+                                    "fft_averaging": vars.sdr_averagingCount(),
+                                    "timestamp": timestamp
+                                },
+                                'records': records
+                            }, pickle_file)
+
                         yield f"data: {json.dumps({'status': f'Successfully recorded {label}', 'taskIndex': i})}\n\n"
+
                     except Exception as e:
                         yield f"data: {json.dumps({'status': f'Failed to record: {e!s}', 'taskIndex': i})}\n\n"
                 elif task['type'] == 'gain':
