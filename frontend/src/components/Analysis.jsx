@@ -170,6 +170,13 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
       console.warn('Noise floor value is not available.');
     }
   };
+// Function to handle adding markers
+const handleAddMarkers = (frequency, bandwidth) => {
+  // Logic to add vertical markers on the plot
+  console.log(`Adding markers at frequency: ${frequency} MHz and bandwidth: ${bandwidth} MHz`);
+  addVerticalLines(frequency,bandwidth);
+  // You can add your actual plotting logic here
+};
 
   const peakColumns = [
     { field: 'frequency', headerName: 'Frequency (MHz)', width: 180 },
@@ -179,6 +186,20 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
     { field: 'classification', headerName: 'Classifications', width: 200 },
     { field: 'freq_start', headerName: 'Frequency Start (MHz)', width: 180 },
     { field: 'freq_end', headerName: 'Frequency End (MHz)', width: 180 },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 150,
+      renderCell: (params) => (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleAddMarkers(params.row.frequency, params.row.bandwidth)}
+        >
+          Add Markers
+        </Button>
+      ),
+    },
   ];
 
   const peakRows = peaks.map((peak, index) => ({
