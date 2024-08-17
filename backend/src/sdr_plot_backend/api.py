@@ -66,8 +66,6 @@ def generate_fft_data():
 
         # Normalize infinity values
         current_fft = np.where(np.isinf(current_fft), -20, current_fft)
-        
-
 
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
@@ -114,6 +112,15 @@ def generate_fft_data():
             noise_floor_data = sorted_fft[:int(len(sorted_fft) * 0.2)]  # Use the lowest 10% of FFT values
             noise_floor = np.mean(noise_floor_data)
             vars.signal_stats["noise_floor"] = round(float(noise_floor),3)
+            vars.signal_stats["noise_riding_threshold"] = round(vars.signal_stats['noise_floor'] + vars.peak_threshold_minimum_dB,3)
+            vars.signal_stats['max'] = round(float(np.max(full_fft)),3)
+            
+            if vars.signal_stats['max'] > vars.signal_stats["noise_riding_threshold"]:
+                vars.signal_stats['signal_detected'] = True
+            else:
+                vars.signal_stats['signal_detected'] = False
+            
+            
             
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
@@ -244,13 +251,12 @@ def signal_detection():
     horizontal_lines = marker_data.get('horizontal_lines', [])
     filename = marker_data.get("filename")
 
-    if not vertical_lines or not horizontal_lines:
-        return jsonify({"error": "Markers not provided"}), 400
+    if not vertical_lines:
+        return jsonify({"success": "No vertical_lines markers to analyze"}), 200
+
+    if not horizontal_lines:
+        horizontal_lines = [vars.signals_stats['noise_floor']]
     
-    if len(vertical_lines) == 0 and len(horizontal_lines) == 0:
-        return jsonify({"success": "No markers to analyze"}), 200
-
-
     # Assume vertical_lines are in MHz and horizontal_lines are in dB
 
     # Convert vertical line positions to FFT indexes (assuming some relationship between frequency and FFT bin)

@@ -10,8 +10,12 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
   const [generalClassifications, setGeneralClassifications] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
   const [lastSelectedItem, setLastSelectedItem] = useState(null);
-  const [signalStats, setSignalStats] = useState({ noise_floor: -255 });  // Initialize with default noise floor
+  const [signalStats, setSignalStats] = useState({ noise_floor: -255 });
+  const [markers, setMarkers] = useState({ verticalLines: [], horizontalLines: [] }); // State to store markers
 
+  const updateMarkers = (markerData) => {
+    setMarkers(markerData);
+  };
   const convertToHz = (valueInMHz) => valueInMHz * 1e6;
   const convertToMHz = (valueInHz) => valueInHz / 1e6;
 
@@ -280,18 +284,18 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
               />
             </Box>
             <Box flex={1} mx={1}>
-              <Typography gutterBottom>Peak Threshold (dB): {settings.peakThreshold}</Typography>
+              <Typography gutterBottom>Noise offset Peak Threshold (dB): {settings.peakThreshold}</Typography>
               <Slider
-                min={-100}
-                max={0}
+                min={0}
+                max={50}
                 value={settings.peakThreshold}
                 onChange={(e, value) => handleSliderChange(e, value, 'peakThreshold')}
                 valueLabelDisplay="auto"
                 step={1}
                 marks={[
-                  { value: -100, label: '-100 dB' },
-                  { value: -50, label: '-50 dB' },
-                  { value: 0, label: '0 dB' }
+                  { value: 0, label: '0 dB' },
+                  { value: 25, label: '25 dB' },
+                  { value: 50, label: '50 dB' }
                 ]}
               />
             </Box>
@@ -336,26 +340,49 @@ const Analysis = ({ settings, setSettings, addVerticalLines, clearVerticalLines,
             </TableBody>
           </Table>
         </TableContainer>
+        <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>Markers</Typography>
         <Box display="flex" justifyContent="center" sx={{ mt: 2 }}>
           <Button variant="contained" color="primary" onClick={handleMarkNoiseFloor}>
             Mark Noise Floor
           </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={clearVerticalLines}
-              >
-                Clear Vertical Markers
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={clearHorizontalLines}  // Clear horizontal lines
-              >
-                Clear Horizontal Markers
-              </Button>
+          <Button variant="contained" color="secondary" onClick={clearVerticalLines}>
+            Clear Vertical Markers
+          </Button>
+          <Button variant="contained" color="secondary" onClick={clearHorizontalLines}>
+            Clear Horizontal Markers
+          </Button>
         </Box>
+        {/* New section to display markers */}
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table aria-label="Markers Table">
+            <TableHead>
+              <TableRow>
+                <TableCell>Marker Type</TableCell>
+                <TableCell align="right">Value</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {markers.verticalLines.map((line, index) => (
+                <TableRow key={`vertical-${index}`}>
+                  <TableCell component="th" scope="row">
+                    Vertical Marker
+                  </TableCell>
+                  <TableCell align="right">{line.label}</TableCell>
+                </TableRow>
+              ))}
+              {markers.horizontalLines.map((line, index) => (
+                <TableRow key={`horizontal-${index}`}>
+                  <TableCell component="th" scope="row">
+                    Horizontal Marker
+                  </TableCell>
+                  <TableCell align="right">{line.label}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
       </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>General Classifications</Typography>

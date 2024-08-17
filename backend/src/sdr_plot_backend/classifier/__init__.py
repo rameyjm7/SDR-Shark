@@ -3,7 +3,7 @@ import json
 from sdr_plot_backend.classifier.Base import BaseSignalClassifier
 from sdr_plot_backend.classifier import FM, AM, Bluetooth, WiFi, LTE, FiveG, LoRaWAN, FRS, AeronauticalNavigation, AviationService
 from sdr_plot_backend.classifier import BroadbandRadioService, BroadcastTV, EarthExpSatellite, FederalPart15, MURS, NOAAWeather, UHF, PublicSafety
-                                            
+from sdr_plot_backend.classifier import F460_470MHz, AircraftRadio                
 
 class SignalClassifier:
     def __init__(self):
@@ -28,7 +28,9 @@ class SignalClassifier:
             MURS.MURSClassifier(),
             NOAAWeather.NOAAWeatherRadioClassifier(),
             UHF.UHFFrequenciesClassifier(),
-            PublicSafety.PublicSafetyClassifier()
+            PublicSafety.PublicSafetyClassifier(),
+            F460_470MHz.FourSixtyToFourSeventyMHzClassifier(),
+            AircraftRadio.AircraftRadioClassifier()
             
         ]
 

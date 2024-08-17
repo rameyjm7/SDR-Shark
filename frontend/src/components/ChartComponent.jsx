@@ -317,9 +317,16 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             mode: 'lines',
             marker: { color: 'orange' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
+            showlegend: false, // Hide this trace from the legend
           },
-          ...verticalLineTraces, // Add vertical lines to the plot
-          ...horizontalLineTraces, // Add horizontal lines to the plot
+          ...verticalLineTraces.map(trace => ({
+            ...trace,
+            showlegend: false, // Hide vertical lines from the legend
+          })),
+          ...horizontalLineTraces.map(trace => ({
+            ...trace,
+            showlegend: false, // Hide horizontal lines from the legend
+          })),
         ]}
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,
