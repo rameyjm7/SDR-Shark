@@ -343,6 +343,14 @@ const handleAddMarkers = (frequency, bandwidth) => {
           </Box>
         </>
       </Box>
+      <Box sx={{ height: 400, width: '100%', mt: 2 }}>
+        <Typography variant="h6" gutterBottom>Detected Peaks</Typography>
+        <DataGrid
+          rows={peakRows}
+          columns={peakColumns}
+          pageSize={5}
+        />
+      </Box>
       <Box sx={{ mt: 4 }}>
       <Typography variant="h6" gutterBottom>Signal Statistics</Typography>
       <TableContainer component={Paper} style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -454,14 +462,6 @@ const handleAddMarkers = (frequency, bandwidth) => {
           <MenuItem onClick={handleTuneToFreqBandwidth}>Tune to Freq, Bandwidth</MenuItem>
           <MenuItem onClick={handleAddVerticalLines}>Mark Signal Bounds</MenuItem> {/* New menu item */}
         </Menu>
-      </Box>
-      <Box sx={{ height: 400, width: '100%', mt: 2 }}>
-        <Typography variant="h6" gutterBottom>Detected Peaks</Typography>
-        <DataGrid
-          rows={peakRows}
-          columns={peakColumns}
-          pageSize={5}
-        />
       </Box>
     </Box>
   );
