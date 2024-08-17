@@ -299,3 +299,5 @@ def perform_and_refine_scan(sdr: SDRGeneric, wide_sample_rate: float, wide_fft_s
         refined_signals.append((peak_freq, max_power, refined_bandwidth_mhz))
 
     return refined_signals
+
+
