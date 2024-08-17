@@ -57,6 +57,7 @@ class sdr_scheduler_config:
         self.number_of_peaks = 5
         self.showFirstTrace = True
         self.showSecondTrace = False
+        self.minPeakDistance = 0.1 # MHz
         self.recordings_dir = f"{self.app_root}/datascience/recordings"
         self.classifiers_path = f"{self.app_root}/datascience/band_dictionaries/"
         self.lockBandwidthSampleRate = False  # Default setting for lock
@@ -166,6 +167,7 @@ class sdr_scheduler_config:
             "number_of_peaks": self.number_of_peaks,
             "recordings_dir": self.recordings_dir,
             "lockBandwidthSampleRate": self.lockBandwidthSampleRate,
+            "minPeakDistance": self.minPeakDistance,
             "radio_name": self.radio_name,
             "showFirstTrace": self.showFirstTrace,
             "showSecondTrace": self.showSecondTrace
@@ -174,45 +176,49 @@ class sdr_scheduler_config:
 
     def apply_settings(self, settings):
         """Apply settings from a dictionary with validation."""
-        self.sdr_name = settings.get("sdr", self.radio_name)
         
-        self.sdr_settings[self.sdr_name].frequency = settings.get("frequency", self.sdr_frequency())
-        self.sdr_settings[self.sdr_name].sampleRate = settings.get("sampleRate", self.sdr_sampleRate())
-        self.sdr_settings[self.sdr_name].bandwidth = settings.get("bandwidth", self.sdr_bandwidth())
-        self.sdr_settings[self.sdr_name].gain = settings.get("gain", self.sdr_gain())
-        self.sdr_settings[self.sdr_name].averagingCount = settings.get("averagingCount", self.sdr_averagingCount())
-        
-        self.sweep_settings = settings.get("sweep_settings", self.sweep_settings)
-        self.sweep_settings['frequency_start'] = settings.get("frequency_start", self.sweep_settings['frequency_start'])
-        self.sweep_settings['frequency_stop'] = settings.get("frequency_stop", self.sweep_settings['frequency_stop'])
-        self.sweeping_enabled = settings.get("sweeping_enabled", self.sweeping_enabled)
-        self.peak_threshold_minimum_dB = settings.get("peakThreshold", self.peak_threshold_minimum_dB)
-        self.dc_suppress = settings.get("dcSuppress", self.dc_suppress)
-        self.show_waterfall = settings.get("showWaterfall", self.show_waterfall)
-        self.waterfall_samples = settings.get("waterfallSamples", self.waterfall_samples)
-        self.number_of_peaks = settings.get("number_of_peaks", self.number_of_peaks)
-        self.recordings_dir = settings.get("recordings_dir", self.recordings_dir)
-        self.lockBandwidthSampleRate = settings.get("lockBandwidthSampleRate", self.lockBandwidthSampleRate)
-        self.showFirstTrace = settings.get("showFirstTrace", self.showFirstTrace)
-        self.showSecondTrace = settings.get("showSecondTrace", self.showSecondTrace)
-        self.radio_name = settings.get("radio_name", self.radio_name)
+        try:
+            self.sdr_settings[self.sdr_name].frequency = settings.get("frequency", self.sdr_frequency())
+            self.sdr_settings[self.sdr_name].sampleRate = settings.get("sampleRate", self.sdr_sampleRate())
+            self.sdr_settings[self.sdr_name].bandwidth = settings.get("bandwidth", self.sdr_bandwidth())
+            self.sdr_settings[self.sdr_name].gain = settings.get("gain", self.sdr_gain())
+            self.sdr_settings[self.sdr_name].averagingCount = settings.get("averagingCount", self.sdr_averagingCount())
+            
+            self.sweep_settings = settings.get("sweep_settings", self.sweep_settings)
+            self.sweep_settings['frequency_start'] = settings.get("frequency_start", self.sweep_settings['frequency_start'])
+            self.sweep_settings['frequency_stop'] = settings.get("frequency_stop", self.sweep_settings['frequency_stop'])
+            self.sweeping_enabled = settings.get("sweeping_enabled", self.sweeping_enabled)
+            self.peak_threshold_minimum_dB = settings.get("peakThreshold", self.peak_threshold_minimum_dB)
+            self.dc_suppress = settings.get("dcSuppress", self.dc_suppress)
+            self.show_waterfall = settings.get("showWaterfall", self.show_waterfall)
+            self.waterfall_samples = settings.get("waterfallSamples", self.waterfall_samples)
+            self.number_of_peaks = settings.get("number_of_peaks", self.number_of_peaks)
+            self.recordings_dir = settings.get("recordings_dir", self.recordings_dir)
+            self.lockBandwidthSampleRate = settings.get("lockBandwidthSampleRate", self.lockBandwidthSampleRate)
+            self.showFirstTrace = settings.get("showFirstTrace", self.showFirstTrace)
+            self.showSecondTrace = settings.get("showSecondTrace", self.showSecondTrace)
+            self.minPeakDistance = settings.get("minPeakDistance", self.minPeakDistance)
+            self.radio_name = settings.get("radio_name", self.radio_name)
 
-        # Validate the settings after applying them
-        self.validate_settings()
+            # Validate the settings after applying them
+            self.validate_settings()
 
 
-        if self.sdr_name in 'hackrf':
-            self.sdr1.set_frequency(self.sdr_frequency())
-            sr = self.sdr_sampleRate()
-            self.sdr1.set_sample_rate(20e6 if sr > 20e6 else sr)
-            self.sdr1.set_bandwidth(20e6 if sr > 20e6 else sr)
-            self.sdr1.set_gain(self.sdr_settings[self.sdr_name].gain)
-        else:
-            self.sdr0.set_frequency(self.sdr_settings[self.sdr_name].frequency)
-            sr = self.sdr_sampleRate()
-            self.sdr0.set_sample_rate(sr)
-            self.sdr0.set_bandwidth(sr)
-            self.sdr0.set_gain(self.sdr_gain())
+            if self.sdr_name in 'hackrf':
+                self.sdr1.set_frequency(self.sdr_frequency())
+                sr = self.sdr_sampleRate()
+                self.sdr1.set_sample_rate(20e6 if sr > 20e6 else sr)
+                self.sdr1.set_bandwidth(20e6 if sr > 20e6 else sr)
+                self.sdr1.set_gain(self.sdr_settings[self.sdr_name].gain)
+            else:
+                self.sdr0.set_frequency(self.sdr_settings[self.sdr_name].frequency)
+                sr = self.sdr_sampleRate()
+                self.sdr0.set_sample_rate(sr)
+                self.sdr0.set_bandwidth(sr)
+                self.sdr0.set_gain(self.sdr_gain())
+        except Exception as e:
+            print(e)
+            pass
 
     def sdr_gain(self):
         return self.sdr_settings[self.sdr_name].gain

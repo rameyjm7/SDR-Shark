@@ -144,12 +144,13 @@ def radio_scanner():
     detector.start_receiving_data()
     sdr_name = "sidekiq"
     while running:
+        minPeakDistance_index = int(vars.minPeakDistance * vars.sdr_sampleRate())
         detector.set_averaging(vars.sdr_settings[sdr_name].averagingCount)
         detected_peaks = detector.detect_signal_peaks(
             vars.sdr_frequency(),
             sample_rate=vars.sdr_sampleRate(),
             fft_size=nfft,  # wide_fft_size
-            min_peak_distance=80,
+            min_peak_distance=minPeakDistance_index,
             threshold_offset=vars.peak_threshold_minimum_dB
         )
         if detected_peaks:
