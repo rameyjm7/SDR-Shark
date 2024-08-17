@@ -35,16 +35,17 @@ class BluetoothLowEnergyClassifier(BaseSignalClassifier):
         matches = []
         signal_copy = {"label": self.label, "frequency": frequency_mhz, "bandwidth": bandwidth_mhz}
 
-        if frequency_mhz in [2402, 2426, 2480]:  # Advertising channels
-            channel = {2402: 37, 2426: 38, 2480: 39}.get(frequency_mhz)
-            signal_copy["channel"] = self.advertising_channels.get(channel, "Unknown Channel")
-        elif 2404 <= frequency_mhz <= 2478 and (frequency_mhz - 2404) % 2 == 0:  # Data channels
-            channel_offset = (frequency_mhz - 2404) // 2
-            signal_copy["channel"] = self.data_channels.get(channel_offset, "Unknown Channel")
-        else:
-            signal_copy["channel"] = "Unknown Channel"
-
-        matches.append(signal_copy)
+        if frequency_mhz > 2402 and frequency_mhz < 2484:
+            if frequency_mhz in [2402, 2426, 2480]:  # Advertising channels
+                channel = {2402: 37, 2426: 38, 2480: 39}.get(frequency_mhz)
+                signal_copy["channel"] = self.advertising_channels.get(channel, "Unknown Channel")
+            elif 2404 <= frequency_mhz <= 2478 and (frequency_mhz - 2404) % 2 == 0:  # Data channels
+                channel_offset = (frequency_mhz - 2404) // 2
+                signal_copy["channel"] = self.data_channels.get(channel_offset, "Unknown Channel")
+            else:
+                signal_copy["channel"] = "Unknown Channel"
+            matches.append(signal_copy)
+        
         return matches
 
     def get_signals_in_range(self, start_freq_mhz: float, end_freq_mhz: float) -> List[Dict[str, Any]]:
