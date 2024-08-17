@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-def process_fft_data(records, metadata):
+def process_fft_data(records, metadata, threshold_dB = 10):
     """
     Process FFT data to calculate noise floor, detect signals, and prepare signal information.
     Returns: 
@@ -18,7 +18,7 @@ def process_fft_data(records, metadata):
     all_fft_data = np.array([record['fft_magnitude'] for record in records])
     averaged_fft_data = np.mean(all_fft_data, axis=0)
     noise_floor = np.mean(np.sort(averaged_fft_data)[:int(len(averaged_fft_data) * 0.2)])  # Use the lowest 20% of FFT values
-    noise_riding_threshold = noise_floor + 10  # 10 dB above the noise floor
+    noise_riding_threshold = noise_floor + threshold_dB  # 10 dB above the noise floor
 
     # Set the plot ranges
     lower_plot_range = noise_floor - 20  # 20 dB below the noise floor

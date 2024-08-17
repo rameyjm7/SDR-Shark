@@ -2,12 +2,15 @@ from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import time
 from sdr_plot_backend.utils import vars
+from sdr_plot_backend.peak_detector import process_fft_data
 from sdrfly.sdr.sdr_generic import SDRGeneric
 import numpy as np
 import threading
+import pickle, os
+from datetime import datetime
 
 class PeakDetector:
-    def __init__(self, sdr: SDRGeneric, averaging_count=30, nfft=8*1024):
+    def __init__(self, sdr, averaging_count=30, nfft=8*1024):
         self.sdr = sdr
         self.averaging_count = averaging_count
         self.fft_results = []
@@ -15,30 +18,37 @@ class PeakDetector:
         self.n_fft = nfft
         self.running = False
         self.thread = None
+        self.processed_data = None  # To store the processed data
+        self.save_last_packet = True
 
     def start_receiving_data(self):
         self.running = True
-        self.thread = threading.Thread(target=self.receive_data)
+        self.thread = threading.Thread(target=self._receive_data)
         self.thread.start()
 
     def stop_receiving_data(self):
         self.running = False
         if self.thread:
             self.thread.join()
-    
-    def get_latest_data(self):
-        with self.fft_lock:
-            if not self.fft_results:
-                return []
-            # Average the FFT results
-            fft_magnitude_avg = np.mean(self.fft_results, axis=0)
-            fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
-        return fft_magnitude_db
+            
+    def _save_data_to_pickle(self, records, metadata):
+        data = {
+            "metadata": metadata,
+            "records": records
+        }
+        # Define the base file name
+        timestamp = datetime.now().strftime("%Y%m%d_%H")
+        label = metadata.get("label", "FFT")
+        file_name = f"{label}_{timestamp}.pkl"
+        file_path = os.path.join("/root/datascience/recordings/", file_name)
 
-    def receive_data(self, once=False):
+        with open(file_path, 'wb') as f:
+            pickle.dump(data, f)
+
+    def _receive_data(self, once=False):
         while self.running or once:
             iq_data = self.sdr.get_latest_samples()
-            fft_result = np.fft.fftshift(np.fft.fft(iq_data, self.n_fft))  # Assuming wide_fft_size is 1024 * 8
+            fft_result = np.fft.fftshift(np.fft.fft(iq_data, self.n_fft))
             fft_magnitude = np.abs(fft_result)
 
             with self.fft_lock:
@@ -48,73 +58,26 @@ class PeakDetector:
             if once:
                 break
 
-    def set_averaging(self, avgCount):
-        if avgCount != self.averaging_count:
-            self.fft_results = self.fft_results[(avgCount):]
-            self.averaging_count = avgCount
+            # Process the FFT data after receiving enough records
+            if len(self.fft_results) > self.averaging_count // 2:
+                with self.fft_lock:
+                    records = [{"fft_magnitude": result} for result in self.fft_results]
+                metadata = {
+                    "frequency": self.sdr.frequency,
+                    "sample_rate": self.sdr.sample_rate,
+                    "fft_averaging": self.averaging_count
+                }
+                self.processed_data = process_fft_data(records=records, metadata=metadata, 
+                                                       threshold_dB=vars.peak_threshold_minimum_dB)
+                            # Save the data to a pickle file
+                if self.save_last_packet:
+                    self._save_data_to_pickle(records, metadata)
 
-    def detect_signal_peaks(self, center_freq, sample_rate, fft_size, min_peak_distance=80, threshold_offset=3):
-        try:
-            with self.fft_lock:
-                if not self.fft_results:
-                    return []
+    def get_processed_data(self):
+        with self.fft_lock:
+            return self.processed_data if self.processed_data else {}
 
-                # Average the FFT results
-                fft_magnitude_avg = np.mean(self.fft_results, axis=0)
-                fft_magnitude_db = 20 * np.log10(fft_magnitude_avg)
 
-            # Calculate the noise floor and adaptive threshold
-            noise_floor = np.median(fft_magnitude_db)
-            adaptive_threshold = noise_floor + threshold_offset  # Adjust to make the threshold more sensitive
-
-            # Detect peaks and their bandwidths
-            above_threshold = np.where(fft_magnitude_db > adaptive_threshold)[0]
-
-            detected_peaks = []
-            if len(above_threshold) > 0:
-                left_idx = None
-                for i in range(1, len(above_threshold)):
-                    if left_idx is None:
-                        left_idx = above_threshold[i-1]
-
-                    if above_threshold[i] - above_threshold[i-1] > min_peak_distance:  # Merge close peaks
-                        right_idx = above_threshold[i-1]
-                        peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
-                        peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
-                        signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
-                        signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
-                        bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
-
-                        # Add detected peak information
-                        detected_peaks.append({
-                            'frequency': peak_freq,  # Convert MHz to Hz
-                            'power': fft_magnitude_db[peak_idx],  # Use the power directly
-                            'bandwidth': bandwidth_mhz  # Convert MHz to Hz
-                        })
-
-                        left_idx = above_threshold[i]
-
-                # For the last segment
-                if left_idx is not None:
-                    right_idx = above_threshold[-1]
-                    peak_idx = left_idx + np.argmax(fft_magnitude_db[left_idx:right_idx+1])
-                    peak_freq = center_freq - (sample_rate/2) + (peak_idx/fft_size) * sample_rate
-                    signal_start_freq = center_freq - (sample_rate/2) + (left_idx/fft_size) * sample_rate
-                    signal_stop_freq = center_freq - (sample_rate/2) + (right_idx/fft_size) * sample_rate
-                    bandwidth_mhz = (signal_stop_freq - signal_start_freq) / 1e6
-
-                    # Add detected peak information
-                    detected_peaks.append({
-                        'frequency': peak_freq,  
-                        'power': fft_magnitude_db[peak_idx],  # Use the power directly
-                        'bandwidth': bandwidth_mhz 
-                    })
-
-            return detected_peaks
-
-        except Exception as e:
-            print(f"Error in peak detection: {e}")
-            return []
 
 def detect_signal_peaks_freq_power(fft_magnitude_db, center_freq, sample_rate, fft_size, min_peak_distance=10, threshold_offset=1):
     """

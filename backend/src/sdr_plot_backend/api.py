@@ -140,27 +140,26 @@ def generate_fft_data():
 
 def radio_scanner():
     nfft = 8*1024
-    detector = PeakDetector(sdr=vars.sdr0,averaging_count=30,nfft=nfft)
+    detector = PeakDetector(sdr=vars.sdr0, averaging_count=30, nfft=nfft)
     detector.start_receiving_data()
     sdr_name = "sidekiq"
+    
     while running:
         minPeakDistance_index = int(vars.minPeakDistance * vars.sdr_sampleRate()/1e6)
-        detector.set_averaging(vars.sdr_settings[sdr_name].averagingCount)
-        detected_peaks = detector.detect_signal_peaks(
-            vars.sdr_frequency(),
-            sample_rate=vars.sdr_sampleRate(),
-            fft_size=nfft,  # wide_fft_size
-            min_peak_distance=minPeakDistance_index,
-            threshold_offset=vars.peak_threshold_minimum_dB
-        )
-        if detected_peaks:
-            with data_lock:
-                fft_data['original_fft2'] = detector.get_latest_data()
-                fft_data['peaks'] = detected_peaks
-                fft_array = np.array(fft_data['original_fft2'])
-                waterfall_buffer2.append(downsample(fft_array).tolist())
+        # Simulate continuous running until stopped
+        time.sleep(1)  # Adjust based on how frequently you want to process data
+
+        # Process the peaks
+        with data_lock:
+            processed_data = detector.get_processed_data()
+            if processed_data:
+                freq, fft_magnitude, noise_riding_threshold, signals, plot_ranges, freq_bound_left, freq_bound_right = processed_data
+                fft_data['original_fft2'] = fft_magnitude.tolist()  # Store the FFT data
+                fft_data['peaks'] = signals  # Store the detected peaks
+                waterfall_buffer2.append(downsample(np.array(fft_magnitude)).tolist())
+    
     detector.stop_receiving_data()
-         
+
 fft_thread = threading.Thread(target=generate_fft_data)
 scanner_thread = threading.Thread(target=radio_scanner)
 fft_thread.start()
@@ -184,8 +183,11 @@ def get_data():
         # Dynamically add an index or remove if not needed
         peaks_response = [{
             'index': idx,  # Dynamically generate index
-            'frequency': float(peak['frequency']),
-            'power': float(peak['power']),
+            'frequency': float(peak['center_freq']),
+            'avg_power': float(peak['avg_power']),
+            'peak_power': float(peak['peak_power']),
+            'start_freq': float(peak['start_freq']),
+            'end_freq': float(peak['end_freq']),
             'bandwidth': float(peak.get('bandwidth', 0.0))  # Handle missing 'bandwidth' key
         } for idx, peak in enumerate(fft_data['peaks'])]
 
@@ -217,45 +219,50 @@ def get_data():
 
     return jsonify(response)
 
+
 @api_blueprint.route('/api/analytics')
 def get_analytics():
     num_digits = 3
     payload = {}
     with data_lock:
-        
         # General classifications based on the current SDR frequency and bandwidth
-        general_classifications = []
         current_frequency = vars.sdr_frequency() / 1e6  # Convert to MHz
         current_bandwidth = vars.sdr_bandwidth() / 1e6  # Convert to MHz
         classifications = vars.classifier.get_signals_in_range(current_frequency, current_bandwidth)
-        classifications_list = classifications
-        payload['classifications'] = classifications_list
+        payload['classifications'] = classifications
         payload['signal_stats'] = vars.signal_stats
         
-        # Peak classifications
-        peaks_response = fft_data['peaks'].copy()
-        fft_response = np.array(fft_data['original_fft'], dtype=float)
-        peaks_data = []
+        # Use the processed peaks data from radio_scanner
+        peaks_data = list(fft_data['peaks'])  # Retrieve peaks data
+        peaks_response = []
 
-        for peak in peaks_response:
-            freq = round(float(peak['frequency']), num_digits)  # Convert to MHz and round
-            power = float(peak['power'])
-            bandwidth = round(float(peak.get('bandwidth', 0.0)), num_digits)  # Convert to MHz and round 
+        for peak in peaks_data:
+            freq = round(float(peak['center_freq'] + vars.sdr_frequency()/1e6), num_digits)
+            freq_start = round(float(peak['start_freq'] + vars.sdr_frequency()/1e6), num_digits)
+            freq_end = round(float(peak['end_freq'] + vars.sdr_frequency()/1e6), num_digits)
+            peak_power = float(peak['peak_power'])
+            bandwidth = round(float(peak.get('bandwidth', 0.0)), num_digits)
+            avg_power = float(peak.get('avg_power', 0.0))
 
             # Classify the signal
             classifications = vars.classifier.classify_signal(freq, bandwidth)
             classifications_list = [{"label": c['label'], "channel": c.get('channel', 'N/A')} for c in classifications]
 
-            peaks_data.append({
-                'peak': f'Peak {peaks_response.index(peak) + 1}',  # Generate peak index based on position
+            peaks_response.append({
+                'peak': f'Peak {peaks_data.index(peak) + 1}',
                 'frequency': freq,
-                'power': power,
+                'freq_start': freq_start,
+                'freq_end': freq_end,
+                'peak_power': peak_power,
+                'avg_power': avg_power,
                 'bandwidth': bandwidth,
                 'classification': classifications_list,
             })
-            payload['peaks'] = peaks_data
+
+        payload['peaks'] = peaks_response
     
     return jsonify(payload)
+
 
 @api_blueprint.route('/api/signal_detection', methods=['POST'])
 def signal_detection():
@@ -270,72 +277,72 @@ def signal_detection():
     if not horizontal_lines:
         horizontal_lines = [vars.signal_stats['noise_floor']]
     
-    # Assume vertical_lines are in MHz and horizontal_lines are in dB
+    # # Assume vertical_lines are in MHz and horizontal_lines are in dB
 
-    # Convert vertical line positions to FFT indexes (assuming some relationship between frequency and FFT bin)
-    x_start = min(vertical_lines) * 1024
-    x_end = max(vertical_lines) * 1024
+    # # Convert vertical line positions to FFT indexes (assuming some relationship between frequency and FFT bin)
+    # x_start = min(vertical_lines) * 1024
+    # x_end = max(vertical_lines) * 1024
 
-    # Convert horizontal line positions to amplitude bounds (assuming some dB to amplitude conversion)
-    y_start = horizontal_lines[0]  # Lower bound in dB
-    y_end = horizontal_lines[1] if len(horizontal_lines) > 1 else max(y_start, y_start + 1)  # Upper bound
+    # # Convert horizontal line positions to amplitude bounds (assuming some dB to amplitude conversion)
+    # y_start = horizontal_lines[0]  # Lower bound in dB
+    # y_end = horizontal_lines[1] if len(horizontal_lines) > 1 else max(y_start, y_start + 1)  # Upper bound
 
-    selected_data = []
+    # selected_data = []
 
-    with data_lock:
-        # Assuming `waterfall_buffer` contains rows of FFT data and 'y' indexes represent different time slices
-        for i in range(len(waterfall_buffer)):
-            row = waterfall_buffer[i]
-            selected_row = row[int(x_start):int(x_end) + 1]
-            if all(y_start <= value <= y_end for value in selected_row):
-                selected_data.append(selected_row)
+    # with data_lock:
+    #     # Assuming `waterfall_buffer` contains rows of FFT data and 'y' indexes represent different time slices
+    #     for i in range(len(waterfall_buffer)):
+    #         row = waterfall_buffer[i]
+    #         selected_row = row[int(x_start):int(x_end) + 1]
+    #         if all(y_start <= value <= y_end for value in selected_row):
+    #             selected_data.append(selected_row)
 
-    if not selected_data:
-        return jsonify({"error": "No data found within the specified markers"}), 400
+    # if not selected_data:
+    #     return jsonify({"error": "No data found within the specified markers"}), 400
 
-    # Convert selected data to 16-bit signed integer format (assuming the FFT data is float)
-    iq_data = []
-    for row in selected_data:
-        for value in row:
-            # Scale and clip the value within the int16 range
-            iq_value = int(np.clip(value * 32767, -32768, 32767))
-            iq_data.append(iq_value)
+    # # Convert selected data to 16-bit signed integer format (assuming the FFT data is float)
+    # iq_data = []
+    # for row in selected_data:
+    #     for value in row:
+    #         # Scale and clip the value within the int16 range
+    #         iq_value = int(np.clip(value * 32767, -32768, 32767))
+    #         iq_data.append(iq_value)
 
-    # Define the base file name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    base_filename = f'{filename}_{timestamp}'
+    # # Define the base file name
+    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # base_filename = f'{filename}_{timestamp}'
 
-    # Save the IQ data in 16T binary format
-    iq_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.iq')
+    # # Save the IQ data in 16T binary format
+    # iq_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.iq')
     
-    with open(iq_file_path, 'wb') as iq_file:
-        iq_file.write(np.array(iq_data, dtype=np.int16).tobytes())
+    # with open(iq_file_path, 'wb') as iq_file:
+    #     iq_file.write(np.array(iq_data, dtype=np.int16).tobytes())
 
-    # Save the original selected data in JSON format
-    json_data_file_path = os.path.join(vars.recordings_dir, f'{base_filename}_data.json')
-    with open(json_data_file_path, 'w') as json_data_file:
-        json.dump(selected_data, json_data_file, indent=4)
+    # # Save the original selected data in JSON format
+    # json_data_file_path = os.path.join(vars.recordings_dir, f'{base_filename}_data.json')
+    # with open(json_data_file_path, 'w') as json_data_file:
+    #     json.dump(selected_data, json_data_file, indent=4)
 
-    # Gather SDR settings
-    sdr_settings = {
-        "frequency": vars.sdr_settings[vars.sdr_name].frequency,
-        "bandwidth": vars.sdr_settings[vars.sdr_name].bandwidth,
-        "sample_rate": vars.sdr_settings[vars.sdr_name].sampleRate,
-        "gain": vars.sdr_settings[vars.sdr_name].gain,
-        "sdr": vars.sdr_name,
-        "timestamp": timestamp
-    }
+    # # Gather SDR settings
+    # sdr_settings = {
+    #     "frequency": vars.sdr_settings[vars.sdr_name].frequency,
+    #     "bandwidth": vars.sdr_settings[vars.sdr_name].bandwidth,
+    #     "sample_rate": vars.sdr_settings[vars.sdr_name].sampleRate,
+    #     "gain": vars.sdr_settings[vars.sdr_name].gain,
+    #     "sdr": vars.sdr_name,
+    #     "timestamp": timestamp
+    # }
 
-    # Save SDR settings to a JSON file
-    json_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.json')
-    with open(json_file_path, 'w') as json_file:
-        json.dump(sdr_settings, json_file, indent=4)
+    # # Save SDR settings to a JSON file
+    # json_file_path = os.path.join(vars.recordings_dir, f'{base_filename}.json')
+    # with open(json_file_path, 'w') as json_file:
+    #     json.dump(sdr_settings, json_file, indent=4)
 
     return jsonify({
         "message": "Signal detection data saved successfully",
-        "iq_file_path": iq_file_path,
-        "json_file_path": json_file_path,
-        "json_data_file_path": json_data_file_path
+        # "iq_file_path": iq_file_path,
+        # "json_file_path": json_file_path,
+        # "json_data_file_path": json_data_file_path
     })
 
 
