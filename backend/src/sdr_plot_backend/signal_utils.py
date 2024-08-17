@@ -53,25 +53,26 @@ class PeakDetector:
 
             with self.fft_lock:
                 self.fft_results.append(fft_magnitude)
-                if len(self.fft_results) > self.averaging_count:
+                if len(self.fft_results) > vars.sdr_averagingCount():
                     self.fft_results.pop(0)
             if once:
                 break
 
             # Process the FFT data after receiving enough records
-            if len(self.fft_results) > self.averaging_count // 2:
+            if len(self.fft_results) > vars.sdr_averagingCount() // 2:
                 with self.fft_lock:
                     records = [{"fft_magnitude": result} for result in self.fft_results]
                 metadata = {
                     "frequency": self.sdr.frequency,
                     "sample_rate": self.sdr.sample_rate,
-                    "fft_averaging": self.averaging_count
+                    "fft_averaging": vars.sdr_averagingCount()
                 }
                 self.processed_data = process_fft_data(records=records, metadata=metadata, 
                                                        threshold_dB=vars.peak_threshold_minimum_dB)
                             # Save the data to a pickle file
                 if self.save_last_packet:
-                    self._save_data_to_pickle(records, metadata)
+                    if self.processed_data:
+                        self._save_data_to_pickle(records, metadata)
 
     def get_processed_data(self):
         with self.fft_lock:

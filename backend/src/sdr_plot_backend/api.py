@@ -24,6 +24,7 @@ data_lock = threading.Lock()
 fft_data = {
     'original_fft': [],
     'original_fft2': [],
+    'max' : [],
     'peaks': [],
 }
 running = True
@@ -55,6 +56,7 @@ def generate_fft_data():
     full_fft = []
     sdr_name = "sidekiq"
     current_freq = vars.sweep_settings['frequency_start']
+    fft_max = None
     while running:
         start_time = time.time()
         capture_samples()
@@ -66,6 +68,11 @@ def generate_fft_data():
 
         # Normalize infinity values
         current_fft = np.where(np.isinf(current_fft), -20, current_fft)
+        
+        if fft_max is None:
+            fft_max = current_fft
+        else:
+            fft_max = np.maximum(fft_max,current_fft)
 
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
@@ -132,15 +139,14 @@ def generate_fft_data():
             else:
                 vars.signal_stats['signal_detected'] = 0
             
-            
-            
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
+                fft_data['max'] = fft_max.tolist()
                 waterfall_buffer.append(downsample(current_fft).tolist())
 
 def radio_scanner():
     nfft = 8*1024
-    detector = PeakDetector(sdr=vars.sdr0, averaging_count=30, nfft=nfft)
+    detector = PeakDetector(sdr=vars.sdr0, averaging_count=vars.sdr_averagingCount(), nfft=nfft)
     detector.start_receiving_data()
     sdr_name = "sidekiq"
     
@@ -175,6 +181,7 @@ def get_data():
             
         else:
             fft_response = [float(x) for x in fft_data['original_fft']]
+            fft_max_response = [float(x) for x in fft_data['max']]
             waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
             
             
@@ -196,6 +203,7 @@ def get_data():
 
     response = {
         'fft': fft_response,
+        'max': fft_max_response,
         'peaks': peaks_response,
         'waterfall': waterfall_response,
         'time': current_time,
@@ -441,6 +449,7 @@ def get_settings():
         'peakThreshold' : vars.peak_threshold_minimum_dB,
         'showFirstTrace': vars.showFirstTrace,
         'showSecondTrace': vars.showSecondTrace,
+        'showMaxTrace': vars.showMaxTrace,
         'lockBandwidthSampleRate': vars.lockBandwidthSampleRate,
         'signal_stats' : vars.signal_stats
     }

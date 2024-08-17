@@ -5,6 +5,7 @@ import '../App.css';
 
 const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, verticalLines, horizontalLines }) => {
   const [fftData, setFftData] = useState([]);
+  const [fftMaxData, setFftMaxData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
   const [peaks, setPeaks] = useState([]);
@@ -42,6 +43,8 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
         setFftData(sanitizedFftData);
+        const sanitizedMaxFftData = data.max.map(value => isNaN(value) ? -255 : value);
+        setFftMaxData(sanitizedMaxFftData);
 
         // Replace NaN values in Waterfall data
         const sanitizedWaterfallData = data.waterfall.map(row =>
@@ -209,28 +212,27 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     console.log(`Vertical lines to be added: ${JSON.stringify(verticalLines)}`);
   }, [verticalLines]);
 
+  // Initialize horizontalLineTraces before usage
+  let horizontalLineTraces = [];
 
-    // Initialize horizontalLineTraces before usage
-    let horizontalLineTraces = [];
+  if (horizontalLines && horizontalLines.length > 0) {
+    horizontalLineTraces = horizontalLines.map(({ power }) => {
+      const lineColor = 'rgb(255, 0, 0)'; // Red color for horizontal lines
+      return {
+        x: [baseFreq, baseFreq + freqStep * (fftData.length - 1)], // Span the entire frequency range
+        y: [power, power],           // Fixed power level for both y points
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: lineColor, width: 2 },
+        hoverinfo: 'y',             // Show power on hover
+        name: `${power.toFixed(2)} dB`, // Label for the legend
+      };
+    });
+  }
 
-    if (horizontalLines && horizontalLines.length > 0) {
-      horizontalLineTraces = horizontalLines.map(({ power }) => {
-        const lineColor = 'rgb(255, 0, 0)'; // Red color for horizontal lines
-        return {
-          x: [baseFreq, baseFreq + freqStep * (fftData.length - 1)], // Span the entire frequency range
-          y: [power, power],           // Fixed power level for both y points
-          type: 'scatter',
-          mode: 'lines',
-          line: { color: lineColor, width: 2 },
-          hoverinfo: 'y',             // Show power on hover
-          name: `${power.toFixed(2)} dB`, // Label for the legend
-        };
-      });
-    }
-  
-    useEffect(() => {
-      console.log(`Horizontal lines to be added: ${JSON.stringify(horizontalLines)}`);
-    }, [horizontalLines]);
+  useEffect(() => {
+    console.log(`Horizontal lines to be added: ${JSON.stringify(horizontalLines)}`);
+  }, [horizontalLines]);
 
   // this is called when a selection is made, allowing us to get the coordinates and send it to the backend to extract that waterfall
   const handleRelayout = (eventData) => {
@@ -302,7 +304,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             console.error('Initial save error:', error);
         });
     }
-};
+  };
 
   return (
     <div>
@@ -319,6 +321,18 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
             showlegend: false, // Hide this trace from the legend
           },
+          settings.showMaxTrace && {  // Conditionally add the Max FFT trace
+            x: Array.isArray(fftMaxData) ? fftMaxData.map((_, index) => {
+              return (baseFreq + index * freqStep).toFixed(2);
+            }) : [],
+            y: Array.isArray(fftMaxData) ? fftMaxData : [],
+            type: 'scatter',
+            mode: 'lines',
+            marker: { color: 'green' },
+            line: { shape: 'spline', width: 1 }, // Thinner trace lines
+            showlegend: true, // Show this trace in the legend
+            name: 'Max FFT Data', // Label for the legend
+          },
           ...verticalLineTraces.map(trace => ({
             ...trace,
             showlegend: false, // Hide vertical lines from the legend
@@ -327,7 +341,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             ...trace,
             showlegend: false, // Hide horizontal lines from the legend
           })),
-        ]}
+        ].filter(Boolean)} // Filter out false/null traces
         layout={{
           title: `Spectrum Viewer (Time: ${time}) (Freq: ${(currentFrequency / 1e6).toFixed(2)})`,
           xaxis: {

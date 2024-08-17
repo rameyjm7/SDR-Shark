@@ -15,6 +15,7 @@ const PlotSettings = ({
   const averagingCount = settings.averagingCount || 10;
   const numTicks = settings.numTicks || 5;
   const dcSuppress = settings.dcSuppress || false;
+  const showMaxTrace = settings.showMaxTrace || false;
 
   const [lockYAxisRange, setLockYAxisRange] = useState(true); // Locked by default
 
@@ -30,6 +31,13 @@ const PlotSettings = ({
     if (lockYAxisRange) {
       setMinY(value - 60); // Ensure the difference stays the same
     }
+  };
+
+  const handleCheckboxChange = (e) => {
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      [e.target.name]: e.target.checked,
+    }));
   };
 
   return (
@@ -86,6 +94,19 @@ const PlotSettings = ({
         />
       </Box>
 
+      {/* Checkbox for enabling/disabling Max Trace */}
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showMaxTrace}
+            onChange={handleCheckboxChange}
+            name="showMaxTrace"
+            color="primary"
+          />
+        }
+        label="Show Max Trace"
+      />
+
       {/* Y Axis Limits Sub-Panel */}
       <Box
         sx={{
@@ -111,7 +132,7 @@ const PlotSettings = ({
 
         <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
           <Box sx={{ flex: 1, mr: 2 }}>
-          <Typography gutterBottom>Min Y-Axis Range: {minY.toFixed(2)} dB</Typography>
+            <Typography gutterBottom>Min Y-Axis Range: {minY.toFixed(2)} dB</Typography>
             <Slider
               min={-60}
               max={0}
