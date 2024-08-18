@@ -26,6 +26,7 @@ fft_data = {
     'original_fft2': [],
     'max' : [],
     'peaks': [],
+    'persist': []
 }
 running = True
 
@@ -57,6 +58,7 @@ def generate_fft_data():
     sdr_name = "sidekiq"
     current_freq = vars.sweep_settings['frequency_start']
     fft_max = None
+    fft_persist_data = []
     while running:
         start_time = time.time()
         capture_samples()
@@ -73,6 +75,18 @@ def generate_fft_data():
             fft_max = current_fft
         else:
             fft_max = np.maximum(fft_max,current_fft)
+            
+        if fft_persist_data is None:
+            fft_persist_data= [current_fft]
+        else:
+            fft_persist_data.append(current_fft)
+            if len(fft_persist_data) > vars.sdr_averagingCount():
+                fft_persist_data.pop(0)
+            # Stack the samples into a 2D array (20 x 1024)
+            stacked_samples = np.vstack(fft_persist_data)
+            # Get the maximum values across the 20 sets for each sample point
+            fft_data['persist'] = np.max(stacked_samples, axis=0)
+        
 
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
@@ -94,7 +108,6 @@ def generate_fft_data():
                 noise_floor = np.mean(noise_floor_data)
                 vars.signal_stats["noise_floor"] = round(float(noise_floor),3)
                 vars.signal_stats["max"] = round(float(np.max(sorted_fft)),3)
-                
                 
                 downsampled_fft_avg = downsample(averaged_fft, len(current_fft))  # Downsample to match the normal FFT size
                 downsampled_fft = downsample(current_fft, len(current_fft))       # Downsample to match the normal FFT size
@@ -142,6 +155,7 @@ def generate_fft_data():
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
                 fft_data['max'] = fft_max.tolist()
+                fft_data['persistance'] = fft_data['persist'].tolist()
                 waterfall_buffer.append(downsample(current_fft).tolist())
 
 def radio_scanner():
@@ -182,6 +196,7 @@ def get_data():
         else:
             fft_response = [float(x) for x in fft_data['original_fft']]
             fft_max_response = [float(x) for x in fft_data['max']]
+            persistance_response = [float(x) for x in fft_data['persist']]
             waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
             
             
@@ -205,6 +220,7 @@ def get_data():
         'fft': fft_response,
         'max': fft_max_response,
         'peaks': peaks_response,
+        'persistance': persistance_response,
         'waterfall': waterfall_response,
         'time': current_time,
         'settings': vars.get_settings()
@@ -450,6 +466,7 @@ def get_settings():
         'showFirstTrace': vars.showFirstTrace,
         'showSecondTrace': vars.showSecondTrace,
         'showMaxTrace': vars.showMaxTrace,
+        'showPeristanceTrace': vars.showPeristanceTrace,
         'lockBandwidthSampleRate': vars.lockBandwidthSampleRate,
         'signal_stats' : vars.signal_stats
     }

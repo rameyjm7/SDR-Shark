@@ -16,6 +16,7 @@ const PlotSettings = ({
   const numTicks = settings.numTicks || 5;
   const dcSuppress = settings.dcSuppress || false;
   const showMaxTrace = settings.showMaxTrace || false;
+  const showPersistanceTrace = settings.showPersistanceTrace || false; // Corrected the spelling
 
   const [lockYAxisRange, setLockYAxisRange] = useState(true); // Locked by default
 
@@ -34,6 +35,7 @@ const PlotSettings = ({
   };
 
   const handleCheckboxChange = (e) => {
+    console.log(e.target.name);
     setSettings(prevSettings => ({
       ...prevSettings,
       [e.target.name]: e.target.checked,
@@ -105,6 +107,19 @@ const PlotSettings = ({
           />
         }
         label="Show Max Trace"
+      />
+
+      {/* Checkbox for enabling/disabling Persistance Trace */}
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showPersistanceTrace} // Corrected the spelling
+            onChange={handleCheckboxChange}
+            name="showPersistanceTrace" // Corrected the spelling
+            color="primary"
+          />
+        }
+        label="Show Persistance Trace"
       />
 
       {/* Y Axis Limits Sub-Panel */}

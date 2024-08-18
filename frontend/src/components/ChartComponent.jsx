@@ -6,6 +6,7 @@ import '../App.css';
 const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY, updateInterval, waterfallSamples, showWaterfall, plotWidth, verticalLines, horizontalLines }) => {
   const [fftData, setFftData] = useState([]);
   const [fftMaxData, setFftMaxData] = useState([]);
+  const [persistanceData, setPersistanceData] = useState([]);
   const [waterfallData, setWaterfallData] = useState([]);
   const [time, setTime] = useState('');
   const [peaks, setPeaks] = useState([]);
@@ -39,13 +40,13 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
       try {
         const response = await axios.get('/api/data');
         const data = response.data;
-
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
         setFftData(sanitizedFftData);
         const sanitizedMaxFftData = data.max.map(value => isNaN(value) ? -255 : value);
         setFftMaxData(sanitizedMaxFftData);
-
+        const sanitizedPersistanceData = data.persistance.map(value => isNaN(value) ? -255 : value);
+        setPersistanceData(data.persistance);
         // Replace NaN values in Waterfall data
         const sanitizedWaterfallData = data.waterfall.map(row =>
           row.map(value => isNaN(value) ? -255 : value)
@@ -332,6 +333,18 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
             showlegend: true, // Show this trace in the legend
             name: 'Max FFT Data', // Label for the legend
+          },
+          settings.showPersistanceTrace && {  // Conditionally add the Max FFT trace
+            x: Array.isArray(persistanceData) ? persistanceData.map((_, index) => {
+              return (baseFreq + index * freqStep).toFixed(2);
+            }) : [],
+            y: Array.isArray(persistanceData) ? persistanceData : [],
+            type: 'scatter',
+            mode: 'lines',
+            marker: { color: 'blue' },
+            line: { shape: 'spline', width: 1 }, // Thinner trace lines
+            showlegend: true, // Show this trace in the legend
+            name: 'Persistance FFT Data', // Label for the legend
           },
           ...verticalLineTraces.map(trace => ({
             ...trace,

@@ -58,6 +58,7 @@ class sdr_scheduler_config:
         self.showFirstTrace = True
         self.showSecondTrace = False
         self.showMaxTrace = True
+        self.showPeristanceTrace = True
         self.minPeakDistance = 0.1 # MHz
         self.recordings_dir = f"{self.app_root}/datascience/recordings"
         self.classifiers_path = f"{self.app_root}/datascience/band_dictionaries/"
@@ -172,7 +173,8 @@ class sdr_scheduler_config:
             "radio_name": self.radio_name,
             "showFirstTrace": self.showFirstTrace,
             "showSecondTrace": self.showSecondTrace,
-            "showMaxTrace" : self.showMaxTrace
+            "showMaxTrace" : self.showMaxTrace,
+            'showPeristanceTrace': self.showPeristanceTrace
         }
         return settings
 
@@ -200,6 +202,7 @@ class sdr_scheduler_config:
             self.showFirstTrace = settings.get("showFirstTrace", self.showFirstTrace)
             self.showSecondTrace = settings.get("showSecondTrace", self.showSecondTrace)
             self.showMaxTrace = settings.get("showMaxTrace", self.showMaxTrace)
+            self.showPeristanceTrace = settings.get("showPeristanceTrace", self.showPeristanceTrace)
             self.minPeakDistance = settings.get("minPeakDistance", self.minPeakDistance)
             self.radio_name = settings.get("radio_name", self.radio_name)
 
