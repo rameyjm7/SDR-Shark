@@ -86,7 +86,6 @@ def generate_fft_data():
             stacked_samples = np.vstack(fft_persist_data)
             # Get the maximum values across the 20 sets for each sample point
             fft_data['persist'] = np.max(stacked_samples, axis=0)
-        
 
         if vars.sweeping_enabled:
             # Append the current FFT to the full FFT for the sweep
@@ -155,7 +154,7 @@ def generate_fft_data():
             with data_lock:
                 fft_data['original_fft'] = full_fft.tolist()
                 fft_data['max'] = fft_max.tolist()
-                fft_data['persistance'] = fft_data['persist'].tolist()
+                fft_data['persistance'] = [] # fft_data['persist'].tolist()
                 waterfall_buffer.append(downsample(current_fft).tolist())
 
 def radio_scanner():
@@ -185,6 +184,17 @@ scanner_thread = threading.Thread(target=radio_scanner)
 fft_thread.start()
 scanner_thread.start()
 
+@api_blueprint.route('/api/data_ext')
+def get_data_ext():
+    fft_max_response = [float(x) for x in fft_data['max']]
+    persistance_response = [float(x) for x in fft_data['persist']]
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    response = {
+        'max': fft_max_response,
+        'persistance': persistance_response,
+        'time': current_time
+    }
+    return jsonify(response)
 
 @api_blueprint.route('/api/data')
 def get_data():
@@ -195,8 +205,6 @@ def get_data():
             
         else:
             fft_response = [float(x) for x in fft_data['original_fft']]
-            fft_max_response = [float(x) for x in fft_data['max']]
-            persistance_response = [float(x) for x in fft_data['persist']]
             waterfall_response = [[float(y) for y in x] for x in waterfall_buffer]
             
             
@@ -218,9 +226,7 @@ def get_data():
 
     response = {
         'fft': fft_response,
-        'max': fft_max_response,
         'peaks': peaks_response,
-        'persistance': persistance_response,
         'waterfall': waterfall_response,
         'time': current_time,
         'settings': vars.get_settings()

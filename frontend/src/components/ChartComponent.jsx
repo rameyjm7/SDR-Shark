@@ -43,10 +43,6 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
         // Replace NaN values in FFT data
         const sanitizedFftData = data.fft.map(value => isNaN(value) ? -255 : value);
         setFftData(sanitizedFftData);
-        const sanitizedMaxFftData = data.max.map(value => isNaN(value) ? -255 : value);
-        setFftMaxData(sanitizedMaxFftData);
-        const sanitizedPersistanceData = data.persistance.map(value => isNaN(value) ? -255 : value);
-        setPersistanceData(data.persistance);
         // Replace NaN values in Waterfall data
         const sanitizedWaterfallData = data.waterfall.map(row =>
           row.map(value => isNaN(value) ? -255 : value)
@@ -76,6 +72,26 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
     const interval = setInterval(fetchData, updateInterval);
     return () => clearInterval(interval);
   }, [updateInterval, waterfallSamples, setSweepSettings, settings.frequency, settings.sampleRate]);
+
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('/api/data_ext');
+        const data = response.data;
+        // Replace NaN values in FFT data
+        const sanitizedMaxFftData = data.max.map(value => isNaN(value) ? -255 : value);
+        setFftMaxData(sanitizedMaxFftData);
+        const sanitizedPersistanceData = data.persistance.map(value => isNaN(value) ? -255 : value);
+        setPersistanceData(data.persistance);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    const interval = setInterval(fetchData, updateInterval);
+    return () => clearInterval(interval);
+  }, [updateInterval, settings.frequency, settings.sampleRate]);
 
   useEffect(() => {
     const fetchPeaks = async () => {
@@ -331,7 +347,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             mode: 'lines',
             marker: { color: 'green' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
-            showlegend: true, // Show this trace in the legend
+            showlegend: false, // Show this trace in the legend
             name: 'Max FFT Data', // Label for the legend
           },
           settings.showPersistanceTrace && {  // Conditionally add the Max FFT trace
@@ -343,7 +359,7 @@ const ChartComponent = ({ settings, sweepSettings, setSweepSettings, minY, maxY,
             mode: 'lines',
             marker: { color: 'blue' },
             line: { shape: 'spline', width: 1 }, // Thinner trace lines
-            showlegend: true, // Show this trace in the legend
+            showlegend: false, // Show this trace in the legend
             name: 'Persistance FFT Data', // Label for the legend
           },
           ...verticalLineTraces.map(trace => ({
