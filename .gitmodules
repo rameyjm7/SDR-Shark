@@ -1,3 +1,6 @@
 [submodule "sdrfly"]
 	path = sdrfly
 	url = https://github.com/rameyjm7/sdrfly.git
+[submodule "ML-wireless-signal-classification"]
+	path = ML-wireless-signal-classification
+	url = git@github.com:rameyjm7/SDR-Shark.git
